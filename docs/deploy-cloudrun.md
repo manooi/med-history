@@ -118,16 +118,16 @@ Create the workload identity pool and an OIDC provider trusting GitHub's token i
 ```bash
 export PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format='value(projectNumber)')
 
-gcloud iam workload-identity-pools create github \
+gcloud iam workload-identity-pools create github-pool \
   --location=global \
-  --display-name="GitHub Actions"
+  --display-name="GitHub Actions Pool"
 
-gcloud iam workload-identity-pools providers create-oidc github \
+gcloud iam workload-identity-pools providers create-oidc github-provider \
   --location=global \
-  --workload-identity-pool=github \
+  --workload-identity-pool=github-pool \
   --display-name="GitHub Actions provider" \
   --issuer-uri="https://token.actions.githubusercontent.com" \
-  --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository" \
+  --attribute-mapping="google.subject=assertion.sub,attribute.actor=assertion.actor,attribute.repository=assertion.repository" \
   --attribute-condition="assertion.repository == '${GH_REPO}'"
 ```
 
@@ -139,7 +139,7 @@ Grant that repo's identity permission to impersonate the deploy SA:
 ```bash
 gcloud iam service-accounts add-iam-policy-binding $DEPLOY_SA_EMAIL \
   --role="roles/iam.workloadIdentityUser" \
-  --member="principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/github/attribute.repository/${GH_REPO}"
+  --member="principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/github-pool/attribute.repository/${GH_REPO}"
 ```
 
 ## 5. First manual deploy (before CI exists)
@@ -171,7 +171,7 @@ variables → Actions → Variables tab), not secrets.
 
 | Value | Source | Example |
 |---|---|---|
-| `GCP_WIF_PROVIDER` variable | full provider resource name from §4 | `projects/123456789012/locations/global/workloadIdentityPools/github/providers/github` |
+| `GCP_WIF_PROVIDER` variable | full provider resource name from §4 | `projects/123456789012/locations/global/workloadIdentityPools/github-pool/providers/github-provider` |
 | `GCP_DEPLOY_SA` variable | `$DEPLOY_SA_EMAIL` | `medhistory-deployer@medhistory.iam.gserviceaccount.com` |
 | `GCP_PROJECT_ID` variable | `$PROJECT_ID` | `medhistory` |
 | Runtime SA (for `--service-account` on deploy) | `$RUN_SA` | `medhistory-run@medhistory.iam.gserviceaccount.com` |

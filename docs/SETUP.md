@@ -74,20 +74,20 @@ gcloud iam service-accounts add-iam-policy-binding $RUN_SA --member=serviceAccou
 
 # WIF (keyless CI auth)
 export PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format='value(projectNumber)')
-gcloud iam workload-identity-pools create github --location=global
-gcloud iam workload-identity-pools providers create-oidc github \
-  --location=global --workload-identity-pool=github \
+gcloud iam workload-identity-pools create github-pool --location=global
+gcloud iam workload-identity-pools providers create-oidc github-provider \
+  --location=global --workload-identity-pool=github-pool \
   --issuer-uri=https://token.actions.githubusercontent.com \
-  --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository" \
+  --attribute-mapping="google.subject=assertion.sub,attribute.actor=assertion.actor,attribute.repository=assertion.repository" \
   --attribute-condition="assertion.repository == '${GH_REPO}'"
 gcloud iam service-accounts add-iam-policy-binding $DEPLOY_SA \
   --role=roles/iam.workloadIdentityUser \
-  --member="principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/github/attribute.repository/${GH_REPO}"
+  --member="principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/github-pool/attribute.repository/${GH_REPO}"
 
 # GitHub repo VARIABLES (not secrets) — must exist BEFORE first push to main
 gh variable set GCP_PROJECT_ID  --body "$PROJECT_ID"
 gh variable set GCP_DEPLOY_SA   --body "$DEPLOY_SA"
-gh variable set GCP_WIF_PROVIDER --body "projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/github/providers/github"
+gh variable set GCP_WIF_PROVIDER --body "projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/github-pool/providers/github-provider"
 
 git push origin main    # triggers .github/workflows/deploy.yml
 ```
