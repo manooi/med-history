@@ -12,10 +12,12 @@ namespace MedHistory.Controllers;
 public class AccountController : Controller
 {
     private readonly IConfiguration _configuration;
+    private readonly ILogger<AccountController> _logger;
 
-    public AccountController(IConfiguration configuration)
+    public AccountController(IConfiguration configuration, ILogger<AccountController> logger)
     {
         _configuration = configuration;
+        _logger = logger;
     }
 
     [AllowAnonymous]
@@ -34,6 +36,7 @@ public class AccountController : Controller
 
         if (string.IsNullOrEmpty(configuredPassword))
         {
+            _logger.LogWarning("Login rejected: no Auth:Password is configured");
             ModelState.AddModelError(string.Empty, "Password not configured.");
             return RedisplayLogin(model);
         }
@@ -51,6 +54,9 @@ public class AccountController : Controller
 
         if (!isValid)
         {
+            // The submitted password never reaches the log, here or anywhere.
+            _logger.LogWarning("Login failed: incorrect password from {RemoteAddress}",
+                HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown");
             ModelState.AddModelError(string.Empty, "Incorrect password.");
             return RedisplayLogin(model);
         }
@@ -60,6 +66,8 @@ public class AccountController : Controller
             CookieAuthenticationDefaults.AuthenticationScheme);
 
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+
+        _logger.LogInformation("Login succeeded");
 
         if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
         {
@@ -74,6 +82,9 @@ public class AccountController : Controller
     public async Task<IActionResult> Logout()
     {
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+        _logger.LogInformation("Logout");
+
         return Redirect("/login");
     }
 

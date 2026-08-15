@@ -13,6 +13,10 @@ public class AppDbContext : DbContext
 
     public DbSet<Photo> Photos => Set<Photo>();
 
+    // Mapped so migrations own the schema; rows are inserted by DbLoggerProvider
+    // over a separate connection, never through this context.
+    public DbSet<LogEntry> Logs => Set<LogEntry>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -41,6 +45,18 @@ public class AppDbContext : DbContext
                 .WithMany(e => e.Photos)
                 .HasForeignKey(p => p.EntryId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<LogEntry>(log =>
+        {
+            log.ToTable("Logs");
+
+            log.Property(l => l.Level).HasMaxLength(LogEntry.LevelMaxLength).IsRequired();
+            log.Property(l => l.Category).HasMaxLength(LogEntry.CategoryMaxLength).IsRequired();
+            log.Property(l => l.Message).IsRequired();
+            log.Property(l => l.RequestPath).HasMaxLength(LogEntry.RequestPathMaxLength);
+
+            log.HasIndex(l => l.Timestamp);
         });
     }
 }

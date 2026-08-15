@@ -9,10 +9,12 @@ namespace MedHistory.Controllers;
 public class EntriesController : Controller
 {
     private readonly AppDbContext _db;
+    private readonly ILogger<EntriesController> _logger;
 
-    public EntriesController(AppDbContext db)
+    public EntriesController(AppDbContext db, ILogger<EntriesController> logger)
     {
         _db = db;
+        _logger = logger;
     }
 
     [HttpGet("/entries/new")]
@@ -58,6 +60,10 @@ public class EntriesController : Controller
 
         _db.Entries.Add(entry);
         await _db.SaveChangesAsync();
+
+        // Ids and types only — notes and photo bytes stay out of the log.
+        _logger.LogInformation("Entry {EntryId} created, type {EntryType}", entry.Id, entry.Type);
+        LogPhotosAttached(entry.Id, photos);
 
         return RedirectToDay(AppTime.DayOf(entry.OccurredAt));
     }
@@ -112,6 +118,9 @@ public class EntriesController : Controller
         await AttachPhotos(entry, photos);
         await _db.SaveChangesAsync();
 
+        _logger.LogInformation("Entry {EntryId} updated, type {EntryType}", entry.Id, entry.Type);
+        LogPhotosAttached(entry.Id, photos);
+
         return RedirectToDay(AppTime.DayOf(entry.OccurredAt));
     }
 
@@ -128,8 +137,11 @@ public class EntriesController : Controller
 
         // Photos go with it — the FK is ON DELETE CASCADE.
         var day = AppTime.DayOf(entry.OccurredAt);
+        var type = entry.Type;
         _db.Entries.Remove(entry);
         await _db.SaveChangesAsync();
+
+        _logger.LogInformation("Entry {EntryId} deleted, type {EntryType}", id, type);
 
         return RedirectToDay(day);
     }
@@ -155,6 +167,14 @@ public class EntriesController : Controller
         entry.Note = Trimmed(form.Note);
         entry.Severity = EntryRules.RequiresSeverity(entry.Type) ? form.Severity : null;
         entry.PillName = EntryRules.RequiresPillName(entry.Type) ? Trimmed(form.PillName) : null;
+    }
+
+    private void LogPhotosAttached(int entryId, List<IFormFile>? photos)
+    {
+        if (photos is { Count: > 0 })
+        {
+            _logger.LogInformation("Entry {EntryId} gained {PhotoCount} photo(s)", entryId, photos.Count);
+        }
     }
 
     private static string? Trimmed(string? value) =>

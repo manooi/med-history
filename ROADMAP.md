@@ -13,6 +13,7 @@ Epic: `med-history-4ei` — personal medical history web app. Plan: [`plans/epic
 - [x] 7. History view (`med-history-4ei.7`)
 - [x] 8. xUnit pure-logic tests (`med-history-4ei.8`)
 - [x] 9. dotenv support — `.env.example`, DotNetEnv (`med-history-4ei.9`)
+- [x] 9b. DB logger — Logs table, DbLogger provider, app events (`med-history-4ei.14`)
 
 ## v2 — Cloud Run (`med-history-nvs`, plan: [`plans/epic-cloudrun.md`](./plans/epic-cloudrun.md))
 

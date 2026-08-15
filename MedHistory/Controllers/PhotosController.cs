@@ -7,10 +7,12 @@ namespace MedHistory.Controllers;
 public class PhotosController : Controller
 {
     private readonly AppDbContext _db;
+    private readonly ILogger<PhotosController> _logger;
 
-    public PhotosController(AppDbContext db)
+    public PhotosController(AppDbContext db, ILogger<PhotosController> logger)
     {
         _db = db;
+        _logger = logger;
     }
 
     // The only place in the app allowed to select Photo.Data.
@@ -25,6 +27,7 @@ public class PhotosController : Controller
 
         if (photo is null)
         {
+            _logger.LogWarning("Photo {PhotoId} requested but not found", id);
             return NotFound();
         }
 
@@ -47,6 +50,8 @@ public class PhotosController : Controller
         }
 
         await _db.Photos.Where(p => p.Id == id).ExecuteDeleteAsync();
+
+        _logger.LogInformation("Photo {PhotoId} deleted from entry {EntryId}", id, entryId);
 
         return RedirectToAction(nameof(EntriesController.Edit), "Entries", new { id = entryId });
     }
