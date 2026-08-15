@@ -45,46 +45,78 @@ public class MedsController : Controller
         string? name,
         string[]? slots,
         MealRelation mealRelation = MealRelation.None,
-        MedMethod method = MedMethod.Eat)
+        MedMethod method = MedMethod.Eat,
+        string? from = null,
+        string? to = null)
     {
         if (!AppTime.TryParseDay(date, out var day))
         {
             return RedirectToAction(nameof(DayController.Index), "Day");
         }
 
+        // The range defaults to the page's own day — a single-day add is the degenerate case
+        // of a one-day range, not a separate code path.
+        if (!AppTime.TryParseDay(from, out var rangeFrom))
+        {
+            rangeFrom = day;
+        }
+
+        if (!AppTime.TryParseDay(to, out var rangeTo))
+        {
+            rangeTo = rangeFrom;
+        }
+
         // The checkboxes post slot names; names that are not slots are dropped, which
         // ValidateNewAllocation then sees as the empty set it rejects.
         var chosen = MedPlanRules.ParseSlots(slots ?? []);
-        var existingNames = await AllocationNames(day);
 
-        foreach (var error in ChecklistRules.ValidateNewAllocation(name, chosen, existingNames))
+        // A day within the range that already holds this name is skipped, not rejected — so
+        // no "already on this day" check here; ValidateNewAllocation still owns the name and
+        // slot rules that apply regardless of which days end up allocated.
+        foreach (var error in ChecklistRules.ValidateNewAllocation(name, chosen, []))
+        {
+            ModelState.AddModelError(string.Empty, error);
+        }
+
+        foreach (var error in ChecklistRules.ValidateRange(rangeFrom, rangeTo))
         {
             ModelState.AddModelError(string.Empty, error);
         }
 
         if (!ModelState.IsValid)
         {
-            return View("Index", await BuildModel(day, name, chosen, mealRelation, method));
+            return View("Index", await BuildModel(day, name, chosen, mealRelation, method, rangeFrom, rangeTo));
         }
 
         // Non-null: ValidateNewAllocation rejects a name that normalises away.
-        var allocation = new MedAllocation
-        {
-            Day = day,
-            Name = ChecklistRules.NormalizeName(name)!,
-            Slots = chosen,
-            MealRelation = mealRelation,
-            Method = method
-        };
+        var normalizedName = ChecklistRules.NormalizeName(name)!;
+        var candidateDays = ChecklistRules.ExpandRange(rangeFrom, rangeTo);
+        var existingByDay = await AllocationNamesByDay(rangeFrom, rangeTo);
+        var targetDays = ChecklistRules.DaysToAllocate(candidateDays, normalizedName, existingByDay);
 
-        _db.MedAllocations.Add(allocation);
-        await _db.SaveChangesAsync();
+        foreach (var target in targetDays)
+        {
+            _db.MedAllocations.Add(new MedAllocation
+            {
+                Day = target,
+                Name = normalizedName,
+                Slots = chosen,
+                MealRelation = mealRelation,
+                Method = method
+            });
+        }
+
+        if (targetDays.Count > 0)
+        {
+            await _db.SaveChangesAsync();
+        }
 
         // Ids and structure only — a medication name is health data and stays out of the log,
         // the same way entry notes do.
         _logger.LogInformation(
-            "Allocation {AllocationId} added for {Day}, slots {Slots}",
-            allocation.Id, AppTime.Key(day), MedPlanRules.FormatSlots(allocation.Slots));
+            "Allocation added for {Count} of {Candidates} day(s) in {From}..{To}, slots {Slots}",
+            targetDays.Count, candidateDays.Count, AppTime.Key(rangeFrom), AppTime.Key(rangeTo),
+            MedPlanRules.FormatSlots(chosen));
 
         return RedirectToDay(day);
     }
@@ -154,7 +186,9 @@ public class MedsController : Controller
         string? newMedName = null,
         MedSlots newMedSlots = MedSlots.None,
         MealRelation newMedMealRelation = MealRelation.None,
-        MedMethod newMedMethod = MedMethod.Eat)
+        MedMethod newMedMethod = MedMethod.Eat,
+        DateOnly? newMedFrom = null,
+        DateOnly? newMedTo = null)
     {
         var allocations = await _db.MedAllocations
             .AsNoTracking()
@@ -176,12 +210,31 @@ public class MedsController : Controller
             NewMedName = newMedName,
             NewMedSlots = newMedSlots,
             NewMedMealRelation = newMedMealRelation,
-            NewMedMethod = newMedMethod
+            NewMedMethod = newMedMethod,
+            // Un-set only when the GET view builds the form fresh; a rejected submit always
+            // passes both through explicitly, echoing back exactly what was typed.
+            NewMedFrom = newMedFrom ?? day,
+            NewMedTo = newMedTo ?? day
         };
     }
 
     private async Task<List<string>> AllocationNames(DateOnly day) =>
         await _db.MedAllocations.AsNoTracking().Where(a => a.Day == day).Select(a => a.Name).ToListAsync();
+
+    /// <summary>Every allocation name on each day in [from, to], inclusive — for range skip-checks.</summary>
+    private async Task<IReadOnlyDictionary<DateOnly, IReadOnlyList<string>>> AllocationNamesByDay(
+        DateOnly from, DateOnly to)
+    {
+        var rows = await _db.MedAllocations
+            .AsNoTracking()
+            .Where(a => a.Day >= from && a.Day <= to)
+            .Select(a => new { a.Day, a.Name })
+            .ToListAsync();
+
+        return rows
+            .GroupBy(r => r.Day)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<string>)g.Select(r => r.Name).ToList());
+    }
 
     private IActionResult RedirectToDay(DateOnly day) =>
         RedirectToAction(nameof(Index), new { date = AppTime.Key(day) });

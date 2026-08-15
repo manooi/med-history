@@ -25,6 +25,12 @@ public class MedsViewModel
     public MealRelation NewMedMealRelation { get; init; }
 
     public MedMethod NewMedMethod { get; init; }
+
+    /// <summary>Bulk-add range start. Defaults to the page's day — a single-day add.</summary>
+    public required DateOnly NewMedFrom { get; init; }
+
+    /// <summary>Bulk-add range end. Defaults to the page's day, i.e. the same single day.</summary>
+    public required DateOnly NewMedTo { get; init; }
 }
 
 public class MedAllocationRow

@@ -73,6 +73,21 @@
                class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black" />
     </div>
 
+    <div class="mt-4 flex flex-wrap gap-2">
+        <div class="min-w-0 flex-1">
+            <label for="med-from" class="block text-xs uppercase tracking-wide text-neutral-500">From</label>
+            <input type="date" id="med-from" name="from" value="@AppTime.Key(Model.NewMedFrom)"
+                   class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black" />
+        </div>
+        <div class="min-w-0 flex-1">
+            <label for="med-to" class="block text-xs uppercase tracking-wide text-neutral-500">To</label>
+            <input type="date" id="med-to" name="to" value="@AppTime.Key(Model.NewMedTo)"
+                   class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black" />
+        </div>
+    </div>
+    @* Same day in both fields (the default) is a single-day add — this is not a separate form. *@
+    <p class="mt-1 text-xs text-neutral-500">Adds to every day in range; days that already have this medication are skipped.</p>
+
     <fieldset class="mt-4">
         <legend class="text-xs uppercase tracking-wide text-neutral-500">Times of day</legend>
         <div class="mt-1 flex flex-wrap gap-2">

@@ -163,6 +163,127 @@ public class ChecklistRulesTests
         Assert.Equal(2, errors.Count);
     }
 
+    // ---- ValidateRange ----
+
+    [Fact]
+    public void ValidateRange_SingleDay_NoErrors()
+    {
+        Assert.Empty(ChecklistRules.ValidateRange(Day, Day));
+    }
+
+    [Fact]
+    public void ValidateRange_ToBeforeFrom_ReturnsError()
+    {
+        Assert.Contains(
+            ChecklistRules.ValidateRange(Day, Day.AddDays(-1)),
+            e => e.Contains("on or after"));
+    }
+
+    [Fact]
+    public void ValidateRange_ExactlyMaxDays_NoErrors()
+    {
+        var to = Day.AddDays(ChecklistRules.MaxRangeDays - 1);
+
+        Assert.Equal(ChecklistRules.MaxRangeDays, ChecklistRules.RangeLength(Day, to));
+        Assert.Empty(ChecklistRules.ValidateRange(Day, to));
+    }
+
+    [Fact]
+    public void ValidateRange_OneDayOverMax_ReturnsError()
+    {
+        var to = Day.AddDays(ChecklistRules.MaxRangeDays);
+
+        Assert.Equal(ChecklistRules.MaxRangeDays + 1, ChecklistRules.RangeLength(Day, to));
+        Assert.Contains(ChecklistRules.ValidateRange(Day, to), e => e.Contains("Range too long"));
+    }
+
+    // ---- ExpandRange ----
+
+    [Fact]
+    public void ExpandRange_SingleDay_ReturnsThatOneDay()
+    {
+        Assert.Equal([Day], ChecklistRules.ExpandRange(Day, Day));
+    }
+
+    [Fact]
+    public void ExpandRange_MultiDay_ReturnsEveryDayInOrder()
+    {
+        Assert.Equal(
+            [Day, Day.AddDays(1), Day.AddDays(2)],
+            ChecklistRules.ExpandRange(Day, Day.AddDays(2)));
+    }
+
+    [Fact]
+    public void ExpandRange_ToBeforeFrom_ReturnsEmpty()
+    {
+        // Validation rejects this range; expansion just refuses to loop backwards.
+        Assert.Empty(ChecklistRules.ExpandRange(Day, Day.AddDays(-1)));
+    }
+
+    [Fact]
+    public void ExpandRange_SpansALeapDay_IncludesIt()
+    {
+        var from = new DateOnly(2028, 2, 28);
+        var to = new DateOnly(2028, 3, 1);
+
+        Assert.Equal(
+            [new DateOnly(2028, 2, 28), new DateOnly(2028, 2, 29), new DateOnly(2028, 3, 1)],
+            ChecklistRules.ExpandRange(from, to));
+    }
+
+    // ---- DaysToAllocate ----
+
+    [Fact]
+    public void DaysToAllocate_NothingExisting_KeepsEveryDay()
+    {
+        var days = ChecklistRules.ExpandRange(Day, Day.AddDays(2));
+
+        Assert.Equal(days, ChecklistRules.DaysToAllocate(days, "Pill A", new Dictionary<DateOnly, IReadOnlyList<string>>()));
+    }
+
+    [Fact]
+    public void DaysToAllocate_SomeDaysAlreadyHaveTheName_SkipsOnlyThose()
+    {
+        var days = ChecklistRules.ExpandRange(Day, Day.AddDays(2));
+        var existing = new Dictionary<DateOnly, IReadOnlyList<string>>
+        {
+            [Day.AddDays(1)] = ["Pill A"]
+        };
+
+        Assert.Equal([Day, Day.AddDays(2)], ChecklistRules.DaysToAllocate(days, "Pill A", existing));
+    }
+
+    [Fact]
+    public void DaysToAllocate_MatchesExistingNameIgnoringCaseAndPadding()
+    {
+        var days = ChecklistRules.ExpandRange(Day, Day);
+        var existing = new Dictionary<DateOnly, IReadOnlyList<string>> { [Day] = ["  pill a  "] };
+
+        Assert.Empty(ChecklistRules.DaysToAllocate(days, "Pill A", existing));
+    }
+
+    [Fact]
+    public void DaysToAllocate_EveryDayAlreadyHasTheName_ReturnsEmpty_NotAnError()
+    {
+        var days = ChecklistRules.ExpandRange(Day, Day.AddDays(1));
+        var existing = new Dictionary<DateOnly, IReadOnlyList<string>>
+        {
+            [Day] = ["Pill A"],
+            [Day.AddDays(1)] = ["Pill A"]
+        };
+
+        Assert.Empty(ChecklistRules.DaysToAllocate(days, "Pill A", existing));
+    }
+
+    [Fact]
+    public void DaysToAllocate_ExistingNamesOnDay_OtherNamesDoNotBlockIt()
+    {
+        var days = ChecklistRules.ExpandRange(Day, Day);
+        var existing = new Dictionary<DateOnly, IReadOnlyList<string>> { [Day] = ["Eyedrop L"] };
+
+        Assert.Equal([Day], ChecklistRules.DaysToAllocate(days, "Pill A", existing));
+    }
+
     // ---- DeriveRows ----
 
     [Fact]

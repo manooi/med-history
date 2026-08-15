@@ -57,6 +57,13 @@ public static class ChecklistRules
     public const int NameMaxLength = MedAllocation.NameMaxLength;
 
     /// <summary>
+    /// Longest bulk-add range, inclusive of both ends. A guard against a typo'd year, not a
+    /// meaningful ceiling — a year plus a day is generous for "add this to every day for a
+    /// while".
+    /// </summary>
+    public const int MaxRangeDays = 366;
+
+    /// <summary>
     /// Trims surrounding whitespace; returns null when nothing is left. Stored names are
     /// always this normalised form.
     /// </summary>
@@ -107,6 +114,61 @@ public static class ChecklistRules
 
         return errors;
     }
+
+    /// <summary>
+    /// Returns one message per broken rule for a bulk-add date range; an empty list means the
+    /// range may be expanded. Name and slot rules are still <see cref="ValidateNewAllocation"/>'s
+    /// job — this only judges the range itself. A day that already holds the medication is not
+    /// a validation error either: <see cref="DaysToAllocate"/> skips it instead of rejecting the
+    /// whole range.
+    /// </summary>
+    public static IReadOnlyList<string> ValidateRange(DateOnly from, DateOnly to)
+    {
+        if (to < from)
+        {
+            return ["End date must be on or after the start date."];
+        }
+
+        return RangeLength(from, to) > MaxRangeDays
+            ? [$"Range too long (max {MaxRangeDays} days)."]
+            : [];
+    }
+
+    /// <summary>Days spanned by [from, to], inclusive of both ends.</summary>
+    public static int RangeLength(DateOnly from, DateOnly to) => to.DayNumber - from.DayNumber + 1;
+
+    /// <summary>
+    /// Every calendar day in [from, to], inclusive, in day order. Callers validate the range
+    /// first via <see cref="ValidateRange"/>; given <paramref name="to"/> before
+    /// <paramref name="from"/> this returns empty rather than looping backwards.
+    /// </summary>
+    public static IReadOnlyList<DateOnly> ExpandRange(DateOnly from, DateOnly to)
+    {
+        var days = new List<DateOnly>();
+
+        for (var day = from; day <= to; day = day.AddDays(1))
+        {
+            days.Add(day);
+        }
+
+        return days;
+    }
+
+    /// <summary>
+    /// The days from <paramref name="days"/> that do not already hold an allocation with this
+    /// name — matched the same way <see cref="NamesMatch"/> matches everywhere else a
+    /// medication name is compared. A day absent from <paramref name="existingNamesByDay"/> is
+    /// treated as holding nothing yet. When every day is already taken this returns empty,
+    /// which the caller treats as "nothing to add", not an error.
+    /// </summary>
+    public static IReadOnlyList<DateOnly> DaysToAllocate(
+        IEnumerable<DateOnly> days,
+        string name,
+        IReadOnlyDictionary<DateOnly, IReadOnlyList<string>> existingNamesByDay) =>
+        days
+            .Where(day => !existingNamesByDay.TryGetValue(day, out var names)
+                || !names.Any(existing => NamesMatch(existing, name)))
+            .ToList();
 
     /// <summary>
     /// Builds one row per allocation, in the order given, each with one state per slot.
