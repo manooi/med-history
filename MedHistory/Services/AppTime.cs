@@ -31,6 +31,10 @@ public static class AppTime
     public static (DateTimeOffset Start, DateTimeOffset End) DayRange(DateOnly day) =>
         EntryRules.LocalDayRange(day, OffsetFor(day));
 
+    /// <summary>Instant a checklist tick is logged at — see <see cref="ChecklistRules.TickTime"/>.</summary>
+    public static DateTimeOffset TickTime(DateOnly day) =>
+        ChecklistRules.TickTime(day, Today(), DateTimeOffset.UtcNow, OffsetFor(day));
+
     public static bool TryParseDay(string? value, out DateOnly day) =>
         DateOnly.TryParseExact(value, DayFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out day);
 

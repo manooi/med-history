@@ -17,6 +17,10 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
     // rather than a code change.
     public DbSet<EntryTypeDef> EntryTypes => Set<EntryTypeDef>();
 
+    // Per-day medication checklist. Rows carry no link to Entries: progress is derived by
+    // matching the medication name against the day's Pill entries — see ChecklistRules.
+    public DbSet<MedAllocation> MedAllocations => Set<MedAllocation>();
+
     public DbSet<Photo> Photos => Set<Photo>();
 
     // Mapped so migrations own the schema; rows are inserted by DbLoggerProvider
@@ -56,6 +60,16 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
             // Names are unique case-insensitively, enforced by a unique index on
             // lower("Name") created in the AddEntryTypes migration: EF's model builder
             // has no API for an expression index, so it cannot live here.
+        });
+
+        modelBuilder.Entity<MedAllocation>(allocation =>
+        {
+            allocation.ToTable("MedAllocations");
+
+            allocation.Property(a => a.Name).HasMaxLength(MedAllocation.NameMaxLength).IsRequired();
+
+            // Every read is "the allocations of one day".
+            allocation.HasIndex(a => a.Day);
         });
 
         modelBuilder.Entity<Photo>(photo =>
