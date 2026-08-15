@@ -1,0 +1,8 @@
+@import "tailwindcss";
+@source "../Views/**/*.cshtml";
+
+@layer base {
+  body {
+    @apply bg-white text-black;
+  }
+}

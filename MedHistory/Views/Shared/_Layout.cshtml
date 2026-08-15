@@ -6,8 +6,20 @@
     <title>@ViewData["Title"] - MedHistory</title>
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
-<body>
-    @RenderBody()
+<body class="bg-white text-black">
+    <nav class="border-b border-black">
+        <div class="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
+            <a href="/" class="font-semibold">med-history</a>
+            <div class="flex items-center gap-4 text-sm">
+                <a href="/" class="hover:underline">Today</a>
+                <a href="/history" class="hover:underline">History</a>
+                <a href="/logout" class="hover:underline">Logout</a>
+            </div>
+        </div>
+    </nav>
+    <main class="max-w-2xl mx-auto px-4 py-6">
+        @RenderBody()
+    </main>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
