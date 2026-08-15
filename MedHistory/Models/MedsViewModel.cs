@@ -3,9 +3,9 @@ using MedHistory.Services;
 namespace MedHistory.Models;
 
 /// <summary>
-/// The med maintenance page for one day: the plan (what's allocated and how many times),
-/// not the day's progress against it — that stays on the day view, derived the same way
-/// as ever via <see cref="ChecklistRules.DeriveProgress"/>.
+/// The med maintenance page for one day: the plan — what is allocated, when in the day, and
+/// how it is taken — not the day's progress against it. Progress stays on the day view,
+/// derived from the entries the ticks created via <see cref="ChecklistRules.DeriveRows"/>.
 /// </summary>
 public class MedsViewModel
 {
@@ -20,7 +20,11 @@ public class MedsViewModel
     /// <summary>Repopulates the add-medication form when a submit was rejected.</summary>
     public string? NewMedName { get; init; }
 
-    public int NewMedRequiredCount { get; init; } = ChecklistRules.MinRequiredCount;
+    public MedSlots NewMedSlots { get; init; }
+
+    public MealRelation NewMedMealRelation { get; init; }
+
+    public MedMethod NewMedMethod { get; init; }
 }
 
 public class MedAllocationRow
@@ -29,5 +33,9 @@ public class MedAllocationRow
 
     public required string Name { get; init; }
 
-    public required int RequiredCount { get; init; }
+    /// <summary>Slot labels in day order — one per expected dose.</summary>
+    public required IReadOnlyList<string> SlotLabels { get; init; }
+
+    /// <summary>"after meal · eyedrop", or empty when the allocation says nothing beyond its slots.</summary>
+    public required string Description { get; init; }
 }

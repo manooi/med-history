@@ -8,9 +8,13 @@ namespace MedHistory.Controllers;
 
 /// <summary>
 /// Maintains one day's medication plan — adding, removing and copying allocations forward
-/// from the previous day. Ticking a dose off stays on the day view (see
+/// from the previous day. Ticking a slot off stays on the day view (see
 /// <see cref="DayController"/>): this controller only ever changes what's planned, never a
 /// logged dose.
+///
+/// There is no edit action. A plan is four small fields, so changing one is removing the row
+/// and adding it again — which the delete already makes safe, since the doses logged against
+/// an allocation outlive it.
 /// </summary>
 public class MedsController : Controller
 {
@@ -36,23 +40,31 @@ public class MedsController : Controller
 
     [HttpPost("/day/{date}/meds")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddAllocation(string date, string? name, int requiredCount = ChecklistRules.MinRequiredCount)
+    public async Task<IActionResult> AddAllocation(
+        string date,
+        string? name,
+        string[]? slots,
+        MealRelation mealRelation = MealRelation.None,
+        MedMethod method = MedMethod.Eat)
     {
         if (!AppTime.TryParseDay(date, out var day))
         {
             return RedirectToAction(nameof(DayController.Index), "Day");
         }
 
+        // The checkboxes post slot names; names that are not slots are dropped, which
+        // ValidateNewAllocation then sees as the empty set it rejects.
+        var chosen = MedPlanRules.ParseSlots(slots ?? []);
         var existingNames = await AllocationNames(day);
 
-        foreach (var error in ChecklistRules.ValidateNewAllocation(name, requiredCount, existingNames))
+        foreach (var error in ChecklistRules.ValidateNewAllocation(name, chosen, existingNames))
         {
             ModelState.AddModelError(string.Empty, error);
         }
 
         if (!ModelState.IsValid)
         {
-            return View("Index", await BuildModel(day, name, requiredCount));
+            return View("Index", await BuildModel(day, name, chosen, mealRelation, method));
         }
 
         // Non-null: ValidateNewAllocation rejects a name that normalises away.
@@ -60,17 +72,19 @@ public class MedsController : Controller
         {
             Day = day,
             Name = ChecklistRules.NormalizeName(name)!,
-            RequiredCount = requiredCount
+            Slots = chosen,
+            MealRelation = mealRelation,
+            Method = method
         };
 
         _db.MedAllocations.Add(allocation);
         await _db.SaveChangesAsync();
 
-        // Ids and counts only — a medication name is health data and stays out of the log,
+        // Ids and structure only — a medication name is health data and stays out of the log,
         // the same way entry notes do.
         _logger.LogInformation(
-            "Allocation {AllocationId} added for {Day}, {RequiredCount} per day",
-            allocation.Id, AppTime.Key(day), allocation.RequiredCount);
+            "Allocation {AllocationId} added for {Day}, slots {Slots}",
+            allocation.Id, AppTime.Key(day), MedPlanRules.FormatSlots(allocation.Slots));
 
         return RedirectToDay(day);
     }
@@ -88,14 +102,17 @@ public class MedsController : Controller
         var source = await _db.MedAllocations.AsNoTracking().Where(a => a.Day == previous).OrderBy(a => a.Id).ToListAsync();
         var copied = ChecklistRules.AllocationsToCopy(source, await AllocationNames(day));
 
-        // Allocations only: the copies start at 0/N however much of the previous day was ticked.
+        // The plan only, in full: the copies carry the same slots, meal relation and method, and
+        // start with nothing ticked however much of the previous day was.
         foreach (var allocation in copied)
         {
             _db.MedAllocations.Add(new MedAllocation
             {
                 Day = day,
                 Name = allocation.Name,
-                RequiredCount = allocation.RequiredCount
+                Slots = allocation.Slots,
+                MealRelation = allocation.MealRelation,
+                Method = allocation.Method
             });
         }
 
@@ -132,7 +149,12 @@ public class MedsController : Controller
         return RedirectToDay(day);
     }
 
-    private async Task<MedsViewModel> BuildModel(DateOnly day, string? newMedName = null, int? newMedRequiredCount = null)
+    private async Task<MedsViewModel> BuildModel(
+        DateOnly day,
+        string? newMedName = null,
+        MedSlots newMedSlots = MedSlots.None,
+        MealRelation newMedMealRelation = MealRelation.None,
+        MedMethod newMedMethod = MedMethod.Eat)
     {
         var allocations = await _db.MedAllocations
             .AsNoTracking()
@@ -147,11 +169,14 @@ public class MedsController : Controller
             {
                 Id = a.Id,
                 Name = a.Name,
-                RequiredCount = a.RequiredCount
+                SlotLabels = MedPlanRules.Each(a.Slots).Select(MedPlanRules.SlotLabel).ToList(),
+                Description = MedPlanRules.DescribeAllocation(a.MealRelation, a.Method)
             }).ToList(),
             CanCopyPreviousDay = await _db.MedAllocations.AnyAsync(a => a.Day == day.AddDays(-1)),
             NewMedName = newMedName,
-            NewMedRequiredCount = newMedRequiredCount ?? ChecklistRules.MinRequiredCount
+            NewMedSlots = newMedSlots,
+            NewMedMealRelation = newMedMealRelation,
+            NewMedMethod = newMedMethod
         };
     }
 

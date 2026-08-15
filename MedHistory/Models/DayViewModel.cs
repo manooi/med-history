@@ -16,10 +16,10 @@ public class DayViewModel
     /// <summary>
     /// The day's medication checklist, in the order the medications were added. Held as the
     /// rule type rather than copied into a view-specific one: every field the row renders is
-    /// already derived state straight out of <see cref="ChecklistRules.DeriveProgress"/>.
+    /// already derived state straight out of <see cref="ChecklistRules.DeriveRows"/>.
     /// Adding, removing and copying forward allocations lives on <see cref="MedsViewModel"/>.
     /// </summary>
-    public required IReadOnlyList<ChecklistProgress> Checklist { get; init; }
+    public required IReadOnlyList<ChecklistRow> Checklist { get; init; }
 
     public DateOnly PreviousDay => Day.AddDays(-1);
 

@@ -3,50 +3,58 @@ using MedHistory.Models;
 namespace MedHistory.Services;
 
 /// <summary>
-/// One logged Pill entry of a day, reduced to the fields the checklist reasons about.
+/// One entry created by ticking a checklist slot, reduced to the fields that identify which
+/// slot it ticked. Entries with no <see cref="AllocationId"/> are not checklist ticks and
+/// never reach here.
 /// </summary>
-public readonly record struct PillLog(int EntryId, string? PillName, DateTimeOffset OccurredAt);
+public readonly record struct ChecklistTick(int EntryId, int? AllocationId, string? Slot);
+
+/// <summary>One slot of a checklist row: what to label the control, and whether it is ticked.</summary>
+/// <param name="Slot">The slot itself.</param>
+/// <param name="Name">Canonical name — the slot segment of the tick and untick URLs.</param>
+/// <param name="Label">How the slot reads on screen.</param>
+/// <param name="IsTicked">Whether an entry is linked to this allocation and slot.</param>
+public readonly record struct ChecklistSlotState(MedSlots Slot, string Name, string Label, bool IsTicked);
 
 /// <summary>
-/// Derived state of one checklist row. <see cref="DoneCount"/> is counted from the day's
-/// Pill entries every time the day is rendered — it is never stored, so a Pill entry the
-/// user typed in by hand counts towards the allocation just like a tick does.
+/// A checklist row as the day view renders it. Progress is not stored: a slot is ticked
+/// exactly when an entry linked to it exists, so the row is rebuilt from the day's entries
+/// every render and cannot drift out of step with them.
 /// </summary>
-public readonly record struct ChecklistProgress(int AllocationId, string Name, int RequiredCount, int DoneCount)
+public readonly record struct ChecklistRow(
+    int AllocationId,
+    string Name,
+    string Description,
+    IReadOnlyList<ChecklistSlotState> Slots)
 {
+    /// <summary>Doses expected that day — one per slot.</summary>
+    public int RequiredCount => Slots.Count;
+
+    public int DoneCount => Slots.Count(slot => slot.IsTicked);
+
     /// <summary>
-    /// The count as shown, capped at <see cref="RequiredCount"/>: once the day's doses are
-    /// in, the row reads N/N however many extra Pill entries exist. Nothing is deleted to
-    /// make that true — over-counting is a display decision only, so the timeline stays a
-    /// faithful record of what was actually taken.
+    /// A row with no slots is never complete: it has nothing to tick, so calling it done would
+    /// strike it through the moment it appeared. Validation stops such a row being created;
+    /// this only decides what happens if one exists anyway.
     /// </summary>
-    public int DisplayCount => Math.Min(DoneCount, RequiredCount);
-
-    public bool IsComplete => DoneCount >= RequiredCount;
-
-    /// <summary>Unticking needs something to remove.</summary>
-    public bool CanUntick => DoneCount > 0;
+    public bool IsComplete => Slots.Count > 0 && DoneCount == Slots.Count;
 }
 
 /// <summary>
-/// Pure checklist rules — no clock, no database, no HTTP. The day view and the checklist
-/// POST actions make every decision through here so they can be unit tested without a
-/// database.
+/// Pure checklist rules — no clock, no database, no HTTP. The day view and the checklist POST
+/// actions make every decision through here so they can be unit tested without a database.
 ///
-/// Medication names are compared case-insensitively throughout. They are free text the
-/// user types twice — once when allocating, again on any Pill entry created by hand — so
-/// an ordinal match would silently split "Eyedrop L" and "eyedrop L" into two medications
-/// that each show 0 done. The allocation's stored casing is the canonical one: a tick
-/// always writes that, so ticked entries stay visually consistent in the timeline.
+/// Ticks are identified by the allocation and slot an entry is linked to, never by matching
+/// the medication name. A Pill entry the user typed in by hand therefore does not tick
+/// anything off: the checklist tracks the plan the user is working through, and only the
+/// tick controls speak for it. Names are still compared case-insensitively where the plan
+/// itself is concerned — adding a medication, and copying a day forward — because there the
+/// name is free text the user types and "Eyedrop L" must not become a second row alongside
+/// "eyedrop L".
 /// </summary>
 public static class ChecklistRules
 {
     public const int NameMaxLength = MedAllocation.NameMaxLength;
-
-    public const int MinRequiredCount = 1;
-
-    /// <summary>Upper bound so a mistyped count cannot render an absurd row.</summary>
-    public const int MaxRequiredCount = 99;
 
     /// <summary>
     /// Trims surrounding whitespace; returns null when nothing is left. Stored names are
@@ -64,25 +72,11 @@ public static class ChecklistRules
         && string.Equals(a.Trim(), b.Trim(), StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Whether an entry counts towards checklist progress: the built-in Pill type, exactly.
-    /// Deliberately not <see cref="EntryRules.RequiresPillName"/> — that answers the broader
-    /// "does this type carry a pill name", which is Pill alone today but is free to grow. A
-    /// tick creates a built-in Pill entry, so the count has to ask the narrower question, or
-    /// it would start including entries no tick could ever have produced.
-    ///
-    /// Ordinal, matching the SQL twin of this check in <c>DayController.PillLogs</c>: entry
-    /// types are stored in their canonical casing and the database comparison is
-    /// case-sensitive, so a looser match here would make the two paths disagree.
-    /// </summary>
-    public static bool IsPillEntry(string? type) =>
-        string.Equals(type, BuiltInEntryTypes.Pill, StringComparison.Ordinal);
-
-    /// <summary>
     /// Returns one message per broken rule; an empty list means the allocation may be added.
     /// </summary>
     public static IReadOnlyList<string> ValidateNewAllocation(
         string? rawName,
-        int requiredCount,
+        MedSlots slots,
         IEnumerable<string> namesAlreadyOnDay)
     {
         var name = NormalizeName(rawName);
@@ -104,42 +98,75 @@ public static class ChecklistRules
             errors.Add($"\"{name}\" is already on this day's checklist.");
         }
 
-        if (requiredCount < MinRequiredCount)
+        // Slots are the doses. None means a row that can never be worked through, so it is
+        // rejected rather than stored — this is the rule that replaced a minimum dose count.
+        if (MedPlanRules.SlotCount(slots) == 0)
         {
-            errors.Add($"Times per day must be at least {MinRequiredCount}.");
-        }
-        else if (requiredCount > MaxRequiredCount)
-        {
-            errors.Add($"Times per day must be {MaxRequiredCount} or fewer.");
+            errors.Add("Pick at least one time of day.");
         }
 
         return errors;
     }
 
     /// <summary>
-    /// Counts each allocation's Pill entries for the day. Output order matches the input
-    /// allocations, and every allocation gets a row — an untouched medication is a 0/N row,
-    /// not a missing one.
+    /// Builds one row per allocation, in the order given, each with one state per slot.
+    /// Output order matches the input, and every allocation gets a row — an untouched
+    /// medication is a row of empty ticks, not a missing one.
+    ///
+    /// Ticks that match no allocation are ignored, which is what makes a dangling link
+    /// harmless: an entry whose allocation was deleted stays in the timeline as an ordinary
+    /// Pill entry and ticks nothing. Ticks whose slot is missing or unrecognised are ignored
+    /// the same way.
     /// </summary>
-    public static IReadOnlyList<ChecklistProgress> DeriveProgress(
+    public static IReadOnlyList<ChecklistRow> DeriveRows(
         IEnumerable<MedAllocation> allocations,
-        IEnumerable<PillLog> pillEntries)
+        IEnumerable<ChecklistTick> ticks)
     {
-        var pills = pillEntries.ToList();
+        var logged = ticks.ToList();
 
         return allocations
-            .Select(allocation => new ChecklistProgress(
+            .Select(allocation => new ChecklistRow(
                 allocation.Id,
                 allocation.Name,
-                allocation.RequiredCount,
-                pills.Count(pill => NamesMatch(pill.PillName, allocation.Name))))
+                MedPlanRules.DescribeAllocation(allocation.MealRelation, allocation.Method),
+                MedPlanRules.Each(allocation.Slots)
+                    .Select(slot => new ChecklistSlotState(
+                        slot,
+                        MedPlanRules.SlotName(slot),
+                        MedPlanRules.SlotLabel(slot),
+                        FindTick(logged, allocation.Id, slot) is not null))
+                    .ToList()))
             .ToList();
     }
 
     /// <summary>
-    /// The previous day's allocations worth copying forward: those whose name is not already
-    /// on the target day. Ticks are never part of this — only the allocation rows are copied,
-    /// so the new day starts at 0/N. Names repeated within the source are copied once.
+    /// The entry that ticked one slot of one allocation, or null when the slot is not ticked —
+    /// which is both what draws the control and what an untick deletes.
+    ///
+    /// Ticking is a no-op when a slot is already ticked, so a slot should only ever have one
+    /// entry. If two exist anyway, the one inserted last wins: every tick of a day lands at the
+    /// same instant for a past day, so the entry id is the only ordering that means anything,
+    /// and for today it rises with the clock regardless.
+    /// </summary>
+    public static ChecklistTick? FindTick(IEnumerable<ChecklistTick> ticks, int allocationId, MedSlots slot)
+    {
+        if (slot == MedSlots.None)
+        {
+            return null;
+        }
+
+        var matches = ticks
+            .Where(tick => tick.AllocationId == allocationId && SlotsMatch(tick.Slot, slot))
+            .OrderByDescending(tick => tick.EntryId)
+            .ToList();
+
+        return matches.Count == 0 ? null : matches[0];
+    }
+
+    /// <summary>
+    /// The previous day's allocations worth copying forward: those whose name is not already on
+    /// the target day. Ticks are never part of this — only the plan is copied, so the new day
+    /// starts with nothing ticked. Names repeated within the source are copied once.
     /// </summary>
     public static IReadOnlyList<MedAllocation> AllocationsToCopy(
         IEnumerable<MedAllocation> previousDay,
@@ -163,12 +190,11 @@ public static class ChecklistRules
     }
 
     /// <summary>
-    /// When a tick is logged. Ticking today records the actual moment; ticking a past or
-    /// future day has no meaningful moment, so it lands at noon local — far enough from
-    /// either midnight that it stays inside the day it was ticked for whatever the offset.
-    /// The offset is passed in rather than read from the machine so this stays pure; the
-    /// returned instant is always UTC, which is what Npgsql accepts for
-    /// <c>timestamp with time zone</c>.
+    /// When a tick is logged. Ticking today records the actual moment; ticking a past or future
+    /// day has no meaningful moment, so it lands at noon local — far enough from either midnight
+    /// that it stays inside the day it was ticked for whatever the offset. The offset is passed
+    /// in rather than read from the machine so this stays pure; the returned instant is always
+    /// UTC, which is what Npgsql accepts for <c>timestamp with time zone</c>.
     /// </summary>
     public static DateTimeOffset TickTime(DateOnly day, DateOnly today, DateTimeOffset nowUtc, TimeSpan dayOffset)
     {
@@ -181,21 +207,6 @@ public static class ChecklistRules
         return noon.ToUniversalTime();
     }
 
-    /// <summary>
-    /// The entry an untick removes: the latest matching Pill entry of the day. Entries
-    /// sharing the newest timestamp — which ticking twice within the same second can
-    /// produce — are broken by the highest entry id, i.e. the row inserted last, so an
-    /// untick always undoes the most recent tick.
-    /// Null when nothing matches, which the caller treats as a no-op.
-    /// </summary>
-    public static PillLog? NewestMatch(IEnumerable<PillLog> pillEntries, string allocationName)
-    {
-        var matches = pillEntries
-            .Where(pill => NamesMatch(pill.PillName, allocationName))
-            .OrderByDescending(pill => pill.OccurredAt)
-            .ThenByDescending(pill => pill.EntryId)
-            .ToList();
-
-        return matches.Count == 0 ? null : matches[0];
-    }
+    private static bool SlotsMatch(string? storedSlot, MedSlots slot) =>
+        MedPlanRules.TryParseSlot(storedSlot, out var parsed) && parsed == slot;
 }

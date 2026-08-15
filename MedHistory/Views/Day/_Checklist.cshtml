@@ -3,9 +3,10 @@
     var dayKey = AppTime.Key(Model.Day);
 }
 
-@* Progress is derived from the day's Pill entries, so a row moves whether the user ticks
-   here or logs the pill by hand from the timeline. Adding, removing and copying forward
-   allocations happens on the /meds maintenance page, reached via the Manage link. *@
+@* A slot is ticked exactly when the entry its control created still exists, so deleting that
+   entry from the timeline unticks the slot on the next render. Hand-typed Pill entries tick
+   nothing. Adding, removing and copying forward allocations happens on the /meds maintenance
+   page, reached via the Manage link. *@
 <section class="mt-6 border border-black">
     <div class="flex items-center justify-between gap-3 border-b border-black px-3 py-2">
         <h2 class="text-sm font-semibold uppercase tracking-wide">Meds</h2>
@@ -24,34 +25,36 @@
     else
     {
         <ul class="divide-y divide-neutral-300">
-            @foreach (var item in Model.Checklist)
+            @foreach (var row in Model.Checklist)
             {
-                <li class="flex items-center gap-2 px-3 py-3">
-                    <span class="min-w-0 flex-1 text-sm font-medium @(item.IsComplete ? "text-neutral-500 line-through" : "")">
-                        @item.Name
+                <li class="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3">
+                    <span class="min-w-0 flex-1">
+                        <span class="block text-sm font-medium @(row.IsComplete ? "text-neutral-500 line-through" : "")">
+                            @row.Name
+                        </span>
+                        @if (row.Description.Length > 0)
+                        {
+                            <span class="block text-xs text-neutral-500">@row.Description</span>
+                        }
                     </span>
 
-                    @* Done state is carried by weight and fill, never colour. *@
-                    <span class="shrink-0 border px-2 py-0.5 text-xs tabular-nums @(item.IsComplete ? "border-black bg-black text-white" : "border-neutral-400 text-neutral-600")">
-                        @item.DisplayCount/@item.RequiredCount
+                    @* One control per slot. Done state is carried by fill and glyph, never colour. *@
+                    <span class="flex shrink-0 flex-wrap gap-1">
+                        @foreach (var slot in row.Slots)
+                        {
+                            var action = slot.IsTicked ? "untick" : "tick";
+                            var label = slot.IsTicked
+                                ? $"Undo the {slot.Label} dose of {row.Name}"
+                                : $"Log the {slot.Label} dose of {row.Name}";
+
+                            <form method="post" action="/checklist/@row.AllocationId/@action/@slot.Name" asp-antiforgery="true">
+                                <button type="submit" title="@label" aria-label="@label"
+                                        class="border px-2 py-1 text-xs leading-none tabular-nums @(slot.IsTicked ? "border-black bg-black text-white hover:bg-white hover:text-black" : "border-neutral-400 bg-white text-neutral-600 hover:border-black hover:bg-black hover:text-white")">
+                                    @slot.Label @(slot.IsTicked ? "✓" : "□")
+                                </button>
+                            </form>
+                        }
                     </span>
-
-                    @if (item.CanUntick)
-                    {
-                        <form method="post" action="/checklist/@item.AllocationId/untick" asp-antiforgery="true" class="shrink-0">
-                            <button type="submit" title="Undo the latest dose" aria-label="Undo the latest dose"
-                                    class="border border-black bg-white px-2 py-1 text-sm leading-none text-black hover:bg-black hover:text-white">
-                                &minus;
-                            </button>
-                        </form>
-                    }
-
-                    <form method="post" action="/checklist/@item.AllocationId/tick" asp-antiforgery="true" class="shrink-0">
-                        <button type="submit" title="Log a dose" aria-label="Log a dose"
-                                class="border border-black bg-white px-2 py-1 text-sm leading-none text-black hover:bg-black hover:text-white">
-                            +
-                        </button>
-                    </form>
                 </li>
             }
         </ul>

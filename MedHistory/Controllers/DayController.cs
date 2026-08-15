@@ -38,15 +38,23 @@ public class DayController : Controller
         return ShowDay(day);
     }
 
-    [HttpPost("/checklist/{id:int}/tick")]
+    [HttpPost("/checklist/{id:int}/tick/{slot}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Tick(int id)
+    public async Task<IActionResult> Tick(int id, string slot)
     {
-        var allocation = await _db.MedAllocations.FindAsync(id);
+        var (allocation, parsed) = await ResolveSlot(id, slot);
 
         if (allocation is null)
         {
             return NotFound();
+        }
+
+        // A slot is ticked exactly when a linked entry exists, so ticking one that already has
+        // an entry must add nothing: a second entry would leave the slot ticked after an untick
+        // removed only one of them. A double submit therefore just lands back on the day.
+        if (ChecklistRules.FindTick(await Ticks(allocation.Day), id, parsed) is not null)
+        {
+            return RedirectToDay(allocation.Day);
         }
 
         // Deliberately no active-type check: Pill is built-in and cannot be deleted, and a
@@ -56,38 +64,45 @@ public class DayController : Controller
         {
             Type = BuiltInEntryTypes.Pill,
             PillName = allocation.Name,
-            OccurredAt = AppTime.TickTime(allocation.Day)
+            OccurredAt = AppTime.TickTime(allocation.Day),
+            ChecklistAllocationId = allocation.Id,
+            ChecklistSlot = MedPlanRules.SlotName(parsed),
+            // The timeline shows the note as typed, so the slot and how the dose is taken are
+            // written into it — otherwise a ticked dose reads as a bare medication name there.
+            Note = MedPlanRules.ComposeNote(parsed, allocation.MealRelation, allocation.Method)
         };
 
         _db.Entries.Add(entry);
         await _db.SaveChangesAsync();
 
-        _logger.LogInformation("Allocation {AllocationId} ticked, entry {EntryId} created", id, entry.Id);
+        _logger.LogInformation(
+            "Allocation {AllocationId} slot {Slot} ticked, entry {EntryId} created",
+            id, entry.ChecklistSlot, entry.Id);
 
         return RedirectToDay(allocation.Day);
     }
 
-    [HttpPost("/checklist/{id:int}/untick")]
+    [HttpPost("/checklist/{id:int}/untick/{slot}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Untick(int id)
+    public async Task<IActionResult> Untick(int id, string slot)
     {
-        var allocation = await _db.MedAllocations.FindAsync(id);
+        var (allocation, parsed) = await ResolveSlot(id, slot);
 
         if (allocation is null)
         {
             return NotFound();
         }
 
-        var newest = ChecklistRules.NewestMatch(await PillLogs(allocation.Day), allocation.Name);
+        var tick = ChecklistRules.FindTick(await Ticks(allocation.Day), id, parsed);
 
-        if (newest is null)
+        if (tick is null)
         {
-            // Nothing logged for this medication — the button is hidden in that state, so
-            // this only happens on a double submit. Land back on the day either way.
+            // Nothing ticked this slot — the untick control is only drawn when something did,
+            // so this is a double submit. Land back on the day either way.
             return RedirectToDay(allocation.Day);
         }
 
-        var entry = await _db.Entries.FindAsync(newest.Value.EntryId);
+        var entry = await _db.Entries.FindAsync(tick.Value.EntryId);
 
         if (entry is not null)
         {
@@ -95,7 +110,9 @@ public class DayController : Controller
             _db.Entries.Remove(entry);
             await _db.SaveChangesAsync();
 
-            _logger.LogInformation("Allocation {AllocationId} unticked, entry {EntryId} deleted", id, entry.Id);
+            _logger.LogInformation(
+                "Allocation {AllocationId} slot {Slot} unticked, entry {EntryId} deleted",
+                id, MedPlanRules.SlotName(parsed), entry.Id);
         }
 
         return RedirectToDay(allocation.Day);
@@ -118,6 +135,8 @@ public class DayController : Controller
                 e.Note,
                 e.Severity,
                 e.PillName,
+                e.ChecklistAllocationId,
+                e.ChecklistSlot,
                 PhotoIds = e.Photos.Select(p => p.Id).ToList()
             })
             .ToListAsync();
@@ -136,11 +155,11 @@ public class DayController : Controller
             .OrderBy(a => a.Id)
             .ToListAsync();
 
-        // The day's entries are already loaded, so progress is counted in memory rather than
-        // with a query per allocation.
-        var pillLogs = rows
-            .Where(r => ChecklistRules.IsPillEntry(r.Type))
-            .Select(r => new PillLog(r.Id, r.PillName, r.OccurredAt));
+        // The day's entries are already loaded, so which slots are ticked is worked out in
+        // memory rather than with a query per allocation.
+        var ticks = rows
+            .Where(r => r.ChecklistAllocationId is not null)
+            .Select(r => new ChecklistTick(r.Id, r.ChecklistAllocationId, r.ChecklistSlot));
 
         // OccurredAt ties get a deterministic secondary sort (type name, alphabetical)
         // rather than DB order — see EntryRules.OrderEntries.
@@ -151,7 +170,7 @@ public class DayController : Controller
             Day = day,
             IsToday = day == AppTime.Today(),
             NewEntryTypes = EntryTypeRules.SortForDisplay(activeTypes, name => name),
-            Checklist = ChecklistRules.DeriveProgress(allocations, pillLogs),
+            Checklist = ChecklistRules.DeriveRows(allocations, ticks),
             Entries = ordered.Select(r => new DayEntryViewModel
             {
                 Id = r.Id,
@@ -165,21 +184,41 @@ public class DayController : Controller
         return View("Index", model);
     }
 
-    /// <summary>The day's Pill entries — the raw material every checklist count is derived from.</summary>
-    private async Task<List<PillLog>> PillLogs(DateOnly day)
+    /// <summary>
+    /// Loads the allocation a checklist POST names, together with the slot it addresses. The
+    /// allocation comes back null when either is unusable: no such allocation, an unrecognised
+    /// slot name, or a slot the allocation does not have. Both are route values a hand-made
+    /// request can say anything in, so the slot is checked against the plan and not trusted.
+    /// </summary>
+    private async Task<(MedAllocation? Allocation, MedSlots Slot)> ResolveSlot(int id, string? slot)
+    {
+        var allocation = await _db.MedAllocations.FindAsync(id);
+
+        if (allocation is null || !MedPlanRules.TryParseSlot(slot, out var parsed) || !allocation.Slots.HasFlag(parsed))
+        {
+            return (null, MedSlots.None);
+        }
+
+        return (allocation, parsed);
+    }
+
+    /// <summary>
+    /// The day's checklist ticks — the entries a slot control created, which is the whole of
+    /// what the checklist reads. Scoped to the day rather than to the allocation so that an
+    /// entry the user has since moved to another date stops counting here, exactly as it stops
+    /// appearing in the day's timeline.
+    /// </summary>
+    private async Task<List<ChecklistTick>> Ticks(DateOnly day)
     {
         var (start, end) = AppTime.DayRange(day);
 
-        // The type filter is the SQL twin of ChecklistRules.IsPillEntry — same ordinal
-        // comparison against the same constant, written inline because EF cannot translate
-        // a method call into SQL. ChecklistRulesTests pins the two to the same meaning.
         var rows = await _db.Entries
             .AsNoTracking()
-            .Where(e => e.OccurredAt >= start && e.OccurredAt < end && e.Type == BuiltInEntryTypes.Pill)
-            .Select(e => new { e.Id, e.PillName, e.OccurredAt })
+            .Where(e => e.OccurredAt >= start && e.OccurredAt < end && e.ChecklistAllocationId != null)
+            .Select(e => new { e.Id, e.ChecklistAllocationId, e.ChecklistSlot })
             .ToListAsync();
 
-        return rows.Select(r => new PillLog(r.Id, r.PillName, r.OccurredAt)).ToList();
+        return rows.Select(r => new ChecklistTick(r.Id, r.ChecklistAllocationId, r.ChecklistSlot)).ToList();
     }
 
     private IActionResult RedirectToDay(DateOnly day) =>

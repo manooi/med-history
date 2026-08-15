@@ -1,11 +1,49 @@
 namespace MedHistory.Models;
 
 /// <summary>
-/// A medication the user has allocated to one day, with how many times it must be taken.
-/// Ticking one off is a real Pill <see cref="Entry"/>, so progress is always derived by
-/// counting entries — an allocation stores no done-count of its own and holds no foreign
-/// key: the medication name is free text the user types, and deleting an allocation must
-/// never disturb the entries already logged under that name.
+/// The times of day a medication is taken at. A flags enum because an allocation is a
+/// <em>set</em> of slots — "morning and bedtime" is one row, not two — and because a set of
+/// four fixed members is cheaper to hold, compare and store as bits than as a collection.
+/// Persisted as a canonical comma-separated name list; see
+/// <see cref="Services.MedPlanRules.FormatSlots"/>.
+/// </summary>
+[Flags]
+public enum MedSlots
+{
+    None = 0,
+    Morning = 1,
+    Noon = 2,
+    Evening = 4,
+    Bedtime = 8
+}
+
+/// <summary>When the dose sits relative to eating. <c>None</c> means it does not matter.</summary>
+public enum MealRelation
+{
+    None,
+    BeforeMeal,
+    AfterMeal,
+    WithMeal
+}
+
+/// <summary>How the dose is administered. <c>Other</c> is the escape hatch.</summary>
+public enum MedMethod
+{
+    Eat,
+    Apply,
+    Eyedrop,
+    Inject,
+    Other
+}
+
+/// <summary>
+/// A medication the user has allocated to one day: what it is, when in the day it is taken,
+/// and how. The slots are the plan — one dose per slot, so the day's requirement is simply
+/// how many slots are set, and there is no separate count to keep in step with them.
+///
+/// The row holds no foreign key to the entries a tick creates; the link runs the other way,
+/// from <see cref="Entry.ChecklistAllocationId"/>, so deleting an allocation leaves the doses
+/// already logged under it untouched.
 /// </summary>
 public class MedAllocation
 {
@@ -19,6 +57,10 @@ public class MedAllocation
     /// <summary>Stored trimmed, in the casing it was typed; matched case-insensitively.</summary>
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>Doses expected that day; at least 1.</summary>
-    public int RequiredCount { get; set; } = 1;
+    /// <summary>Times of day this is taken at; at least one. One slot is one dose.</summary>
+    public MedSlots Slots { get; set; }
+
+    public MealRelation MealRelation { get; set; }
+
+    public MedMethod Method { get; set; }
 }

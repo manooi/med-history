@@ -9,11 +9,17 @@ public class ChecklistRulesTests
 
     private static readonly TimeSpan Bangkok = TimeSpan.FromHours(7);
 
-    private static MedAllocation Allocation(int id, string name, int requiredCount = 1) =>
-        new() { Id = id, Day = Day, Name = name, RequiredCount = requiredCount };
+    private static MedAllocation Allocation(
+        int id,
+        string name,
+        MedSlots slots = MedSlots.Morning,
+        MealRelation mealRelation = MealRelation.None,
+        MedMethod method = MedMethod.Eat) =>
+        new() { Id = id, Day = Day, Name = name, Slots = slots, MealRelation = mealRelation, Method = method };
 
-    private static PillLog Pill(int entryId, string? pillName, int hourUtc) =>
-        new(entryId, pillName, new DateTimeOffset(2026, 8, 14, hourUtc, 0, 0, TimeSpan.Zero));
+    /// <summary>A tick as it comes off the day's entries: entry id, allocation, slot name.</summary>
+    private static ChecklistTick Tick(int entryId, int? allocationId, string? slot) =>
+        new(entryId, allocationId, slot);
 
     // ---- NormalizeName ----
 
@@ -53,7 +59,6 @@ public class ChecklistRulesTests
     [Fact]
     public void NamesMatch_IgnoresSurroundingWhitespace()
     {
-        // A hand-typed Pill entry with a stray trailing space still counts towards its allocation.
         Assert.True(ChecklistRules.NamesMatch("Pill A ", " pill a"));
     }
 
@@ -71,56 +76,8 @@ public class ChecklistRulesTests
     [InlineData("   ", "Pill A")]
     public void NamesMatch_MissingName_False(string? a, string? b)
     {
-        // Two blank names are not "the same medication" — a Pill entry with no name
-        // must never count towards an allocation.
+        // Two blank names are not "the same medication".
         Assert.False(ChecklistRules.NamesMatch(a, b));
-    }
-
-    // ---- IsPillEntry ----
-
-    [Fact]
-    public void IsPillEntry_BuiltInPill_True()
-    {
-        Assert.True(ChecklistRules.IsPillEntry(BuiltInEntryTypes.Pill));
-    }
-
-    [Theory]
-    [InlineData(BuiltInEntryTypes.Symptom)]
-    [InlineData(BuiltInEntryTypes.Bleeding)]
-    [InlineData(BuiltInEntryTypes.Cough)]
-    [InlineData(BuiltInEntryTypes.Meal)]
-    [InlineData("Blood pressure")]
-    public void IsPillEntry_AnyOtherType_False(string type)
-    {
-        Assert.False(ChecklistRules.IsPillEntry(type));
-    }
-
-    [Fact]
-    public void IsPillEntry_IsTrueForExactlyOneBuiltIn()
-    {
-        // A tick creates a built-in Pill entry, so nothing else may ever count towards a
-        // checklist row — this pins the check as types are added to the app.
-        Assert.Equal([BuiltInEntryTypes.Pill], BuiltInEntryTypes.All.Where(ChecklistRules.IsPillEntry));
-    }
-
-    [Theory]
-    [InlineData("pill")]
-    [InlineData("PILL")]
-    public void IsPillEntry_DifferentCase_False(string type)
-    {
-        // Ordinal on purpose: the database-side filter in DayController.PillLogs is a
-        // case-sensitive SQL comparison and the two must agree on every input. Types are
-        // stored in their canonical casing, so a variant means a different type.
-        Assert.False(ChecklistRules.IsPillEntry(type));
-    }
-
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("   ")]
-    public void IsPillEntry_MissingType_False(string? type)
-    {
-        Assert.False(ChecklistRules.IsPillEntry(type));
     }
 
     // ---- ValidateNewAllocation ----
@@ -131,7 +88,7 @@ public class ChecklistRulesTests
     [InlineData("   ")]
     public void ValidateNewAllocation_EmptyName_ReturnsRequiredError(string? raw)
     {
-        var errors = ChecklistRules.ValidateNewAllocation(raw, 1, []);
+        var errors = ChecklistRules.ValidateNewAllocation(raw, MedSlots.Morning, []);
 
         Assert.Contains(errors, e => e.Contains("required"));
     }
@@ -139,7 +96,7 @@ public class ChecklistRulesTests
     [Fact]
     public void ValidateNewAllocation_UnusedName_NoErrors()
     {
-        Assert.Empty(ChecklistRules.ValidateNewAllocation("Eyedrop L", 2, ["Pill A"]));
+        Assert.Empty(ChecklistRules.ValidateNewAllocation("Eyedrop L", MedSlots.Morning, ["Pill A"]));
     }
 
     [Theory]
@@ -148,9 +105,8 @@ public class ChecklistRulesTests
     [InlineData("  PILL A  ")]
     public void ValidateNewAllocation_NameAlreadyOnDay_ReturnsError(string raw)
     {
-        // Casing and padding must not smuggle a second row for the same medication in —
-        // two rows for one name would both count the same entries.
-        var errors = ChecklistRules.ValidateNewAllocation(raw, 1, ["Pill A"]);
+        // Casing and padding must not smuggle a second row for the same medication in.
+        var errors = ChecklistRules.ValidateNewAllocation(raw, MedSlots.Morning, ["Pill A"]);
 
         Assert.Contains(errors, e => e.Contains("already on this day"));
     }
@@ -159,7 +115,7 @@ public class ChecklistRulesTests
     public void ValidateNewAllocation_SameNameOnAnotherDay_NoErrors()
     {
         // The caller only ever passes the target day's names; nothing here is cross-day.
-        Assert.Empty(ChecklistRules.ValidateNewAllocation("Pill A", 1, []));
+        Assert.Empty(ChecklistRules.ValidateNewAllocation("Pill A", MedSlots.Morning, []));
     }
 
     [Fact]
@@ -167,170 +123,272 @@ public class ChecklistRulesTests
     {
         var tooLong = new string('x', ChecklistRules.NameMaxLength + 1);
 
-        Assert.Contains(ChecklistRules.ValidateNewAllocation(tooLong, 1, []), e => e.Contains("characters or fewer"));
+        Assert.Contains(
+            ChecklistRules.ValidateNewAllocation(tooLong, MedSlots.Morning, []),
+            e => e.Contains("characters or fewer"));
     }
 
     [Fact]
     public void ValidateNewAllocation_ExactlyMaxLength_NoErrors()
     {
-        Assert.Empty(ChecklistRules.ValidateNewAllocation(new string('x', ChecklistRules.NameMaxLength), 1, []));
-    }
-
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-1)]
-    public void ValidateNewAllocation_CountBelowMinimum_ReturnsError(int requiredCount)
-    {
-        Assert.Contains(ChecklistRules.ValidateNewAllocation("Pill A", requiredCount, []), e => e.Contains("at least"));
+        Assert.Empty(ChecklistRules.ValidateNewAllocation(
+            new string('x', ChecklistRules.NameMaxLength), MedSlots.Morning, []));
     }
 
     [Fact]
-    public void ValidateNewAllocation_CountAboveMaximum_ReturnsError()
+    public void ValidateNewAllocation_NoSlots_ReturnsError()
     {
-        var errors = ChecklistRules.ValidateNewAllocation("Pill A", ChecklistRules.MaxRequiredCount + 1, []);
-
-        Assert.Contains(errors, e => e.Contains("or fewer"));
+        // Slots are the doses: a row with none could never be worked through.
+        Assert.Contains(
+            ChecklistRules.ValidateNewAllocation("Pill A", MedSlots.None, []),
+            e => e.Contains("at least one time of day"));
     }
 
     [Theory]
-    [InlineData(ChecklistRules.MinRequiredCount)]
-    [InlineData(ChecklistRules.MaxRequiredCount)]
-    public void ValidateNewAllocation_CountAtBounds_NoErrors(int requiredCount)
+    [InlineData(MedSlots.Morning)]
+    [InlineData(MedSlots.Bedtime)]
+    [InlineData(MedSlots.Morning | MedSlots.Evening)]
+    [InlineData(MedSlots.Morning | MedSlots.Noon | MedSlots.Evening | MedSlots.Bedtime)]
+    public void ValidateNewAllocation_AnyNonEmptySlotSet_NoErrors(MedSlots slots)
     {
-        Assert.Empty(ChecklistRules.ValidateNewAllocation("Pill A", requiredCount, []));
+        Assert.Empty(ChecklistRules.ValidateNewAllocation("Pill A", slots, []));
     }
 
     [Fact]
     public void ValidateNewAllocation_SeveralBrokenRules_ReturnsAllOfThem()
     {
-        var errors = ChecklistRules.ValidateNewAllocation(new string('x', ChecklistRules.NameMaxLength + 1), 0, []);
+        var errors = ChecklistRules.ValidateNewAllocation(
+            new string('x', ChecklistRules.NameMaxLength + 1), MedSlots.None, []);
 
         Assert.Equal(2, errors.Count);
     }
 
-    // ---- DeriveProgress ----
+    // ---- DeriveRows ----
 
     [Fact]
-    public void DeriveProgress_CountsMatchingPillEntries()
+    public void DeriveRows_OneStatePerSlot_InDayOrder()
     {
-        var progress = ChecklistRules.DeriveProgress(
-            [Allocation(1, "Pill A", 3)],
-            [Pill(10, "Pill A", 1), Pill(11, "Pill A", 5)]);
+        var rows = ChecklistRules.DeriveRows([Allocation(1, "Pill A", MedSlots.Bedtime | MedSlots.Morning)], []);
 
-        Assert.Equal(2, progress.Single().DoneCount);
+        Assert.Equal([MedSlots.Morning, MedSlots.Bedtime], rows.Single().Slots.Select(s => s.Slot));
+        Assert.Equal(["morning", "bedtime"], rows.Single().Slots.Select(s => s.Label));
+        Assert.Equal(["Morning", "Bedtime"], rows.Single().Slots.Select(s => s.Name));
     }
 
     [Fact]
-    public void DeriveProgress_MatchesPillNameIgnoringCase()
+    public void DeriveRows_NothingTicked_EverySlotIsOpen()
     {
-        // A Pill entry typed by hand as "pill a" is the same medication.
-        var progress = ChecklistRules.DeriveProgress(
-            [Allocation(1, "Pill A", 3)],
-            [Pill(10, "pill a", 1), Pill(11, "PILL A", 5)]);
+        var rows = ChecklistRules.DeriveRows([Allocation(1, "Pill A", MedSlots.Morning | MedSlots.Evening)], []);
 
-        Assert.Equal(2, progress.Single().DoneCount);
+        Assert.All(rows.Single().Slots, slot => Assert.False(slot.IsTicked));
+        Assert.Equal(0, rows.Single().DoneCount);
+        Assert.Equal(2, rows.Single().RequiredCount);
     }
 
     [Fact]
-    public void DeriveProgress_IgnoresOtherMedications()
+    public void DeriveRows_ATickMarksOnlyItsOwnSlot()
     {
-        var progress = ChecklistRules.DeriveProgress(
-            [Allocation(1, "Pill A", 2)],
-            [Pill(10, "Pill B", 1), Pill(11, "Eyedrop L", 2)]);
+        var rows = ChecklistRules.DeriveRows(
+            [Allocation(1, "Pill A", MedSlots.Morning | MedSlots.Evening)],
+            [Tick(10, 1, "Morning")]);
 
-        Assert.Equal(0, progress.Single().DoneCount);
+        Assert.Equal([true, false], rows.Single().Slots.Select(s => s.IsTicked));
+        Assert.Equal(1, rows.Single().DoneCount);
+    }
+
+    [Fact]
+    public void DeriveRows_MatchesTheSlotNameIgnoringCase()
+    {
+        var rows = ChecklistRules.DeriveRows(
+            [Allocation(1, "Pill A", MedSlots.Evening)],
+            [Tick(10, 1, "evening")]);
+
+        Assert.True(rows.Single().Slots.Single().IsTicked);
+    }
+
+    [Fact]
+    public void DeriveRows_IgnoresTicksOfOtherAllocations()
+    {
+        // The same medication allocated twice would still be two independent plans; the link
+        // is to the allocation, not to a name.
+        var rows = ChecklistRules.DeriveRows(
+            [Allocation(1, "Pill A", MedSlots.Morning)],
+            [Tick(10, 2, "Morning")]);
+
+        Assert.False(rows.Single().Slots.Single().IsTicked);
     }
 
     [Theory]
     [InlineData(null)]
     [InlineData("")]
-    [InlineData("   ")]
-    public void DeriveProgress_IgnoresPillEntriesWithNoName(string? pillName)
+    [InlineData("Teatime")]
+    [InlineData("Morning,Evening")]
+    public void DeriveRows_TickWithAnUnusableSlot_MarksNothing(string? slot)
     {
-        var progress = ChecklistRules.DeriveProgress([Allocation(1, "Pill A", 1)], [Pill(10, pillName, 1)]);
+        var rows = ChecklistRules.DeriveRows([Allocation(1, "Pill A", MedSlots.Morning)], [Tick(10, 1, slot)]);
 
-        Assert.Equal(0, progress.Single().DoneCount);
+        Assert.False(rows.Single().Slots.Single().IsTicked);
     }
 
     [Fact]
-    public void DeriveProgress_UntouchedAllocation_StillGetsARow()
+    public void DeriveRows_TickOfADeletedAllocation_IsIgnored()
     {
-        var progress = ChecklistRules.DeriveProgress([Allocation(1, "Pill A", 2)], []);
+        // The dangling case: the allocation is gone, its entry is not. The row that remains
+        // must be unaffected and nothing may throw.
+        var rows = ChecklistRules.DeriveRows(
+            [Allocation(1, "Pill A", MedSlots.Morning)],
+            [Tick(10, 99, "Morning"), Tick(11, 1, "Morning")]);
 
-        Assert.Equal(0, progress.Single().DoneCount);
+        Assert.Single(rows);
+        Assert.True(rows.Single().Slots.Single().IsTicked);
     }
 
     [Fact]
-    public void DeriveProgress_KeepsAllocationOrderAndCarriesNameAndRequirement()
+    public void DeriveRows_OnlyDanglingTicks_LeavesEverythingOpen()
     {
-        var progress = ChecklistRules.DeriveProgress(
-            [Allocation(7, "Pill A", 3), Allocation(2, "Eyedrop L", 1)],
-            [Pill(10, "Eyedrop L", 1)]);
+        var rows = ChecklistRules.DeriveRows(
+            [Allocation(1, "Pill A", MedSlots.Morning)],
+            [Tick(10, 99, "Morning"), Tick(11, null, "Morning")]);
 
-        Assert.Equal([7, 2], progress.Select(p => p.AllocationId));
-        Assert.Equal(["Pill A", "Eyedrop L"], progress.Select(p => p.Name));
-        Assert.Equal([3, 1], progress.Select(p => p.RequiredCount));
-        Assert.Equal([0, 1], progress.Select(p => p.DoneCount));
+        Assert.False(rows.Single().Slots.Single().IsTicked);
     }
 
     [Fact]
-    public void DeriveProgress_TwoAllocationsCountIndependently()
+    public void DeriveRows_KeepsAllocationOrderAndCarriesNameAndDescription()
     {
-        var progress = ChecklistRules.DeriveProgress(
-            [Allocation(1, "Pill A", 2), Allocation(2, "Pill B", 2)],
-            [Pill(10, "Pill A", 1), Pill(11, "Pill B", 2), Pill(12, "Pill A", 3)]);
+        var rows = ChecklistRules.DeriveRows(
+            [
+                Allocation(7, "Pill A", MedSlots.Morning, MealRelation.AfterMeal, MedMethod.Eat),
+                Allocation(2, "Eyedrop L", MedSlots.Bedtime, MealRelation.None, MedMethod.Eyedrop)
+            ],
+            []);
 
-        Assert.Equal([2, 1], progress.Select(p => p.DoneCount));
+        Assert.Equal([7, 2], rows.Select(r => r.AllocationId));
+        Assert.Equal(["Pill A", "Eyedrop L"], rows.Select(r => r.Name));
+        Assert.Equal(["after meal · eat", "eyedrop"], rows.Select(r => r.Description));
     }
 
     [Fact]
-    public void DeriveProgress_NoAllocations_ReturnsEmpty()
+    public void DeriveRows_TwoAllocationsTickIndependently()
     {
-        Assert.Empty(ChecklistRules.DeriveProgress([], [Pill(10, "Pill A", 1)]));
+        var rows = ChecklistRules.DeriveRows(
+            [
+                Allocation(1, "Pill A", MedSlots.Morning | MedSlots.Evening),
+                Allocation(2, "Pill B", MedSlots.Morning)
+            ],
+            [Tick(10, 1, "Evening"), Tick(11, 2, "Morning")]);
+
+        Assert.Equal([false, true], rows[0].Slots.Select(s => s.IsTicked));
+        Assert.Equal([true], rows[1].Slots.Select(s => s.IsTicked));
     }
 
     [Fact]
-    public void DeriveProgress_CountsAreNotCapped()
+    public void DeriveRows_UntouchedAllocation_StillGetsARow()
     {
-        // Extra doses stay visible to the rules; only the displayed count is capped.
-        var progress = ChecklistRules.DeriveProgress(
-            [Allocation(1, "Pill A", 1)],
-            [Pill(10, "Pill A", 1), Pill(11, "Pill A", 2), Pill(12, "Pill A", 3)]);
-
-        Assert.Equal(3, progress.Single().DoneCount);
-    }
-
-    // ---- ChecklistProgress display state ----
-
-    [Fact]
-    public void DisplayCount_BelowRequirement_ShowsRawCount()
-    {
-        Assert.Equal(1, new ChecklistProgress(1, "Pill A", 3, 1).DisplayCount);
+        Assert.Single(ChecklistRules.DeriveRows([Allocation(1, "Pill A")], []));
     }
 
     [Fact]
-    public void DisplayCount_AboveRequirement_CapsAtRequired()
+    public void DeriveRows_NoAllocations_ReturnsEmpty()
     {
-        // Four doses of a three-dose medication still reads 3/3 — the extra entries survive.
-        Assert.Equal(3, new ChecklistProgress(1, "Pill A", 3, 4).DisplayCount);
+        Assert.Empty(ChecklistRules.DeriveRows([], [Tick(10, 1, "Morning")]));
     }
 
-    [Theory]
-    [InlineData(0, false)]
-    [InlineData(2, false)]
-    [InlineData(3, true)]
-    [InlineData(9, true)]
-    public void IsComplete_TrueOnceRequirementIsMet(int doneCount, bool expected)
+    // ---- ChecklistRow display state ----
+
+    [Fact]
+    public void ChecklistRow_IsComplete_OnlyWhenEverySlotIsTicked()
     {
-        Assert.Equal(expected, new ChecklistProgress(1, "Pill A", 3, doneCount).IsComplete);
+        var rows = ChecklistRules.DeriveRows(
+            [Allocation(1, "Pill A", MedSlots.Morning | MedSlots.Bedtime)],
+            [Tick(10, 1, "Morning")]);
+
+        Assert.False(rows.Single().IsComplete);
     }
 
-    [Theory]
-    [InlineData(0, false)]
-    [InlineData(1, true)]
-    public void CanUntick_NeedsSomethingLogged(int doneCount, bool expected)
+    [Fact]
+    public void ChecklistRow_IsComplete_WhenTheLastSlotIsTicked()
     {
-        Assert.Equal(expected, new ChecklistProgress(1, "Pill A", 3, doneCount).CanUntick);
+        var rows = ChecklistRules.DeriveRows(
+            [Allocation(1, "Pill A", MedSlots.Morning | MedSlots.Bedtime)],
+            [Tick(10, 1, "Morning"), Tick(11, 1, "Bedtime")]);
+
+        Assert.True(rows.Single().IsComplete);
+        Assert.Equal(2, rows.Single().DoneCount);
+    }
+
+    [Fact]
+    public void ChecklistRow_NoSlots_IsNeverComplete()
+    {
+        // Validation stops such a row being created; if one exists, it must not read as done.
+        var rows = ChecklistRules.DeriveRows([Allocation(1, "Pill A", MedSlots.None)], []);
+
+        Assert.Empty(rows.Single().Slots);
+        Assert.False(rows.Single().IsComplete);
+        Assert.Equal(0, rows.Single().RequiredCount);
+    }
+
+    // ---- FindTick ----
+
+    [Fact]
+    public void FindTick_ReturnsTheEntryThatTickedTheSlot()
+    {
+        var tick = ChecklistRules.FindTick(
+            [Tick(10, 1, "Morning"), Tick(11, 1, "Evening")],
+            1,
+            MedSlots.Evening);
+
+        Assert.Equal(11, tick!.Value.EntryId);
+    }
+
+    [Fact]
+    public void FindTick_SlotNotTicked_ReturnsNull()
+    {
+        Assert.Null(ChecklistRules.FindTick([Tick(10, 1, "Morning")], 1, MedSlots.Evening));
+    }
+
+    [Fact]
+    public void FindTick_AnotherAllocationsTick_ReturnsNull()
+    {
+        Assert.Null(ChecklistRules.FindTick([Tick(10, 2, "Morning")], 1, MedSlots.Morning));
+    }
+
+    [Fact]
+    public void FindTick_MatchesTheSlotNameIgnoringCase()
+    {
+        Assert.NotNull(ChecklistRules.FindTick([Tick(10, 1, "  morning ")], 1, MedSlots.Morning));
+    }
+
+    [Fact]
+    public void FindTick_SeveralEntriesForOneSlot_PicksTheHighestId()
+    {
+        // Ticking is a no-op on an already-ticked slot, so this should not arise; if it does,
+        // the row inserted last is the one an untick undoes.
+        var tick = ChecklistRules.FindTick(
+            [Tick(10, 1, "Morning"), Tick(12, 1, "Morning"), Tick(11, 1, "Morning")],
+            1,
+            MedSlots.Morning);
+
+        Assert.Equal(12, tick!.Value.EntryId);
+    }
+
+    [Fact]
+    public void FindTick_NoSlotAsked_ReturnsNull()
+    {
+        // What an unparseable slot in the URL degrades to — it must match nothing at all.
+        Assert.Null(ChecklistRules.FindTick([Tick(10, 1, "Morning")], 1, MedSlots.None));
+    }
+
+    [Fact]
+    public void FindTick_UnlinkedTicks_NeverMatch()
+    {
+        Assert.Null(ChecklistRules.FindTick([Tick(10, null, "Morning")], 1, MedSlots.Morning));
+    }
+
+    [Fact]
+    public void FindTick_NothingLoggedAtAll_ReturnsNull()
+    {
+        Assert.Null(ChecklistRules.FindTick([], 1, MedSlots.Morning));
     }
 
     // ---- AllocationsToCopy ----
@@ -338,17 +396,24 @@ public class ChecklistRulesTests
     [Fact]
     public void AllocationsToCopy_EmptyTargetDay_CopiesEverything()
     {
-        var copied = ChecklistRules.AllocationsToCopy([Allocation(1, "Pill A", 3), Allocation(2, "Eyedrop L")], []);
+        var copied = ChecklistRules.AllocationsToCopy(
+            [Allocation(1, "Pill A"), Allocation(2, "Eyedrop L")], []);
 
         Assert.Equal(["Pill A", "Eyedrop L"], copied.Select(a => a.Name));
     }
 
     [Fact]
-    public void AllocationsToCopy_CarriesTheRequiredCount()
+    public void AllocationsToCopy_CarriesTheWholePlan()
     {
-        var copied = ChecklistRules.AllocationsToCopy([Allocation(1, "Pill A", 3)], []);
+        // Structure fidelity: yesterday's schedule is what makes copying forward worth having.
+        var source = Allocation(1, "Eyedrop L", MedSlots.Morning | MedSlots.Bedtime, MealRelation.AfterMeal, MedMethod.Eyedrop);
 
-        Assert.Equal(3, copied.Single().RequiredCount);
+        var copy = ChecklistRules.AllocationsToCopy([source], []).Single();
+
+        Assert.Equal(MedSlots.Morning | MedSlots.Bedtime, copy.Slots);
+        Assert.Equal(MealRelation.AfterMeal, copy.MealRelation);
+        Assert.Equal(MedMethod.Eyedrop, copy.Method);
+        Assert.Equal("Eyedrop L", copy.Name);
     }
 
     [Theory]
@@ -358,7 +423,7 @@ public class ChecklistRulesTests
     public void AllocationsToCopy_SkipsNamesAlreadyOnTheDay_IgnoringCase(string existing)
     {
         var copied = ChecklistRules.AllocationsToCopy(
-            [Allocation(1, "Pill A", 3), Allocation(2, "Eyedrop L")],
+            [Allocation(1, "Pill A"), Allocation(2, "Eyedrop L")],
             [existing]);
 
         Assert.Equal(["Eyedrop L"], copied.Select(a => a.Name));
@@ -368,7 +433,7 @@ public class ChecklistRulesTests
     public void AllocationsToCopy_EverythingAlreadyPresent_CopiesNothing()
     {
         var copied = ChecklistRules.AllocationsToCopy(
-            [Allocation(1, "Pill A", 3), Allocation(2, "Eyedrop L")],
+            [Allocation(1, "Pill A"), Allocation(2, "Eyedrop L")],
             ["Eyedrop L", "pill a"]);
 
         Assert.Empty(copied);
@@ -377,7 +442,8 @@ public class ChecklistRulesTests
     [Fact]
     public void AllocationsToCopy_RepeatedSourceName_CopiedOnce()
     {
-        var copied = ChecklistRules.AllocationsToCopy([Allocation(1, "Pill A", 3), Allocation(2, "pill a", 1)], []);
+        var copied = ChecklistRules.AllocationsToCopy(
+            [Allocation(1, "Pill A", MedSlots.Morning), Allocation(2, "pill a", MedSlots.Evening)], []);
 
         Assert.Equal(["Pill A"], copied.Select(a => a.Name));
     }
@@ -447,65 +513,5 @@ public class ChecklistRulesTests
 
         Assert.Equal(TimeSpan.Zero, tick.Offset);
         Assert.Equal(now, tick);
-    }
-
-    // ---- NewestMatch ----
-
-    [Fact]
-    public void NewestMatch_PicksTheLatestEntryOfThatMedication()
-    {
-        var newest = ChecklistRules.NewestMatch(
-            [Pill(10, "Pill A", 1), Pill(11, "Pill A", 9), Pill(12, "Pill A", 5)],
-            "Pill A");
-
-        Assert.Equal(11, newest!.Value.EntryId);
-    }
-
-    [Fact]
-    public void NewestMatch_IdenticalTimestamps_PicksTheHighestId()
-    {
-        // Ticking twice within a second is the realistic way to get here; the row inserted
-        // last is the one the untick undoes.
-        var newest = ChecklistRules.NewestMatch(
-            [Pill(10, "Pill A", 5), Pill(12, "Pill A", 5), Pill(11, "Pill A", 5)],
-            "Pill A");
-
-        Assert.Equal(12, newest!.Value.EntryId);
-    }
-
-    [Fact]
-    public void NewestMatch_MatchesIgnoringCase()
-    {
-        var newest = ChecklistRules.NewestMatch([Pill(10, "pill a", 1)], "Pill A");
-
-        Assert.Equal(10, newest!.Value.EntryId);
-    }
-
-    [Fact]
-    public void NewestMatch_IgnoresOtherMedications()
-    {
-        var newest = ChecklistRules.NewestMatch(
-            [Pill(10, "Pill A", 1), Pill(11, "Pill B", 9)],
-            "Pill A");
-
-        Assert.Equal(10, newest!.Value.EntryId);
-    }
-
-    [Fact]
-    public void NewestMatch_NothingLogged_ReturnsNull()
-    {
-        Assert.Null(ChecklistRules.NewestMatch([Pill(10, "Pill B", 1)], "Pill A"));
-    }
-
-    [Fact]
-    public void NewestMatch_NoEntriesAtAll_ReturnsNull()
-    {
-        Assert.Null(ChecklistRules.NewestMatch([], "Pill A"));
-    }
-
-    [Fact]
-    public void NewestMatch_UnnamedPillEntries_NeverMatch()
-    {
-        Assert.Null(ChecklistRules.NewestMatch([Pill(10, null, 1), Pill(11, "  ", 2)], "Pill A"));
     }
 }

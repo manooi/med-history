@@ -1,4 +1,5 @@
 using MedHistory.Models;
+using MedHistory.Services;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,8 +18,9 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
     // rather than a code change.
     public DbSet<EntryTypeDef> EntryTypes => Set<EntryTypeDef>();
 
-    // Per-day medication checklist. Rows carry no link to Entries: progress is derived by
-    // matching the medication name against the day's Pill entries — see ChecklistRules.
+    // Per-day medication checklist. Rows carry no link to Entries; the link runs the other
+    // way, from Entry.ChecklistAllocationId, which is what a ticked slot is — see
+    // ChecklistRules.
     public DbSet<MedAllocation> MedAllocations => Set<MedAllocation>();
 
     public DbSet<Photo> Photos => Set<Photo>();
@@ -47,6 +49,11 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
                 .HasConversion<string>()
                 .HasMaxLength(32);
 
+            // Which checklist slot this entry ticked, if any. ChecklistAllocationId is a plain
+            // integer with no foreign key — see the comment on Entry.ChecklistAllocationId.
+            entry.Property(e => e.ChecklistSlot)
+                .HasMaxLength(MedPlanRules.SlotNameMaxLength);
+
             entry.HasIndex(e => e.OccurredAt);
         });
 
@@ -67,6 +74,27 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
             allocation.ToTable("MedAllocations");
 
             allocation.Property(a => a.Name).HasMaxLength(MedAllocation.NameMaxLength).IsRequired();
+
+            // Slots are a set, stored as the canonical name list MedPlanRules defines rather
+            // than as the flags integer: the column stays readable in psql and consistent with
+            // the enums-as-strings the rest of the schema uses. Nothing queries by slot in SQL —
+            // a day's allocations are always loaded whole — so there is no index to lose.
+            allocation.Property(a => a.Slots)
+                .HasConversion(
+                    slots => MedPlanRules.FormatSlots(slots),
+                    stored => MedPlanRules.ParseSlots(stored))
+                .HasMaxLength(MedPlanRules.SlotsMaxLength)
+                .IsRequired();
+
+            allocation.Property(a => a.MealRelation)
+                .HasConversion<string>()
+                .HasMaxLength(32)
+                .IsRequired();
+
+            allocation.Property(a => a.Method)
+                .HasConversion<string>()
+                .HasMaxLength(32)
+                .IsRequired();
 
             // Every read is "the allocations of one day".
             allocation.HasIndex(a => a.Day);
