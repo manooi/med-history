@@ -26,6 +26,7 @@ Global playbook applies (~/CLAUDE.md gate): **no bead no code**, orchestrator ne
 
 - Entry types are data-driven (`EntryTypes` table, managed at `/types`): 5 seeded built-ins (Symptom, Bleeding, Pill, Cough, Meal) keep special fields (`Severity` only Bleeding/Cough; `PillName` only Pill); user-added types are name-only (note+photos+time). Deactivate hides a type from new-entry UI, never deletes. `Entry.Type` is a plain string (no FK — app-level validation in `EntryTypeRules`); type-name uniqueness via raw-SQL `lower(Name)` index that lives OUTSIDE the EF snapshot — later migrations won't see it
 - Multiple entries per day, timestamped `OccurredAt` (timestamptz), day view groups by local date
+- Med checklist: `MedAllocations` per-day rows (name + required count); progress DERIVED from the day's built-in-Pill entries matching the name (trimmed, case-insensitive) — never stored. Tick creates a real Pill entry (now, or noon local on past days); untick deletes newest match (tie: highest id). Shared predicate `ChecklistRules.IsPillEntry` — exact built-in Pill, deliberately narrower than `RequiresPillName`
 
 ## Problems log
 
