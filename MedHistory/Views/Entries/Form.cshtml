@@ -1,0 +1,69 @@
+@model EntryFormViewModel
+@{
+    var isEdit = Model.IsEdit;
+    ViewData["Title"] = $"{(isEdit ? "Edit" : "New")} {Model.Type}";
+
+    var postUrl = isEdit ? $"/entries/{Model.Id}" : "/entries";
+    var cancelDay = Model.OccurredAt == default ? AppTime.Today() : DateOnly.FromDateTime(Model.OccurredAt);
+    var fieldClass = "mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black";
+}
+
+<h1 class="border-b border-black pb-4 font-semibold">@(isEdit ? "Edit" : "New") @Model.Type</h1>
+
+<form method="post" action="@postUrl" asp-antiforgery="true" class="mt-6 space-y-4">
+    <input type="hidden" name="Type" value="@Model.Type" />
+    @if (isEdit)
+    {
+        <input type="hidden" name="Id" value="@Model.Id" />
+    }
+
+    <div asp-validation-summary="All" class="text-sm text-neutral-700"></div>
+
+    <div>
+        <label for="OccurredAt" class="block text-sm font-medium">Time</label>
+        <input type="datetime-local" id="OccurredAt" name="OccurredAt" required
+               value="@AppTime.InputValue(Model.OccurredAt)" class="@fieldClass" />
+    </div>
+
+    @if (EntryRules.RequiresSeverity(Model.Type))
+    {
+        <div>
+            <label asp-for="Severity" class="block text-sm font-medium">Severity</label>
+            <select asp-for="Severity" asp-items="Html.GetEnumSelectList<Severity>()" class="@fieldClass"></select>
+        </div>
+    }
+
+    @if (EntryRules.RequiresPillName(Model.Type))
+    {
+        <div>
+            <label asp-for="PillName" class="block text-sm font-medium">Pill name</label>
+            <input asp-for="PillName" type="text" autocomplete="off" class="@fieldClass" />
+        </div>
+    }
+
+    <div>
+        <label asp-for="Note" class="block text-sm font-medium">
+            Note@(EntryRules.RequiresNote(Model.Type) ? "" : " (optional)")
+        </label>
+        <textarea asp-for="Note" rows="3" class="@fieldClass"></textarea>
+    </div>
+
+    <div class="flex items-center gap-3 pt-2">
+        <button type="submit"
+                class="border border-black bg-white px-4 py-1 text-sm text-black hover:bg-black hover:text-white">
+            Save
+        </button>
+        <a href="/day/@AppTime.Key(cancelDay)" class="text-sm underline hover:no-underline">Cancel</a>
+    </div>
+</form>
+
+@if (isEdit)
+{
+    <form method="post" action="/entries/@Model.Id/delete" asp-antiforgery="true"
+          class="mt-10 border-t border-neutral-300 pt-4">
+        <button type="submit" onclick="return confirm('Delete this entry?');"
+                class="border border-black bg-white px-4 py-1 text-sm text-black hover:bg-black hover:text-white">
+            Delete entry
+        </button>
+    </form>
+}
