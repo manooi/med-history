@@ -22,7 +22,7 @@
             && string.Equals(type, Model.CurrentType, StringComparison.OrdinalIgnoreCase);
         var classes = isCurrent
             ? "border border-black bg-black px-3 py-1 text-sm text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950"
-            : "border border-black bg-white px-3 py-1 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950";
+            : "border border-black bg-white px-3 py-1 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950";
 
         @* Names are user-supplied, so they are escaped into the path segment. *@
         <a href="/type-report/@Uri.EscapeDataString(type)" class="@classes">@type</a>
@@ -34,7 +34,7 @@
     <section class="mt-6">
         @if (Model.Days.Count == 0)
         {
-            <p class="border border-dashed border-neutral-400 px-4 py-10 text-center text-sm text-neutral-500 dark:border-neutral-600 dark:text-neutral-400">
+            <p class="border border-dashed border-neutral-400 px-4 py-10 text-center text-sm text-neutral-500 dark:border-neutral-500 dark:text-neutral-400">
                 Nothing logged for this type.
             </p>
         }
@@ -47,10 +47,10 @@
                         <h2 class="text-sm font-semibold">
                             <a href="/day/@AppTime.Key(day.Day)" class="underline hover:no-underline">@AppTime.DayLabel(day.Day)</a>
                         </h2>
-                        <ul class="mt-2 border-y border-neutral-300 divide-y divide-neutral-300 dark:border-neutral-700 dark:divide-neutral-700">
+                        <ul class="mt-2 border-y border-neutral-300 divide-y divide-neutral-300 dark:border-neutral-600 dark:divide-neutral-600">
                             @foreach (var entry in day.Entries)
                             {
-                                <li class="hover:bg-neutral-100 dark:hover:bg-neutral-900">
+                                <li class="hover:bg-neutral-100 dark:hover:bg-neutral-700">
                                     <a href="/entries/@entry.Id/edit" class="flex items-center gap-4 px-1 py-3">
                                         <span class="w-12 shrink-0 text-sm tabular-nums text-neutral-600 dark:text-neutral-400">
                                             @AppTime.TimeLabel(entry.OccurredAtLocal)
@@ -66,7 +66,7 @@
                                                     @foreach (var photoId in entry.PhotoIds)
                                                     {
                                                         <img src="/photos/@photoId" loading="lazy" alt="" data-lightbox
-                                                             class="h-12 w-12 border border-neutral-300 object-cover cursor-zoom-in dark:border-neutral-700" />
+                                                             class="h-12 w-12 border border-neutral-300 object-cover cursor-zoom-in dark:border-neutral-600" />
                                                     }
                                                 </span>
                                             }

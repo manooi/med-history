@@ -57,9 +57,9 @@
                 var state = tally.State switch
                 {
                     DayProgress.Full => "border-black bg-black text-white hover:bg-neutral-700 dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950 dark:hover:bg-neutral-300",
-                    DayProgress.Partial => "border-black bg-white text-black hover:bg-neutral-100 dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-900",
-                    DayProgress.None => "border-neutral-300 bg-white text-neutral-500 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-400 dark:hover:bg-neutral-900",
-                    _ => "border-transparent bg-white text-neutral-400 hover:bg-neutral-100 dark:bg-neutral-950 dark:text-neutral-500 dark:hover:bg-neutral-900"
+                    DayProgress.Partial => "border-black bg-white text-black hover:bg-neutral-100 dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700",
+                    DayProgress.None => "border-neutral-300 bg-white text-neutral-500 hover:bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700",
+                    _ => "border-transparent bg-white text-neutral-400 hover:bg-neutral-100 dark:bg-neutral-800 dark:text-neutral-500 dark:hover:bg-neutral-700"
                 };
 
                 var label = tally.Planned == 0
@@ -84,10 +84,10 @@
         <span class="inline-block h-3 w-3 border border-black bg-black dark:border-neutral-100 dark:bg-neutral-100"></span> every dose
     </span>
     <span class="flex items-center gap-1">
-        <span class="inline-block h-3 w-3 border border-black bg-white dark:border-neutral-100 dark:bg-neutral-950"></span> some doses
+        <span class="inline-block h-3 w-3 border border-black bg-white dark:border-neutral-100 dark:bg-neutral-800"></span> some doses
     </span>
     <span class="flex items-center gap-1">
-        <span class="inline-block h-3 w-3 border border-neutral-300 bg-white dark:border-neutral-700 dark:bg-neutral-950"></span> none of them
+        <span class="inline-block h-3 w-3 border border-neutral-300 bg-white dark:border-neutral-600 dark:bg-neutral-800"></span> none of them
     </span>
     <span>unboxed — nothing planned</span>
 </div>

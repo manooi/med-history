@@ -23,7 +23,7 @@
 
 <div class="mt-4 flex items-center justify-between gap-3">
     <input type="date" id="day-picker" value="@dayKey" aria-label="Jump to date"
-           class="border border-black bg-white px-2 py-1 text-sm dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100" />
+           class="border border-black bg-white px-2 py-1 text-sm dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100" />
     @if (!Model.IsToday)
     {
         <a href="/" class="text-sm underline hover:no-underline">Back to today</a>
@@ -39,7 +39,7 @@
     {
         @* Names are user-supplied, so they are escaped into the query string. *@
         <a href="/entries/new?type=@Uri.EscapeDataString(type)&amp;date=@dayKey"
-           class="border border-black bg-white px-3 py-1 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">+ @type</a>
+           class="border border-black bg-white px-3 py-1 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">+ @type</a>
     }
     @if (Model.NewEntryTypes.Count == 0)
     {
@@ -50,16 +50,16 @@
 <section class="mt-6">
     @if (Model.Entries.Count == 0)
     {
-        <p class="border border-dashed border-neutral-400 px-4 py-10 text-center text-sm text-neutral-500 dark:border-neutral-600 dark:text-neutral-400">
+        <p class="border border-dashed border-neutral-400 px-4 py-10 text-center text-sm text-neutral-500 dark:border-neutral-500 dark:text-neutral-400">
             Nothing logged for this day.
         </p>
     }
     else
     {
-        <ul class="border-y border-neutral-300 divide-y divide-neutral-300 dark:border-neutral-700 dark:divide-neutral-700">
+        <ul class="border-y border-neutral-300 divide-y divide-neutral-300 dark:border-neutral-600 dark:divide-neutral-600">
             @foreach (var entry in Model.Entries)
             {
-                <li class="flex items-center gap-2 px-1 py-3 hover:bg-neutral-100 dark:hover:bg-neutral-900">
+                <li class="flex items-center gap-2 px-1 py-3 hover:bg-neutral-100 dark:hover:bg-neutral-700">
                     <a href="/entries/@entry.Id/edit" class="flex min-w-0 flex-1 gap-4">
                         <span class="w-12 shrink-0 text-sm tabular-nums text-neutral-600 dark:text-neutral-400">
                             @AppTime.TimeLabel(entry.OccurredAtLocal)
@@ -76,7 +76,7 @@
                                     @foreach (var photoId in entry.PhotoIds)
                                     {
                                         <img src="/photos/@photoId" loading="lazy" alt="" data-lightbox
-                                             class="h-12 w-12 border border-neutral-300 object-cover cursor-zoom-in dark:border-neutral-700" />
+                                             class="h-12 w-12 border border-neutral-300 object-cover cursor-zoom-in dark:border-neutral-600" />
                                     }
                                 </span>
                             }

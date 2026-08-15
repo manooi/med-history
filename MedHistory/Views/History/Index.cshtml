@@ -10,17 +10,17 @@
 <section class="mt-6">
     @if (Model.Days.Count == 0)
     {
-        <p class="border border-dashed border-neutral-400 px-4 py-10 text-center text-sm text-neutral-500 dark:border-neutral-600 dark:text-neutral-400">
+        <p class="border border-dashed border-neutral-400 px-4 py-10 text-center text-sm text-neutral-500 dark:border-neutral-500 dark:text-neutral-400">
             No entries yet.
         </p>
     }
     else
     {
-        <ul class="border-y border-neutral-300 divide-y divide-neutral-300 dark:border-neutral-700 dark:divide-neutral-700">
+        <ul class="border-y border-neutral-300 divide-y divide-neutral-300 dark:border-neutral-600 dark:divide-neutral-600">
             @foreach (var day in Model.Days)
             {
                 <li>
-                    <a href="/day/@AppTime.Key(day.Day)" class="flex items-center justify-between gap-4 px-1 py-3 hover:bg-neutral-100 dark:hover:bg-neutral-900">
+                    <a href="/day/@AppTime.Key(day.Day)" class="flex items-center justify-between gap-4 px-1 py-3 hover:bg-neutral-100 dark:hover:bg-neutral-700">
                         <span class="text-sm font-medium">@AppTime.DayLabel(day.Day)</span>
                         <span class="flex flex-wrap justify-end gap-1">
                             @foreach (var count in day.Counts)

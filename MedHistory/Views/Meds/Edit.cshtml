@@ -22,7 +22,7 @@
         <label for="med-name" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Medication</label>
         <input type="text" id="med-name" name="name" required autocomplete="off" list="stock-names"
                maxlength="@ChecklistRules.NameMaxLength" value="@Model.Name"
-               class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100" />
+               class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100" />
         @* Suggests tracked stock names but still takes free text — an eyedrop or anything else
            with no stock row is typed as-is. *@
         <datalist id="stock-names">
@@ -40,7 +40,7 @@
                min="@MedPlanRules.FormatQuantity(MedPlanRules.MinDoseQuantity)"
                max="@MedPlanRules.FormatQuantity(MedPlanRules.MaxDoseQuantity)"
                value="@Model.DoseQuantity"
-               class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100" />
+               class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100" />
     </div>
     <p class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
         Units taken at each time of day. Doses already logged keep the amount they were taken as.
@@ -53,7 +53,7 @@
             {
                 var slotName = MedPlanRules.SlotName(slot);
 
-                <label class="flex items-center gap-2 border border-black bg-white px-2 py-1 text-sm dark:border-neutral-100 dark:bg-neutral-950">
+                <label class="flex items-center gap-2 border border-black bg-white px-2 py-1 text-sm dark:border-neutral-100 dark:bg-neutral-800">
                     <input type="checkbox" name="slots" value="@slotName"
                            checked="@Model.Slots.HasFlag(slot)"
                            class="accent-black dark:accent-neutral-100" />
@@ -67,7 +67,7 @@
         <div class="min-w-0 flex-1">
             <label for="med-meal" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Meal</label>
             <select id="med-meal" name="mealRelation"
-                    class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100">
+                    class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100">
                 @foreach (var relation in Enum.GetValues<MealRelation>())
                 {
                     <option value="@relation" selected="@(relation == Model.MealRelation)">
@@ -80,7 +80,7 @@
         <div class="min-w-0 flex-1">
             <label for="med-method" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Method</label>
             <select id="med-method" name="method"
-                    class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100">
+                    class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100">
                 @foreach (var method in Enum.GetValues<MedMethod>())
                 {
                     <option value="@method" selected="@(method == Model.Method)">
@@ -102,7 +102,7 @@
 
     <div class="mt-4">
         <button type="submit"
-                class="border border-black bg-white px-3 py-1 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
+                class="border border-black bg-white px-3 py-1 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
             Save
         </button>
     </div>

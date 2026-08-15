@@ -11,7 +11,7 @@
     <div class="flex items-center justify-between gap-3 border-b border-black px-3 py-2 dark:border-neutral-100">
         <h2 class="text-sm font-semibold uppercase tracking-wide">Meds</h2>
         <a href="/day/@dayKey/meds"
-           class="border border-black bg-white px-2 py-1 text-xs text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
+           class="border border-black bg-white px-2 py-1 text-xs text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
             Manage
         </a>
     </div>
@@ -24,7 +24,7 @@
     }
     else
     {
-        <ul class="divide-y divide-neutral-300 dark:divide-neutral-700">
+        <ul class="divide-y divide-neutral-300 dark:divide-neutral-600">
             @foreach (var row in Model.Checklist)
             {
                 <li class="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3">
@@ -34,7 +34,7 @@
                             @if (row.QuantityLabel.Length > 0)
                             {
                                 @* Only away from one unit; "×1" on every row would be noise. *@
-                                <span class="border border-neutral-400 px-1 text-xs font-normal text-neutral-600 dark:border-neutral-600 dark:text-neutral-400">
+                                <span class="border border-neutral-400 px-1 text-xs font-normal text-neutral-600 dark:border-neutral-500 dark:text-neutral-400">
                                     @row.QuantityLabel
                                 </span>
                             }
@@ -61,7 +61,7 @@
 
                             <form method="post" action="/checklist/@row.AllocationId/@action/@slot.Name" asp-antiforgery="true">
                                 <button type="submit" title="@label" aria-label="@label"
-                                        class="border px-2 py-1 text-xs leading-none tabular-nums @(slot.IsTicked ? "border-black bg-black text-white hover:bg-white hover:text-black dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950 dark:hover:bg-neutral-950 dark:hover:text-neutral-100" : "border-neutral-400 bg-white text-neutral-600 hover:border-black hover:bg-black hover:text-white dark:border-neutral-600 dark:bg-neutral-950 dark:text-neutral-400 dark:hover:border-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950")">
+                                        class="border px-2 py-1 text-xs leading-none tabular-nums @(slot.IsTicked ? "border-black bg-black text-white hover:bg-white hover:text-black dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950 dark:hover:bg-neutral-800 dark:hover:text-neutral-100" : "border-neutral-400 bg-white text-neutral-600 hover:border-black hover:bg-black hover:text-white dark:border-neutral-500 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:border-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950")">
                                     @slot.Label @(slot.IsTicked ? "✓" : "□")
                                 </button>
                             </form>
