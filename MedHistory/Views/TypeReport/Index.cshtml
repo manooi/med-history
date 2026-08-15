@@ -1,0 +1,100 @@
+@model TypeReportViewModel
+@{
+    ViewData["Title"] = Model.CurrentType is null ? "Type report" : $"Type report — {Model.CurrentType}";
+}
+
+<header class="border-b border-black pb-4">
+    <h1 class="font-semibold">Type report</h1>
+    @if (Model.CurrentType is null)
+    {
+        <p class="text-xs uppercase tracking-wide text-neutral-500">Pick a type.</p>
+    }
+    else
+    {
+        <p class="text-xs uppercase tracking-wide text-neutral-500">@Model.CurrentType</p>
+    }
+</header>
+
+<div class="mt-6 flex flex-wrap gap-2">
+    @foreach (var type in Model.AllTypeNames)
+    {
+        var isCurrent = Model.CurrentType is not null
+            && string.Equals(type, Model.CurrentType, StringComparison.OrdinalIgnoreCase);
+        var classes = isCurrent
+            ? "border border-black bg-black px-3 py-1 text-sm text-white"
+            : "border border-black bg-white px-3 py-1 text-sm text-black hover:bg-black hover:text-white";
+
+        @* Names are user-supplied, so they are escaped into the path segment. *@
+        <a href="/type-report/@Uri.EscapeDataString(type)" class="@classes">@type</a>
+    }
+</div>
+
+@if (Model.CurrentType is not null)
+{
+    <section class="mt-6">
+        @if (Model.Days.Count == 0)
+        {
+            <p class="border border-dashed border-neutral-400 px-4 py-10 text-center text-sm text-neutral-500">
+                Nothing logged for this type.
+            </p>
+        }
+        else
+        {
+            <div class="space-y-6">
+                @foreach (var day in Model.Days)
+                {
+                    <div>
+                        <h2 class="text-sm font-semibold">
+                            <a href="/day/@AppTime.Key(day.Day)" class="underline hover:no-underline">@AppTime.DayLabel(day.Day)</a>
+                        </h2>
+                        <ul class="mt-2 border-y border-neutral-300 divide-y divide-neutral-300">
+                            @foreach (var entry in day.Entries)
+                            {
+                                <li class="hover:bg-neutral-100">
+                                    <a href="/entries/@entry.Id/edit" class="flex items-center gap-4 px-1 py-3">
+                                        <span class="w-12 shrink-0 text-sm tabular-nums text-neutral-600">
+                                            @AppTime.TimeLabel(entry.OccurredAtLocal)
+                                        </span>
+                                        <span class="min-w-0 flex-1">
+                                            @if (entry.Detail is not null)
+                                            {
+                                                <span class="block text-sm text-neutral-600">@entry.Detail</span>
+                                            }
+                                            @if (entry.PhotoIds.Count > 0)
+                                            {
+                                                <span class="mt-1 flex flex-wrap gap-1">
+                                                    @foreach (var photoId in entry.PhotoIds)
+                                                    {
+                                                        <img src="/photos/@photoId" loading="lazy" alt="" data-lightbox
+                                                             class="h-12 w-12 border border-neutral-300 object-cover cursor-zoom-in" />
+                                                    }
+                                                </span>
+                                            }
+                                        </span>
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
+            </div>
+
+            @if (Model.PageCount > 1)
+            {
+                <div class="mt-6 flex items-center justify-center gap-4 text-sm">
+                    @if (Model.HasNewerPage)
+                    {
+                        <a href="/type-report/@Uri.EscapeDataString(Model.CurrentType)?page=@(Model.Page - 1)"
+                           class="underline hover:no-underline">&larr; Newer</a>
+                    }
+                    <span class="text-neutral-500">Page @Model.Page of @Model.PageCount</span>
+                    @if (Model.HasOlderPage)
+                    {
+                        <a href="/type-report/@Uri.EscapeDataString(Model.CurrentType)?page=@(Model.Page + 1)"
+                           class="underline hover:no-underline">Older &rarr;</a>
+                    }
+                </div>
+            }
+        }
+    </section>
+}
