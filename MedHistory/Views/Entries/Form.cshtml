@@ -73,8 +73,8 @@
             @foreach (var photo in Model.ExistingPhotos)
             {
                 <li class="flex flex-col items-center gap-1">
-                    <img src="/photos/@photo.Id" loading="lazy" alt="@photo.FileName"
-                         class="h-20 w-20 max-h-20 border border-neutral-400 object-cover" />
+                    <img src="/photos/@photo.Id" loading="lazy" alt="@photo.FileName" data-lightbox
+                         class="h-20 w-20 max-h-20 border border-neutral-400 object-cover cursor-zoom-in" />
                     <form method="post" action="/photos/@photo.Id/delete" asp-antiforgery="true">
                         <button type="submit" onclick="return confirm('Remove this photo?');"
                                 class="text-xs underline hover:no-underline">

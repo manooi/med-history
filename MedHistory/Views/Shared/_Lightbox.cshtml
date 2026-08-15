@@ -1,0 +1,50 @@
+<dialog id="lightbox" class="border border-black bg-white p-0 backdrop:bg-black/80">
+    <div class="relative">
+        <button type="button" id="lightbox-close" aria-label="Close"
+                class="absolute right-2 top-2 border border-black bg-white px-2 py-1 text-sm leading-none text-black hover:bg-black hover:text-white">
+            &times;
+        </button>
+        <img id="lightbox-img" src="" alt=""
+             class="block max-h-[90vh] max-w-[90vw] object-contain" />
+    </div>
+</dialog>
+
+<script>
+    (function () {
+        var dialog = document.getElementById('lightbox');
+        var img = document.getElementById('lightbox-img');
+        var closeBtn = document.getElementById('lightbox-close');
+
+        document.addEventListener('click', function (e) {
+            var thumb = e.target.closest('[data-lightbox]');
+            if (!thumb) {
+                return;
+            }
+            e.preventDefault();
+            e.stopPropagation();
+            img.src = thumb.src;
+            img.alt = thumb.alt || '';
+            dialog.showModal();
+        });
+
+        closeBtn.addEventListener('click', function () {
+            dialog.close();
+        });
+
+        // Backdrop click: dialog element's own box is the ::backdrop area outside
+        // the flow content, so a click that lands outside the dialog's content
+        // rect targets the dialog itself.
+        dialog.addEventListener('mousedown', function (e) {
+            var rect = dialog.getBoundingClientRect();
+            var inDialog = e.clientX >= rect.left && e.clientX <= rect.right &&
+                e.clientY >= rect.top && e.clientY <= rect.bottom;
+            if (!inDialog) {
+                dialog.close();
+            }
+        });
+
+        dialog.addEventListener('close', function () {
+            img.src = '';
+        });
+    })();
+</script>
