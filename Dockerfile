@@ -48,7 +48,11 @@ COPY --from=build /app/publish .
 # .NET 8+ images) — run as that instead of root.
 USER app
 
-ENV ASPNETCORE_HTTP_PORTS=8080
+# App renders via TimeZoneInfo.Local; Cloud Run's containers default to UTC.
+# The aspnet base image is Debian and ships tzdata, so setting TZ is enough
+# to make local time Bangkok without installing anything extra.
+ENV ASPNETCORE_HTTP_PORTS=8080 \
+    TZ=Asia/Bangkok
 EXPOSE 8080
 
 ENTRYPOINT ["dotnet", "MedHistory.dll"]
