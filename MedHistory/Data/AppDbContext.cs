@@ -13,7 +13,7 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
 
     public DbSet<Entry> Entries => Set<Entry>();
 
-    // The types an entry can be created as. Seeded with the five built-ins; rows are
+    // The types an entry can be created as. Seeded with the six built-ins; rows are
     // added from the /types page, which is what makes new entry types a data change
     // rather than a code change.
     public DbSet<EntryTypeDef> EntryTypes => Set<EntryTypeDef>();

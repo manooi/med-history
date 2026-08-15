@@ -38,6 +38,7 @@ public class EntryRulesTests
     [InlineData(BuiltInEntryTypes.Symptom)]
     [InlineData(BuiltInEntryTypes.Med)]
     [InlineData(BuiltInEntryTypes.Meal)]
+    [InlineData(BuiltInEntryTypes.Note)]
     [InlineData(CustomType)]
     public void Validate_SeverityGiven_OnTypeThatDoesNotSupportIt_ReturnsError(string type)
     {
@@ -75,6 +76,7 @@ public class EntryRulesTests
     [InlineData(BuiltInEntryTypes.Bleeding)]
     [InlineData(BuiltInEntryTypes.Cough)]
     [InlineData(BuiltInEntryTypes.Meal)]
+    [InlineData(BuiltInEntryTypes.Note)]
     [InlineData(CustomType)]
     public void Validate_PillNameGiven_OnTypeThatDoesNotSupportIt_ReturnsError(string type)
     {
@@ -90,6 +92,7 @@ public class EntryRulesTests
 
     [Theory]
     [InlineData(BuiltInEntryTypes.Symptom)]
+    [InlineData(BuiltInEntryTypes.Note)]
     public void Validate_MissingNote_OnTypeThatRequiresIt_ReturnsError(string type)
     {
         var errors = EntryRules.Validate(type, severity: null, pillName: null, note: null);
@@ -99,6 +102,7 @@ public class EntryRulesTests
 
     [Theory]
     [InlineData(BuiltInEntryTypes.Symptom)]
+    [InlineData(BuiltInEntryTypes.Note)]
     public void Validate_WhitespaceNote_OnTypeThatRequiresIt_ReturnsError(string type)
     {
         var errors = EntryRules.Validate(type, severity: null, pillName: null, note: "   ");
@@ -119,7 +123,7 @@ public class EntryRulesTests
         Assert.Empty(errors);
     }
 
-    // ---- Validate: valid combos for all 5 built-ins ----
+    // ---- Validate: valid combos for all 6 built-ins ----
 
     [Fact]
     public void Validate_Symptom_ValidCombo_NoErrors()
@@ -157,6 +161,14 @@ public class EntryRulesTests
     public void Validate_Meal_ValidCombo_NoErrors()
     {
         var errors = EntryRules.Validate(BuiltInEntryTypes.Meal, severity: null, pillName: null, note: "Rice and soup");
+
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public void Validate_Note_ValidCombo_NoErrors()
+    {
+        var errors = EntryRules.Validate(BuiltInEntryTypes.Note, severity: null, pillName: null, note: "Called the clinic to reschedule");
 
         Assert.Empty(errors);
     }
@@ -207,6 +219,7 @@ public class EntryRulesTests
     [InlineData(BuiltInEntryTypes.Med, false, true, false)]
     [InlineData(BuiltInEntryTypes.Cough, true, false, false)]
     [InlineData(BuiltInEntryTypes.Meal, false, false, false)]
+    [InlineData(BuiltInEntryTypes.Note, false, false, true)]
     [InlineData(CustomType, false, false, false)]
     [InlineData("Mood", false, false, false)]
     // Regression: "Pill" was the built-in's name before the rename to "Med" (bead 69e).

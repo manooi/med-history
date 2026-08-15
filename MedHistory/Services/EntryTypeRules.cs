@@ -90,7 +90,7 @@ public static class EntryTypeRules
     }
 
     /// <summary>
-    /// Display order for every type list in the app: the five built-ins first in
+    /// Display order for every type list in the app: the six built-ins first in
     /// <see cref="BuiltInEntryTypes.All"/> order — so the day view's "+" buttons keep the
     /// layout they had when the order came from the enum — then user-added types
     /// alphabetically. Rank comes from the name rather than an IsBuiltIn flag so the same

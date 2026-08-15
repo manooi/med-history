@@ -8,7 +8,7 @@ namespace MedHistory.Services;
 ///
 /// Types are identified by name (ordinal comparison — names come from the EntryTypes
 /// table, and the app stores and compares them in their canonical casing). Only the
-/// five built-ins carry type-specific fields; any other name is a user-added type,
+/// six built-ins carry type-specific fields; any other name is a user-added type,
 /// which means no severity, no pill name, an optional note, and photos allowed.
 /// </summary>
 public static class EntryRules
@@ -20,7 +20,7 @@ public static class EntryRules
         type is BuiltInEntryTypes.Med;
 
     public static bool RequiresNote(string type) =>
-        type is BuiltInEntryTypes.Symptom;
+        type is BuiltInEntryTypes.Symptom or BuiltInEntryTypes.Note;
 
     /// <summary>
     /// Returns one message per broken rule; an empty list means the entry is valid.

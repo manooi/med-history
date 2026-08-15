@@ -18,6 +18,6 @@ public class EntryTypeDef
     /// <summary>Inactive types disappear from the "+" buttons; their existing entries stay.</summary>
     public bool IsActive { get; set; } = true;
 
-    /// <summary>True for the five seeded types, the only ones with type-specific fields.</summary>
+    /// <summary>True for the six seeded types, the only ones with type-specific fields.</summary>
     public bool IsBuiltIn { get; set; }
 }

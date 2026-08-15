@@ -193,6 +193,7 @@ public class EntryTypeRulesTests
         var shuffled = new[]
         {
             BuiltInEntryTypes.Meal,
+            BuiltInEntryTypes.Note,
             BuiltInEntryTypes.Bleeding,
             BuiltInEntryTypes.Symptom,
             BuiltInEntryTypes.Cough,
@@ -202,6 +203,25 @@ public class EntryTypeRulesTests
         var sorted = EntryTypeRules.SortForDisplay(shuffled, name => name);
 
         Assert.Equal(BuiltInEntryTypes.All, sorted);
+    }
+
+    [Fact]
+    public void BuiltInEntryTypes_All_EndsWithNote()
+    {
+        // Note was added after the original five; it must sort last so it doesn't
+        // reshuffle the "+" button layout the user already knows.
+        Assert.Equal(BuiltInEntryTypes.Note, BuiltInEntryTypes.All[^1]);
+        Assert.Equal(
+            new[]
+            {
+                BuiltInEntryTypes.Symptom,
+                BuiltInEntryTypes.Bleeding,
+                BuiltInEntryTypes.Med,
+                BuiltInEntryTypes.Cough,
+                BuiltInEntryTypes.Meal,
+                BuiltInEntryTypes.Note,
+            },
+            BuiltInEntryTypes.All);
     }
 
     [Fact]
