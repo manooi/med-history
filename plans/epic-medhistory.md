@@ -47,7 +47,7 @@ Photo:  Id, EntryId FK cascade, Data bytea, ContentType, FileName, CreatedAt
 - [x] 4ei.1 scaffold
 - [x] 4ei.2 tailwind
 - [x] 4ei.3 data layer
-- [ ] 4ei.4 auth
+- [x] 4ei.4 auth
 - [ ] 4ei.5 entry CRUD + day view
 - [ ] 4ei.6 photos
 - [ ] 4ei.7 history
