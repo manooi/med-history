@@ -12,6 +12,7 @@ Epic: `med-history-4ei` — personal medical history web app. Plan: [`plans/epic
 - [x] 6. Photo upload + serving from bytea (`med-history-4ei.6`)
 - [x] 7. History view (`med-history-4ei.7`)
 - [x] 8. xUnit pure-logic tests (`med-history-4ei.8`)
+- [x] 9. dotenv support — `.env.example`, DotNetEnv (`med-history-4ei.9`)
 
 ## Later ideas
 

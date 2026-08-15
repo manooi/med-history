@@ -13,6 +13,7 @@ MedHistory/wwwroot/css/site.css
 # local secrets — never commit
 appsettings.*.local.json
 *.pfx
+.env
 
 # OS
 .DS_Store
