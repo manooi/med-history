@@ -1,0 +1,36 @@
+@model HistoryViewModel
+@{
+    ViewData["Title"] = "History";
+}
+
+<header class="border-b border-black pb-4">
+    <h1 class="font-semibold">History</h1>
+</header>
+
+<section class="mt-6">
+    @if (Model.Days.Count == 0)
+    {
+        <p class="border border-dashed border-neutral-400 px-4 py-10 text-center text-sm text-neutral-500">
+            No entries yet.
+        </p>
+    }
+    else
+    {
+        <ul class="border-y border-neutral-300 divide-y divide-neutral-300">
+            @foreach (var day in Model.Days)
+            {
+                <li>
+                    <a href="/day/@AppTime.Key(day.Day)" class="flex items-center justify-between gap-4 px-1 py-3 hover:bg-neutral-100">
+                        <span class="text-sm font-medium">@AppTime.DayLabel(day.Day)</span>
+                        <span class="flex flex-wrap justify-end gap-1">
+                            @foreach (var count in day.Counts)
+                            {
+                                <span class="border border-black px-1 text-xs">@count.Type &times;@count.Count</span>
+                            }
+                        </span>
+                    </a>
+                </li>
+            }
+        </ul>
+    }
+</section>

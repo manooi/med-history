@@ -50,5 +50,5 @@ Photo:  Id, EntryId FK cascade, Data bytea, ContentType, FileName, CreatedAt
 - [x] 4ei.4 auth
 - [x] 4ei.5 entry CRUD + day view
 - [ ] 4ei.6 photos
-- [ ] 4ei.7 history
+- [x] 4ei.7 history
 - [ ] 4ei.8 tests
