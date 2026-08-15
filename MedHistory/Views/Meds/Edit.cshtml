@@ -1,0 +1,88 @@
+@model MedAllocationEditViewModel
+@{
+    var dayKey = AppTime.Key(Model.Day);
+    var dayLabel = AppTime.DayLabel(Model.Day);
+    ViewData["Title"] = $"Edit medication — {dayLabel}";
+}
+
+<header class="flex items-center justify-between gap-4 border-b border-black pb-4">
+    <div>
+        <h1 class="font-semibold">Edit medication</h1>
+        <p class="text-sm text-neutral-500">@dayLabel</p>
+    </div>
+    <a href="/day/@dayKey/meds" class="border border-black px-3 py-1 text-sm hover:bg-black hover:text-white">
+        Cancel
+    </a>
+</header>
+
+<form method="post" action="/checklist/@Model.Id/edit" asp-antiforgery="true" class="mt-6">
+    <div asp-validation-summary="All" class="mb-2 text-sm text-neutral-700"></div>
+
+    <div>
+        <label for="med-name" class="block text-xs uppercase tracking-wide text-neutral-500">Medication</label>
+        <input type="text" id="med-name" name="name" required autocomplete="off"
+               maxlength="@ChecklistRules.NameMaxLength" value="@Model.Name"
+               class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black" />
+    </div>
+
+    <fieldset class="mt-4">
+        <legend class="text-xs uppercase tracking-wide text-neutral-500">Times of day</legend>
+        <div class="mt-1 flex flex-wrap gap-2">
+            @foreach (var slot in MedPlanRules.AllSlots)
+            {
+                var slotName = MedPlanRules.SlotName(slot);
+
+                <label class="flex items-center gap-2 border border-black bg-white px-2 py-1 text-sm">
+                    <input type="checkbox" name="slots" value="@slotName"
+                           checked="@Model.Slots.HasFlag(slot)"
+                           class="accent-black" />
+                    @MedPlanRules.SlotLabel(slot)
+                </label>
+            }
+        </div>
+    </fieldset>
+
+    <div class="mt-4 flex flex-wrap items-end gap-2">
+        <div class="min-w-0 flex-1">
+            <label for="med-meal" class="block text-xs uppercase tracking-wide text-neutral-500">Meal</label>
+            <select id="med-meal" name="mealRelation"
+                    class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black">
+                @foreach (var relation in Enum.GetValues<MealRelation>())
+                {
+                    <option value="@relation" selected="@(relation == Model.MealRelation)">
+                        @MedPlanRules.MealRelationOption(relation)
+                    </option>
+                }
+            </select>
+        </div>
+
+        <div class="min-w-0 flex-1">
+            <label for="med-method" class="block text-xs uppercase tracking-wide text-neutral-500">Method</label>
+            <select id="med-method" name="method"
+                    class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black">
+                @foreach (var method in Enum.GetValues<MedMethod>())
+                {
+                    <option value="@method" selected="@(method == Model.Method)">
+                        @MedPlanRules.MethodOption(method)
+                    </option>
+                }
+            </select>
+        </div>
+    </div>
+
+    <label class="mt-4 flex items-start gap-2 text-sm">
+        <input type="checkbox" name="applyForward" value="true" checked="@Model.ApplyForward" class="accent-black mt-0.5" />
+        <span>Apply to all future days with this name</span>
+    </label>
+    <p class="mt-1 text-xs text-neutral-500">
+        Only allocations dated on or after @dayLabel that still carry this medication's current name are changed.
+        Days before this one, and doses already logged, are never touched.
+    </p>
+
+    <div class="mt-4">
+        <button type="submit"
+                class="border border-black bg-white px-3 py-1 text-sm text-black hover:bg-black hover:text-white">
+            Save
+        </button>
+    </div>
+</form>

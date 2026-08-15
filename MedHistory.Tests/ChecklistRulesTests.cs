@@ -575,6 +575,182 @@ public class ChecklistRulesTests
         Assert.Empty(ChecklistRules.AllocationsToCopy([], ["Pill A"]));
     }
 
+    // ---- AffectedAllocations ----
+
+    private static ChecklistRules.AllocationRef Ref(int id, DateOnly day, string name) => new(id, day, name);
+
+    [Fact]
+    public void AffectedAllocations_NoApplyForward_IsJustTheEditedRow()
+    {
+        var edited = Ref(1, Day, "Pill A");
+        var candidates = new[] { edited, Ref(2, Day.AddDays(1), "Pill A") };
+
+        var affected = ChecklistRules.AffectedAllocations(edited, applyForward: false, candidates);
+
+        Assert.Equal([edited], affected);
+    }
+
+    [Fact]
+    public void AffectedAllocations_ApplyForward_IncludesFutureRowsWithTheSameName()
+    {
+        var edited = Ref(1, Day, "Pill A");
+        var future = Ref(2, Day.AddDays(1), "Pill A");
+
+        var affected = ChecklistRules.AffectedAllocations(edited, applyForward: true, [edited, future]);
+
+        Assert.Equal([1, 2], affected.Select(a => a.Id));
+    }
+
+    [Fact]
+    public void AffectedAllocations_ApplyForward_LeavesPastDaysUntouchedEvenWithTheSameName()
+    {
+        var edited = Ref(1, Day, "Pill A");
+        var past = Ref(2, Day.AddDays(-1), "Pill A");
+
+        var affected = ChecklistRules.AffectedAllocations(edited, applyForward: true, [edited, past]);
+
+        Assert.Equal([1], affected.Select(a => a.Id));
+    }
+
+    [Fact]
+    public void AffectedAllocations_ApplyForward_LeavesOtherNamedRowsUntouched()
+    {
+        var edited = Ref(1, Day, "Pill A");
+        var otherName = Ref(2, Day.AddDays(1), "Pill B");
+
+        var affected = ChecklistRules.AffectedAllocations(edited, applyForward: true, [edited, otherName]);
+
+        Assert.Equal([1], affected.Select(a => a.Id));
+    }
+
+    [Fact]
+    public void AffectedAllocations_ApplyForward_MatchesTheOldNameIgnoringCase()
+    {
+        var edited = Ref(1, Day, "Pill A");
+        var future = Ref(2, Day.AddDays(1), "pill a");
+
+        var affected = ChecklistRules.AffectedAllocations(edited, applyForward: true, [edited, future]);
+
+        Assert.Equal([1, 2], affected.Select(a => a.Id));
+    }
+
+    // ---- RenameCollisionDays ----
+
+    [Fact]
+    public void RenameCollisionDays_NoRenameEdit_ReturnsEmpty()
+    {
+        // Saving with the name unchanged: the only row with that name on the affected day is
+        // the row being edited itself, which is excluded.
+        var namesByDay = new Dictionary<DateOnly, IReadOnlyList<ChecklistRules.AllocationRef>>
+        {
+            [Day] = [Ref(1, Day, "Pill A")]
+        };
+
+        var collisions = ChecklistRules.RenameCollisionDays("Pill A", new HashSet<int> { 1 }, namesByDay);
+
+        Assert.Empty(collisions);
+    }
+
+    [Fact]
+    public void RenameCollisionDays_RenameWithNoOtherRowUsingTheName_ReturnsEmpty()
+    {
+        var namesByDay = new Dictionary<DateOnly, IReadOnlyList<ChecklistRules.AllocationRef>>
+        {
+            [Day] = [Ref(1, Day, "Pill A")]
+        };
+
+        var collisions = ChecklistRules.RenameCollisionDays("Eyedrop L", new HashSet<int> { 1 }, namesByDay);
+
+        Assert.Empty(collisions);
+    }
+
+    [Fact]
+    public void RenameCollisionDays_RenameCollidesOnTheSameDay_ReturnsThatDay()
+    {
+        var namesByDay = new Dictionary<DateOnly, IReadOnlyList<ChecklistRules.AllocationRef>>
+        {
+            [Day] = [Ref(1, Day, "Pill A"), Ref(2, Day, "Eyedrop L")]
+        };
+
+        var collisions = ChecklistRules.RenameCollisionDays("Eyedrop L", new HashSet<int> { 1 }, namesByDay);
+
+        Assert.Equal([Day], collisions);
+    }
+
+    [Fact]
+    public void RenameCollisionDays_MatchesTheNewNameIgnoringCaseAndPadding()
+    {
+        var namesByDay = new Dictionary<DateOnly, IReadOnlyList<ChecklistRules.AllocationRef>>
+        {
+            [Day] = [Ref(1, Day, "Pill A"), Ref(2, Day, "  eyedrop l  ")]
+        };
+
+        var collisions = ChecklistRules.RenameCollisionDays("Eyedrop L", new HashSet<int> { 1 }, namesByDay);
+
+        Assert.Equal([Day], collisions);
+    }
+
+    [Fact]
+    public void RenameCollisionDays_WithoutApplyForward_OnlyThisDayIsChecked()
+    {
+        // The caller passes only this day's names when applyForward is off, so a same-name
+        // collision on a later day is never seen.
+        var namesByDay = new Dictionary<DateOnly, IReadOnlyList<ChecklistRules.AllocationRef>>
+        {
+            [Day] = [Ref(1, Day, "Pill A")]
+        };
+
+        var collisions = ChecklistRules.RenameCollisionDays("Eyedrop L", new HashSet<int> { 1 }, namesByDay);
+
+        Assert.Empty(collisions);
+    }
+
+    [Fact]
+    public void RenameCollisionDays_WithApplyForward_ALaterDayCollisionIsDetected()
+    {
+        // The caller passes every affected day's names when applyForward is on.
+        var laterDay = Day.AddDays(1);
+        var namesByDay = new Dictionary<DateOnly, IReadOnlyList<ChecklistRules.AllocationRef>>
+        {
+            [Day] = [Ref(1, Day, "Pill A")],
+            [laterDay] = [Ref(2, laterDay, "Pill A"), Ref(3, laterDay, "Eyedrop L")]
+        };
+
+        var collisions = ChecklistRules.RenameCollisionDays(
+            "Eyedrop L", new HashSet<int> { 1, 2 }, namesByDay);
+
+        Assert.Equal([laterDay], collisions);
+    }
+
+    [Fact]
+    public void RenameCollisionDays_MultipleCollidingDays_ReturnsAllInOrder()
+    {
+        var laterDay = Day.AddDays(1);
+        var namesByDay = new Dictionary<DateOnly, IReadOnlyList<ChecklistRules.AllocationRef>>
+        {
+            [laterDay] = [Ref(2, laterDay, "Eyedrop L")],
+            [Day] = [Ref(1, Day, "Eyedrop L")]
+        };
+
+        var collisions = ChecklistRules.RenameCollisionDays("Eyedrop L", new HashSet<int>(), namesByDay);
+
+        Assert.Equal([Day, laterDay], collisions);
+    }
+
+    // ---- JoinDayLabels ----
+
+    [Fact]
+    public void JoinDayLabels_AtOrBelowTheCap_ListsEveryLabel()
+    {
+        Assert.Equal("a, b, c", ChecklistRules.JoinDayLabels(["a", "b", "c"]));
+    }
+
+    [Fact]
+    public void JoinDayLabels_OverTheCap_SummarisesTheRemainder()
+    {
+        Assert.Equal("a, b, c, and 2 more", ChecklistRules.JoinDayLabels(["a", "b", "c", "d", "e"]));
+    }
+
     // ---- TickTime ----
 
     [Fact]

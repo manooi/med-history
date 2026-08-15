@@ -252,6 +252,58 @@ public static class ChecklistRules
     }
 
     /// <summary>
+    /// An allocation reduced to what edit selection and rename-collision checks need: which row,
+    /// which day, and what name it currently carries.
+    /// </summary>
+    public readonly record struct AllocationRef(int Id, DateOnly Day, string Name);
+
+    /// <summary>
+    /// The allocations one edit applies to. Without <paramref name="applyForward"/> this is
+    /// always just <paramref name="edited"/> — a same-day edit never reaches past its own row.
+    /// With it set, every allocation in <paramref name="candidates"/> dated on or after the
+    /// edited row's day that shares its (pre-edit) name is included too: a day at or after this
+    /// one with a different-named medication, or a day before this one regardless of name, is
+    /// never touched.
+    /// </summary>
+    public static IReadOnlyList<AllocationRef> AffectedAllocations(
+        AllocationRef edited, bool applyForward, IEnumerable<AllocationRef> candidates) =>
+        applyForward
+            ? candidates.Where(a => a.Day >= edited.Day && NamesMatch(a.Name, edited.Name)).ToList()
+            : [edited];
+
+    /// <summary>
+    /// The days, among the keys of <paramref name="namesByDay"/>, that already hold some other
+    /// allocation named <paramref name="newName"/> — saving the edit would create a second row
+    /// with that name on that day. "Other" excludes the allocations being edited themselves,
+    /// identified by <paramref name="excludingIds"/>, so an edit that leaves the name unchanged
+    /// never collides with its own row(s).
+    /// </summary>
+    public static IReadOnlyList<DateOnly> RenameCollisionDays(
+        string newName,
+        IReadOnlySet<int> excludingIds,
+        IReadOnlyDictionary<DateOnly, IReadOnlyList<AllocationRef>> namesByDay) =>
+        namesByDay
+            .Where(kv => kv.Value.Any(a => !excludingIds.Contains(a.Id) && NamesMatch(a.Name, newName)))
+            .Select(kv => kv.Key)
+            .OrderBy(day => day)
+            .ToList();
+
+    /// <summary>
+    /// Caps how many day labels a rename-collision message names by hand before summarising the
+    /// rest, so a forward-apply that collides on many days does not produce an unreadable error.
+    /// </summary>
+    public const int MaxCollisionDaysListed = 3;
+
+    /// <summary>
+    /// Joins day labels for a validation message, capping at <see cref="MaxCollisionDaysListed"/>
+    /// and summarising anything past that as "and N more" rather than naming every day.
+    /// </summary>
+    public static string JoinDayLabels(IReadOnlyList<string> labels) =>
+        labels.Count <= MaxCollisionDaysListed
+            ? string.Join(", ", labels)
+            : $"{string.Join(", ", labels.Take(MaxCollisionDaysListed))}, and {labels.Count - MaxCollisionDaysListed} more";
+
+    /// <summary>
     /// When a tick is logged. Ticking today records the actual moment; ticking a past or future
     /// day has no meaningful moment, so it lands at noon local — far enough from either midnight
     /// that it stays inside the day it was ticked for whatever the offset. The offset is passed

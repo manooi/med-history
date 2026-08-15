@@ -45,3 +45,27 @@ public class MedAllocationRow
     /// <summary>"after meal · eyedrop", or empty when the allocation says nothing beyond its slots.</summary>
     public required string Description { get; init; }
 }
+
+/// <summary>
+/// The edit form for one allocation: its current plan, and whether saving should also apply the
+/// new plan to every future allocation that shares its (pre-edit) name.
+/// </summary>
+public class MedAllocationEditViewModel
+{
+    public required int Id { get; init; }
+
+    /// <summary>The row's own day — never changed by an edit, only shown and used to redirect.</summary>
+    public required DateOnly Day { get; init; }
+
+    /// <summary>Null only when a rejected submit posted no name at all.</summary>
+    public string? Name { get; init; }
+
+    public MedSlots Slots { get; init; }
+
+    public MealRelation MealRelation { get; init; }
+
+    public MedMethod Method { get; init; }
+
+    /// <summary>When true, the new plan also replaces every future allocation sharing the row's old name.</summary>
+    public bool ApplyForward { get; init; }
+}

@@ -39,6 +39,10 @@
                             <span class="block text-xs text-neutral-500">@item.Description</span>
                         }
                     </span>
+                    <a href="/checklist/@item.Id/edit"
+                       class="shrink-0 self-center px-2 py-1 text-xs text-neutral-500 hover:text-black">
+                        Edit
+                    </a>
                     <form method="post" action="/checklist/@item.Id/delete" asp-antiforgery="true" class="shrink-0">
                         <button type="submit" onclick="return confirm('Remove this medication from the checklist? Logged doses are kept.');"
                                 aria-label="Remove from checklist"
@@ -62,7 +66,6 @@
     }
 </section>
 
-@* No edit form: a plan is four fields, so changing one is a remove and a re-add. *@
 <form method="post" action="/day/@dayKey/meds" asp-antiforgery="true" class="mt-6 border-t border-neutral-300 pt-6">
     <div asp-validation-summary="All" class="mb-2 text-sm text-neutral-700"></div>
 

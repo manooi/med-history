@@ -7,14 +7,16 @@ using Microsoft.EntityFrameworkCore;
 namespace MedHistory.Controllers;
 
 /// <summary>
-/// Maintains one day's medication plan — adding, removing and copying allocations forward
-/// from the previous day. Ticking a slot off stays on the day view (see
+/// Maintains one day's medication plan — adding, editing, removing and copying allocations
+/// forward from the previous day. Ticking a slot off stays on the day view (see
 /// <see cref="DayController"/>): this controller only ever changes what's planned, never a
 /// logged dose.
 ///
-/// There is no edit action. A plan is four small fields, so changing one is removing the row
-/// and adding it again — which the delete already makes safe, since the doses logged against
-/// an allocation outlive it.
+/// Editing changes the plan only. Entries a tick already created keep whatever
+/// <c>PillName</c>/<c>Note</c> they were logged with — a tick is a historical fact, and an edit
+/// reaches forward, never back. An edit may also be applied to every future allocation that
+/// shares the row's pre-edit name via <c>applyForward</c>, including a rename; see
+/// <see cref="ChecklistRules.AffectedAllocations"/>.
 /// </summary>
 public class MedsController : Controller
 {
@@ -181,6 +183,116 @@ public class MedsController : Controller
         return RedirectToDay(day);
     }
 
+    [HttpGet("/checklist/{id:int}/edit")]
+    public async Task<IActionResult> Edit(int id)
+    {
+        var allocation = await _db.MedAllocations.AsNoTracking().FirstOrDefaultAsync(a => a.Id == id);
+
+        if (allocation is null)
+        {
+            return NotFound();
+        }
+
+        return View(new MedAllocationEditViewModel
+        {
+            Id = allocation.Id,
+            Day = allocation.Day,
+            Name = allocation.Name,
+            Slots = allocation.Slots,
+            MealRelation = allocation.MealRelation,
+            Method = allocation.Method,
+            ApplyForward = false
+        });
+    }
+
+    [HttpPost("/checklist/{id:int}/edit")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Update(
+        int id,
+        string? name,
+        string[]? slots,
+        MealRelation mealRelation = MealRelation.None,
+        MedMethod method = MedMethod.Eat,
+        bool applyForward = false)
+    {
+        var allocation = await _db.MedAllocations.FindAsync(id);
+
+        if (allocation is null)
+        {
+            return NotFound();
+        }
+
+        var chosen = MedPlanRules.ParseSlots(slots ?? []);
+        var day = allocation.Day;
+
+        IActionResult Invalid() => View("Edit", new MedAllocationEditViewModel
+        {
+            Id = allocation.Id,
+            Day = day,
+            Name = name,
+            Slots = chosen,
+            MealRelation = mealRelation,
+            Method = method,
+            ApplyForward = applyForward
+        });
+
+        // Reuses the add form's name and slot rules. Its duplicate-name check is skipped here
+        // (empty list) because "already on this day" means something different for an edit —
+        // the rename-collision check below owns that, and excludes the row(s) being edited from
+        // themselves so an unchanged name is never flagged.
+        foreach (var error in ChecklistRules.ValidateNewAllocation(name, chosen, []))
+        {
+            ModelState.AddModelError(string.Empty, error);
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return Invalid();
+        }
+
+        // Non-null: ValidateNewAllocation rejects a name that normalises away.
+        var normalizedName = ChecklistRules.NormalizeName(name)!;
+        var editedRef = new ChecklistRules.AllocationRef(allocation.Id, day, allocation.Name);
+
+        IReadOnlyList<ChecklistRules.AllocationRef> candidates = applyForward
+            ? await AllocationRefsFrom(day)
+            : [editedRef];
+
+        var affected = ChecklistRules.AffectedAllocations(editedRef, applyForward, candidates);
+        var affectedIds = affected.Select(a => a.Id).ToHashSet();
+
+        var namesByDay = await AllocationRefsByDay(affected.Select(a => a.Day).Distinct().ToList());
+        var collisionDays = ChecklistRules.RenameCollisionDays(normalizedName, affectedIds, namesByDay);
+
+        if (collisionDays.Count > 0)
+        {
+            var labels = collisionDays.Select(AppTime.DayLabel).ToList();
+            ModelState.AddModelError(string.Empty,
+                $"\"{normalizedName}\" is already used on {ChecklistRules.JoinDayLabels(labels)}.");
+
+            return Invalid();
+        }
+
+        var rows = await _db.MedAllocations.Where(a => affectedIds.Contains(a.Id)).ToListAsync();
+
+        foreach (var row in rows)
+        {
+            row.Name = normalizedName;
+            row.Slots = chosen;
+            row.MealRelation = mealRelation;
+            row.Method = method;
+        }
+
+        await _db.SaveChangesAsync();
+
+        // Ids and structure only, same reasoning as AddAllocation's log line.
+        _logger.LogInformation(
+            "Allocation {AllocationId} edited, {Count} row(s) affected, applyForward={ApplyForward}",
+            id, rows.Count, applyForward);
+
+        return RedirectToDay(day);
+    }
+
     private async Task<MedsViewModel> BuildModel(
         DateOnly day,
         string? newMedName = null,
@@ -234,6 +346,29 @@ public class MedsController : Controller
         return rows
             .GroupBy(r => r.Day)
             .ToDictionary(g => g.Key, g => (IReadOnlyList<string>)g.Select(r => r.Name).ToList());
+    }
+
+    /// <summary>Every allocation dated on or after <paramref name="fromDay"/> — the applyForward candidate pool.</summary>
+    private async Task<IReadOnlyList<ChecklistRules.AllocationRef>> AllocationRefsFrom(DateOnly fromDay) =>
+        await _db.MedAllocations
+            .AsNoTracking()
+            .Where(a => a.Day >= fromDay)
+            .Select(a => new ChecklistRules.AllocationRef(a.Id, a.Day, a.Name))
+            .ToListAsync();
+
+    /// <summary>Every allocation on each of the given days — for the rename-collision check.</summary>
+    private async Task<IReadOnlyDictionary<DateOnly, IReadOnlyList<ChecklistRules.AllocationRef>>> AllocationRefsByDay(
+        IReadOnlyCollection<DateOnly> days)
+    {
+        var rows = await _db.MedAllocations
+            .AsNoTracking()
+            .Where(a => days.Contains(a.Day))
+            .Select(a => new ChecklistRules.AllocationRef(a.Id, a.Day, a.Name))
+            .ToListAsync();
+
+        return rows
+            .GroupBy(r => r.Day)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<ChecklistRules.AllocationRef>)g.ToList());
     }
 
     private IActionResult RedirectToDay(DateOnly day) =>
