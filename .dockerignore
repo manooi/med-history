@@ -1,0 +1,12 @@
+**/bin/
+**/obj/
+**/node_modules/
+.git/
+.env
+.beads/
+med-history-wt/
+MedHistory/wwwroot/css/site.css
+*.md
+docs/
+plans/
+problems/
