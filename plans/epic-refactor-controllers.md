@@ -35,7 +35,7 @@ single-user app).
 
 ## Checklist
 
-- [ ] 9b1.1 split MedsController / StocksController
+- [x] 9b1.1 split MedsController / StocksController
 - [ ] 9b1.2 Data/AllocationQueries
 - [ ] 9b1.3 EntriesController slim (PhotoStore + EntryRules moves)
 - [ ] 9b1.4 DayController slim (DayQueries)
