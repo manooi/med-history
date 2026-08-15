@@ -86,7 +86,7 @@
                          class="h-20 w-20 max-h-20 border border-neutral-400 object-cover cursor-zoom-in" />
                     <form method="post" action="/photos/@photo.Id/delete" asp-antiforgery="true">
                         <button type="submit" onclick="return confirm('Remove this photo?');"
-                                class="text-xs underline hover:no-underline">
+                                class="text-xs text-red-600 underline hover:no-underline">
                             Remove
                         </button>
                     </form>
@@ -101,7 +101,7 @@
     <form method="post" action="/entries/@Model.Id/delete" asp-antiforgery="true"
           class="mt-10 border-t border-neutral-300 pt-4">
         <button type="submit" onclick="return confirm('Delete this entry?');"
-                class="border border-black bg-white px-4 py-1 text-sm text-black hover:bg-black hover:text-white">
+                class="border border-red-600 bg-white px-4 py-1 text-sm text-red-600 hover:bg-red-600 hover:text-white">
             Delete entry
         </button>
     </form>
