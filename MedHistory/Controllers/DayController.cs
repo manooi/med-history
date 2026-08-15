@@ -64,7 +64,7 @@ public class DayController : Controller
         {
             Type = BuiltInEntryTypes.Med,
             PillName = allocation.Name,
-            OccurredAt = AppTime.TickTime(allocation.Day),
+            OccurredAt = AppTime.TickTime(allocation.Day, parsed),
             ChecklistAllocationId = allocation.Id,
             ChecklistSlot = MedPlanRules.SlotName(parsed),
             // Stamped, not looked up: this is what the dose was, and a later edit to the plan

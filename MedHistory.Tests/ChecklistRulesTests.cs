@@ -763,6 +763,26 @@ public class ChecklistRulesTests
         Assert.Equal("a, b, c, and 2 more", ChecklistRules.JoinDayLabels(["a", "b", "c", "d", "e"]));
     }
 
+    // ---- MedPlanRules.SlotTime ----
+
+    [Theory]
+    [InlineData(MedSlots.Morning, 9, 0)]
+    [InlineData(MedSlots.Noon, 12, 0)]
+    [InlineData(MedSlots.Evening, 18, 0)]
+    [InlineData(MedSlots.Bedtime, 22, 0)]
+    public void SlotTime_EachNamedSlot_HasItsOwnClockTime(MedSlots slot, int hour, int minute)
+    {
+        Assert.Equal(new TimeOnly(hour, minute), MedPlanRules.SlotTime(slot));
+    }
+
+    [Theory]
+    [InlineData(MedSlots.None)]
+    [InlineData(MedSlots.Morning | MedSlots.Evening)]
+    public void SlotTime_NotASingleKnownSlot_FallsBackToNoon(MedSlots slot)
+    {
+        Assert.Equal(new TimeOnly(12, 0), MedPlanRules.SlotTime(slot));
+    }
+
     // ---- TickTime ----
 
     [Fact]
@@ -770,34 +790,54 @@ public class ChecklistRulesTests
     {
         var now = new DateTimeOffset(2026, 8, 14, 3, 24, 0, TimeSpan.Zero);
 
-        Assert.Equal(now, ChecklistRules.TickTime(Day, Day, now, Bangkok));
+        Assert.Equal(now, ChecklistRules.TickTime(Day, Day, now, Bangkok, MedSlots.Morning));
     }
 
     [Fact]
-    public void TickTime_PastDay_IsNoonLocalOnThatDay()
+    public void TickTime_Today_IgnoresSlot_TheActualMomentIsWhatHappened()
     {
-        var tick = ChecklistRules.TickTime(Day, Day.AddDays(1), DateTimeOffset.UtcNow, Bangkok);
+        var now = new DateTimeOffset(2026, 8, 14, 3, 24, 0, TimeSpan.Zero);
 
-        // 12:00 at UTC+07:00 is 05:00 UTC.
+        var morning = ChecklistRules.TickTime(Day, Day, now, Bangkok, MedSlots.Morning);
+        var bedtime = ChecklistRules.TickTime(Day, Day, now, Bangkok, MedSlots.Bedtime);
+
+        Assert.Equal(now, morning);
+        Assert.Equal(now, bedtime);
+    }
+
+    [Theory]
+    [InlineData(MedSlots.Morning, 2)]  // 09:00 at UTC+07:00 is 02:00 UTC.
+    [InlineData(MedSlots.Noon, 5)]     // 12:00 at UTC+07:00 is 05:00 UTC.
+    [InlineData(MedSlots.Evening, 11)] // 18:00 at UTC+07:00 is 11:00 UTC.
+    [InlineData(MedSlots.Bedtime, 15)] // 22:00 at UTC+07:00 is 15:00 UTC.
+    public void TickTime_PastDay_IsTheSlotsClockTimeLocal(MedSlots slot, int expectedUtcHour)
+    {
+        var tick = ChecklistRules.TickTime(Day, Day.AddDays(1), DateTimeOffset.UtcNow, Bangkok, slot);
+
+        Assert.Equal(new DateTimeOffset(2026, 8, 14, expectedUtcHour, 0, 0, TimeSpan.Zero), tick);
+    }
+
+    [Fact]
+    public void TickTime_FutureDay_IsAlsoTheSlotsClockTimeLocal()
+    {
+        var tick = ChecklistRules.TickTime(Day, Day.AddDays(-3), DateTimeOffset.UtcNow, Bangkok, MedSlots.Noon);
+
         Assert.Equal(new DateTimeOffset(2026, 8, 14, 5, 0, 0, TimeSpan.Zero), tick);
     }
 
-    [Fact]
-    public void TickTime_FutureDay_IsAlsoNoonLocal()
-    {
-        var tick = ChecklistRules.TickTime(Day, Day.AddDays(-3), DateTimeOffset.UtcNow, Bangkok);
-
-        Assert.Equal(new DateTimeOffset(2026, 8, 14, 5, 0, 0, TimeSpan.Zero), tick);
-    }
-
-    [Fact]
-    public void TickTime_PastDay_StaysInsideThatLocalDay_ForAWesternOffset()
+    [Theory]
+    [InlineData(MedSlots.Morning)]
+    [InlineData(MedSlots.Noon)]
+    [InlineData(MedSlots.Evening)]
+    [InlineData(MedSlots.Bedtime)]
+    public void TickTime_PastDay_StaysInsideThatLocalDay_ForAWesternOffset(MedSlots slot)
     {
         var offset = TimeSpan.FromHours(-8);
 
-        var tick = ChecklistRules.TickTime(Day, Day.AddDays(1), DateTimeOffset.UtcNow, offset);
+        var tick = ChecklistRules.TickTime(Day, Day.AddDays(1), DateTimeOffset.UtcNow, offset, slot);
 
-        // Noon is far enough from either midnight that the day survives the round trip.
+        // Every slot's clock time is far enough from either midnight that the day survives
+        // the round trip, whatever the offset.
         Assert.Equal(Day, DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(tick, TimeZoneInfo.CreateCustomTimeZone("t", offset, "t", "t")).DateTime));
     }
 
@@ -808,7 +848,8 @@ public class ChecklistRulesTests
     public void TickTime_AlwaysReturnsUtc(int offsetHours)
     {
         // Npgsql rejects a non-zero offset on a timestamptz column.
-        var tick = ChecklistRules.TickTime(Day, Day.AddDays(1), DateTimeOffset.UtcNow, TimeSpan.FromHours(offsetHours));
+        var tick = ChecklistRules.TickTime(
+            Day, Day.AddDays(1), DateTimeOffset.UtcNow, TimeSpan.FromHours(offsetHours), MedSlots.Noon);
 
         Assert.Equal(TimeSpan.Zero, tick.Offset);
     }
@@ -818,10 +859,18 @@ public class ChecklistRulesTests
     {
         var now = new DateTimeOffset(2026, 8, 14, 10, 24, 0, Bangkok);
 
-        var tick = ChecklistRules.TickTime(Day, Day, now, Bangkok);
+        var tick = ChecklistRules.TickTime(Day, Day, now, Bangkok, MedSlots.Noon);
 
         Assert.Equal(TimeSpan.Zero, tick.Offset);
         Assert.Equal(now, tick);
+    }
+
+    [Fact]
+    public void TickTime_PastDay_UnknownSlot_FallsBackToNoonLocal()
+    {
+        var tick = ChecklistRules.TickTime(Day, Day.AddDays(1), DateTimeOffset.UtcNow, Bangkok, MedSlots.None);
+
+        Assert.Equal(new DateTimeOffset(2026, 8, 14, 5, 0, 0, TimeSpan.Zero), tick);
     }
 
     // ---- ValidateDoseQuantity ----

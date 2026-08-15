@@ -373,20 +373,23 @@ public static class ChecklistRules
 
     /// <summary>
     /// When a tick is logged. Ticking today records the actual moment; ticking a past or future
-    /// day has no meaningful moment, so it lands at noon local — far enough from either midnight
+    /// day has no meaningful moment, so it lands at the ticked slot's representative clock time
+    /// (see <see cref="MedPlanRules.SlotTime"/>) on that day — far enough from either midnight
     /// that it stays inside the day it was ticked for whatever the offset. The offset is passed
     /// in rather than read from the machine so this stays pure; the returned instant is always
     /// UTC, which is what Npgsql accepts for <c>timestamp with time zone</c>.
     /// </summary>
-    public static DateTimeOffset TickTime(DateOnly day, DateOnly today, DateTimeOffset nowUtc, TimeSpan dayOffset)
+    public static DateTimeOffset TickTime(
+        DateOnly day, DateOnly today, DateTimeOffset nowUtc, TimeSpan dayOffset, MedSlots slot)
     {
         if (day == today)
         {
             return nowUtc.ToUniversalTime();
         }
 
-        var noon = new DateTimeOffset(day.ToDateTime(new TimeOnly(12, 0), DateTimeKind.Unspecified), dayOffset);
-        return noon.ToUniversalTime();
+        var slotTime = new DateTimeOffset(
+            day.ToDateTime(MedPlanRules.SlotTime(slot), DateTimeKind.Unspecified), dayOffset);
+        return slotTime.ToUniversalTime();
     }
 
     private static bool SlotsMatch(string? storedSlot, MedSlots slot) =>

@@ -1,4 +1,5 @@
 using System.Globalization;
+using MedHistory.Models;
 
 namespace MedHistory.Services;
 
@@ -32,8 +33,8 @@ public static class AppTime
         EntryRules.LocalDayRange(day, OffsetFor(day));
 
     /// <summary>Instant a checklist tick is logged at — see <see cref="ChecklistRules.TickTime"/>.</summary>
-    public static DateTimeOffset TickTime(DateOnly day) =>
-        ChecklistRules.TickTime(day, Today(), DateTimeOffset.UtcNow, OffsetFor(day));
+    public static DateTimeOffset TickTime(DateOnly day, MedSlots slot) =>
+        ChecklistRules.TickTime(day, Today(), DateTimeOffset.UtcNow, OffsetFor(day), slot);
 
     public static bool TryParseDay(string? value, out DateOnly day) =>
         DateOnly.TryParseExact(value, DayFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out day);

@@ -114,6 +114,23 @@ public static class MedPlanRules
     };
 
     /// <summary>
+    /// The clock time a retro tick (any day other than today) is stamped at for one slot —
+    /// "sometime in the morning" and so on, standing in for a moment nobody actually recorded.
+    /// Each is far enough from midnight to survive the local-day round trip at any real-world
+    /// UTC offset, which is the same property noon alone used to rely on for every slot. Falls
+    /// back to noon for anything that is not a single known slot, matching how
+    /// <see cref="TryParseSlot"/> already treats bad input as "no slot" rather than an error.
+    /// </summary>
+    public static TimeOnly SlotTime(MedSlots slot) => slot switch
+    {
+        MedSlots.Morning => new TimeOnly(9, 0),
+        MedSlots.Noon => new TimeOnly(12, 0),
+        MedSlots.Evening => new TimeOnly(18, 0),
+        MedSlots.Bedtime => new TimeOnly(22, 0),
+        _ => new TimeOnly(12, 0)
+    };
+
+    /// <summary>
     /// Reads a quantity typed into a number input. Invariant culture on purpose: an
     /// <c>&lt;input type="number"&gt;</c> posts "1.5" whatever the browser's locale, while MVC's
     /// form binder reads it in the server's culture and would reject the dot wherever a comma is
