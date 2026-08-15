@@ -25,7 +25,7 @@
             <form method="post" action="/day/@dayKey/anxiety/@level" asp-antiforgery="true">
                 <button type="submit" title="@title" aria-label="@title"
                         class="border px-2 py-1 text-xs leading-none @(isSelected ? "border-black bg-black text-white hover:bg-white hover:text-black" : "border-neutral-400 bg-white text-neutral-600 hover:border-black hover:bg-black hover:text-white")">
-                    @label
+                    @AnxietyRules.Emoji(level) @label
                 </button>
             </form>
         }

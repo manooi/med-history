@@ -64,6 +64,23 @@ public class AnxietyRulesTests
         Assert.Equal(value, AnxietyRules.Value(level));
     }
 
+    [Theory]
+    [InlineData(AnxietyLevel.Calm, "😌")]
+    [InlineData(AnxietyLevel.Ok, "🙂")]
+    [InlineData(AnxietyLevel.Tense, "😟")]
+    [InlineData(AnxietyLevel.Anxious, "😰")]
+    [InlineData(AnxietyLevel.Panic, "😱")]
+    public void Emoji_EveryLevel_ReadsAsExpected(AnxietyLevel level, string emoji)
+    {
+        Assert.Equal(emoji, AnxietyRules.Emoji(level));
+    }
+
+    [Fact]
+    public void Emoji_UnrecognisedLevel_IsEmpty()
+    {
+        Assert.Equal(string.Empty, AnxietyRules.Emoji((AnxietyLevel)99));
+    }
+
     [Fact]
     public void Levels_AreOrderedCalmestFirst()
     {

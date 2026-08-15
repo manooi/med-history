@@ -69,6 +69,18 @@ public static class AnxietyRules
     /// numbering directly.</summary>
     public static int Value(AnxietyLevel level) => (int)level;
 
+    /// <summary>One face per level, calmest first — what a vote button and a voted report cell
+    /// both show instead of the level's number.</summary>
+    public static string Emoji(AnxietyLevel level) => level switch
+    {
+        AnxietyLevel.Calm => "😌",
+        AnxietyLevel.Ok => "🙂",
+        AnxietyLevel.Tense => "😟",
+        AnxietyLevel.Anxious => "😰",
+        AnxietyLevel.Panic => "😱",
+        _ => string.Empty
+    };
+
     /// <summary>
     /// One level by name — how the tick/clear route's <c>level</c> segment is read. Case- and
     /// whitespace-insensitive, the same tolerance <see cref="MedPlanRules.TryParseSlot"/> gives a

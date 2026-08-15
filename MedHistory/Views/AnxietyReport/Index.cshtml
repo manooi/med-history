@@ -33,7 +33,7 @@
     }
 </div>
 
-@* A voted cell carries the day's number and the level's own number, 1 through 5, shaded darker
+@* A voted cell carries the day's number and the level's own emoji face, shaded darker
    the worse the level reads — never by colour. Every real day of the month gets a cell, voted or
    not; only days of the neighbouring month are left blank, same as the med report. *@
 <div class="mt-1 grid grid-cols-7 gap-1">
@@ -70,7 +70,7 @@
                     <span class="text-sm tabular-nums @(date == Model.Today ? "underline underline-offset-2" : "")">@date.Day</span>
                     @if (tally.Level is not null)
                     {
-                        <span class="text-xs tabular-nums">@AnxietyRules.Value(tally.Level.Value)</span>
+                        <span class="text-xs">@AnxietyRules.Emoji(tally.Level.Value)</span>
                     }
                 </a>
             }
@@ -79,5 +79,5 @@
 </div>
 
 <div class="mt-4 text-xs text-neutral-500">
-    1 calm &middot; 2 ok &middot; 3 tense &middot; 4 anxious &middot; 5 panic
+    😌 calm &middot; 🙂 ok &middot; 😟 tense &middot; 😰 anxious &middot; 😱 panic
 </div>
