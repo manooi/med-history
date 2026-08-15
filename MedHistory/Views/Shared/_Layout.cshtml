@@ -9,7 +9,7 @@
 <body class="bg-white text-black">
     @if (User.Identity?.IsAuthenticated == true)
     {
-        <nav class="border-b border-black">
+        <nav class="border-b border-black print:hidden">
             <div class="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
                 <a href="/" class="font-mono font-bold tracking-tight hover:underline">med-history</a>
                 <div class="flex items-center gap-4 text-sm">
@@ -21,6 +21,7 @@
                             <a href="/med-report" class="px-3 py-2 hover:bg-black hover:text-white">Med</a>
                             <a href="/anxiety-report" class="px-3 py-2 hover:bg-black hover:text-white">Anxiety</a>
                             <a href="/type-report" class="px-3 py-2 hover:bg-black hover:text-white">Type</a>
+                            <a href="/doctor-report" class="px-3 py-2 hover:bg-black hover:text-white">Doctor</a>
                         </div>
                     </div>
                     <a href="/search" class="hover:underline">Search</a>
