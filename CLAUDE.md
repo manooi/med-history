@@ -24,7 +24,7 @@ Global playbook applies (~/CLAUDE.md gate): **no bead no code**, orchestrator ne
 
 ## Business rules
 
-- Entry types: Symptom, Bleeding, Pill, Cough, Meal — single `Entry` table, type-specific nullable columns (`Severity` only Bleeding/Cough; `PillName` only Pill)
+- Entry types are data-driven (`EntryTypes` table, managed at `/types`): 5 seeded built-ins (Symptom, Bleeding, Pill, Cough, Meal) keep special fields (`Severity` only Bleeding/Cough; `PillName` only Pill); user-added types are name-only (note+photos+time). Deactivate hides a type from new-entry UI, never deletes. `Entry.Type` is a plain string (no FK — app-level validation in `EntryTypeRules`); type-name uniqueness via raw-SQL `lower(Name)` index that lives OUTSIDE the EF snapshot — later migrations won't see it
 - Multiple entries per day, timestamped `OccurredAt` (timestamptz), day view groups by local date
 
 ## Problems log
