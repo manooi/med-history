@@ -90,7 +90,6 @@ public class EntryRulesTests
 
     [Theory]
     [InlineData(BuiltInEntryTypes.Symptom)]
-    [InlineData(BuiltInEntryTypes.Meal)]
     public void Validate_MissingNote_OnTypeThatRequiresIt_ReturnsError(string type)
     {
         var errors = EntryRules.Validate(type, severity: null, pillName: null, note: null);
@@ -100,12 +99,24 @@ public class EntryRulesTests
 
     [Theory]
     [InlineData(BuiltInEntryTypes.Symptom)]
-    [InlineData(BuiltInEntryTypes.Meal)]
     public void Validate_WhitespaceNote_OnTypeThatRequiresIt_ReturnsError(string type)
     {
         var errors = EntryRules.Validate(type, severity: null, pillName: null, note: "   ");
 
         Assert.Contains(errors, e => e.Contains("Note is required"));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    // Regression (bead bva): Meal's note used to be required; it is now optional,
+    // same as Bleeding/Med/Cough — a Meal entry with no note is valid.
+    public void Validate_Meal_MissingOrWhitespaceNote_NoErrors(string? note)
+    {
+        var errors = EntryRules.Validate(BuiltInEntryTypes.Meal, severity: null, pillName: null, note: note);
+
+        Assert.Empty(errors);
     }
 
     // ---- Validate: valid combos for all 5 built-ins ----
@@ -195,7 +206,7 @@ public class EntryRulesTests
     [InlineData(BuiltInEntryTypes.Bleeding, true, false, false)]
     [InlineData(BuiltInEntryTypes.Med, false, true, false)]
     [InlineData(BuiltInEntryTypes.Cough, true, false, false)]
-    [InlineData(BuiltInEntryTypes.Meal, false, false, true)]
+    [InlineData(BuiltInEntryTypes.Meal, false, false, false)]
     [InlineData(CustomType, false, false, false)]
     [InlineData("Mood", false, false, false)]
     // Regression: "Pill" was the built-in's name before the rename to "Med" (bead 69e).

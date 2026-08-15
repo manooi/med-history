@@ -20,7 +20,7 @@ public static class EntryRules
         type is BuiltInEntryTypes.Med;
 
     public static bool RequiresNote(string type) =>
-        type is BuiltInEntryTypes.Symptom or BuiltInEntryTypes.Meal;
+        type is BuiltInEntryTypes.Symptom;
 
     /// <summary>
     /// Returns one message per broken rule; an empty list means the entry is valid.
