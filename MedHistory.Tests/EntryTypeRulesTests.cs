@@ -8,7 +8,7 @@ public class EntryTypeRulesTests
     private static readonly (string Name, bool IsActive)[] Types =
     [
         (BuiltInEntryTypes.Symptom, true),
-        (BuiltInEntryTypes.Pill, true),
+        (BuiltInEntryTypes.Med, true),
         ("Blood pressure", true),
         ("Physio", false),
     ];
@@ -70,7 +70,7 @@ public class EntryTypeRulesTests
     [Fact]
     public void ValidateNewName_UnusedName_NoErrors()
     {
-        var errors = EntryTypeRules.ValidateNewName("Mood", ["Symptom", "Pill"]);
+        var errors = EntryTypeRules.ValidateNewName("Mood", ["Symptom", "Med"]);
 
         Assert.Empty(errors);
     }
@@ -138,7 +138,7 @@ public class EntryTypeRulesTests
 
     [Theory]
     [InlineData(BuiltInEntryTypes.Symptom)]
-    [InlineData(BuiltInEntryTypes.Pill)]
+    [InlineData(BuiltInEntryTypes.Med)]
     [InlineData("Blood pressure")]
     public void CheckAvailable_ActiveType_ReturnsOk(string name)
     {
@@ -169,7 +169,7 @@ public class EntryTypeRulesTests
     [Fact]
     public void CheckAvailable_MatchesCaseInsensitively_AndAfterTrimming()
     {
-        Assert.Equal(TypeAvailability.Ok, EntryTypeRules.CheckAvailable("  pILL ", Types));
+        Assert.Equal(TypeAvailability.Ok, EntryTypeRules.CheckAvailable("  mED ", Types));
     }
 
     [Fact]
@@ -182,7 +182,7 @@ public class EntryTypeRulesTests
     [Fact]
     public void CheckAvailable_NoTypesAtAll_ReturnsUnknown()
     {
-        Assert.Equal(TypeAvailability.Unknown, EntryTypeRules.CheckAvailable(BuiltInEntryTypes.Pill, []));
+        Assert.Equal(TypeAvailability.Unknown, EntryTypeRules.CheckAvailable(BuiltInEntryTypes.Med, []));
     }
 
     // ---- SortForDisplay ----
@@ -196,7 +196,7 @@ public class EntryTypeRulesTests
             BuiltInEntryTypes.Bleeding,
             BuiltInEntryTypes.Symptom,
             BuiltInEntryTypes.Cough,
-            BuiltInEntryTypes.Pill,
+            BuiltInEntryTypes.Med,
         };
 
         var sorted = EntryTypeRules.SortForDisplay(shuffled, name => name);
@@ -207,12 +207,12 @@ public class EntryTypeRulesTests
     [Fact]
     public void SortForDisplay_CustomTypesFollowBuiltIns_Alphabetically()
     {
-        var types = new[] { "Weight", BuiltInEntryTypes.Pill, "Mood", BuiltInEntryTypes.Symptom, "Blood pressure" };
+        var types = new[] { "Weight", BuiltInEntryTypes.Med, "Mood", BuiltInEntryTypes.Symptom, "Blood pressure" };
 
         var sorted = EntryTypeRules.SortForDisplay(types, name => name);
 
         Assert.Equal(
-            new[] { BuiltInEntryTypes.Symptom, BuiltInEntryTypes.Pill, "Blood pressure", "Mood", "Weight" },
+            new[] { BuiltInEntryTypes.Symptom, BuiltInEntryTypes.Med, "Blood pressure", "Mood", "Weight" },
             sorted);
     }
 

@@ -58,7 +58,7 @@ public readonly record struct ChecklistRow(
 /// actions make every decision through here so they can be unit tested without a database.
 ///
 /// Ticks are identified by the allocation and slot an entry is linked to, never by matching
-/// the medication name. A Pill entry the user typed in by hand therefore does not tick
+/// the medication name. A Med entry the user typed in by hand therefore does not tick
 /// anything off: the checklist tracks the plan the user is working through, and only the
 /// tick controls speak for it. Names are still compared case-insensitively where the plan
 /// itself is concerned — adding a medication, and copying a day forward — because there the
@@ -234,7 +234,7 @@ public static class ChecklistRules
     ///
     /// Ticks that match no allocation are ignored, which is what makes a dangling link
     /// harmless: an entry whose allocation was deleted stays in the timeline as an ordinary
-    /// Pill entry and ticks nothing. Ticks whose slot is missing or unrecognised are ignored
+    /// Med entry and ticks nothing. Ticks whose slot is missing or unrecognised are ignored
     /// the same way.
     ///
     /// <paramref name="stock"/> is optional because the checklist works perfectly well with

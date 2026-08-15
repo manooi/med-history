@@ -36,7 +36,7 @@ public class EntryRulesTests
 
     [Theory]
     [InlineData(BuiltInEntryTypes.Symptom)]
-    [InlineData(BuiltInEntryTypes.Pill)]
+    [InlineData(BuiltInEntryTypes.Med)]
     [InlineData(BuiltInEntryTypes.Meal)]
     [InlineData(CustomType)]
     public void Validate_SeverityGiven_OnTypeThatDoesNotSupportIt_ReturnsError(string type)
@@ -49,7 +49,7 @@ public class EntryRulesTests
         Assert.Contains(errors, e => e.Contains("Severity does not apply"));
     }
 
-    // ---- Validate: Pill name requirement ----
+    // ---- Validate: Med name requirement ----
 
     [Theory]
     [InlineData(null)]
@@ -57,17 +57,17 @@ public class EntryRulesTests
     [InlineData("   ")]
     public void Validate_Pill_MissingOrWhitespacePillName_ReturnsError(string? pillName)
     {
-        var errors = EntryRules.Validate(BuiltInEntryTypes.Pill, severity: null, pillName: pillName, note: null);
+        var errors = EntryRules.Validate(BuiltInEntryTypes.Med, severity: null, pillName: pillName, note: null);
 
-        Assert.Contains(errors, e => e.Contains("Pill name is required"));
+        Assert.Contains(errors, e => e.Contains("Med name is required"));
     }
 
     [Fact]
     public void Validate_Pill_WithPillName_NoPillNameError()
     {
-        var errors = EntryRules.Validate(BuiltInEntryTypes.Pill, severity: null, pillName: "Aspirin", note: null);
+        var errors = EntryRules.Validate(BuiltInEntryTypes.Med, severity: null, pillName: "Aspirin", note: null);
 
-        Assert.DoesNotContain(errors, e => e.Contains("Pill name"));
+        Assert.DoesNotContain(errors, e => e.Contains("Med name"));
     }
 
     [Theory]
@@ -83,7 +83,7 @@ public class EntryRulesTests
 
         var errors = EntryRules.Validate(type, severity: severity, pillName: "Aspirin", note: note);
 
-        Assert.Contains(errors, e => e.Contains("Pill name does not apply"));
+        Assert.Contains(errors, e => e.Contains("Med name does not apply"));
     }
 
     // ---- Validate: Note requirement ----
@@ -129,7 +129,7 @@ public class EntryRulesTests
     [Fact]
     public void Validate_Pill_ValidCombo_NoErrors()
     {
-        var errors = EntryRules.Validate(BuiltInEntryTypes.Pill, severity: null, pillName: "Ibuprofen", note: null);
+        var errors = EntryRules.Validate(BuiltInEntryTypes.Med, severity: null, pillName: "Ibuprofen", note: null);
 
         Assert.Empty(errors);
     }
@@ -193,11 +193,14 @@ public class EntryRulesTests
     [Theory]
     [InlineData(BuiltInEntryTypes.Symptom, false, false, true)]
     [InlineData(BuiltInEntryTypes.Bleeding, true, false, false)]
-    [InlineData(BuiltInEntryTypes.Pill, false, true, false)]
+    [InlineData(BuiltInEntryTypes.Med, false, true, false)]
     [InlineData(BuiltInEntryTypes.Cough, true, false, false)]
     [InlineData(BuiltInEntryTypes.Meal, false, false, true)]
     [InlineData(CustomType, false, false, false)]
     [InlineData("Mood", false, false, false)]
+    // Regression: "Pill" was the built-in's name before the rename to "Med" (bead 69e).
+    // It must now be treated as an ordinary user-added type — no special fields at all.
+    [InlineData("Pill", false, false, false)]
     public void RequirementFlags_MatchTruthTable(string type, bool requiresSeverity, bool requiresPillName, bool requiresNote)
     {
         Assert.Equal(requiresSeverity, EntryRules.RequiresSeverity(type));
@@ -210,7 +213,7 @@ public class EntryRulesTests
     [Fact]
     public void DetailLine_Pill_WithNameOnly_ReturnsTrimmedName()
     {
-        var line = EntryRules.DetailLine(BuiltInEntryTypes.Pill, severity: null, pillName: "  Aspirin  ", note: null);
+        var line = EntryRules.DetailLine(BuiltInEntryTypes.Med, severity: null, pillName: "  Aspirin  ", note: null);
 
         Assert.Equal("Aspirin", line);
     }
@@ -226,9 +229,9 @@ public class EntryRulesTests
     [Fact]
     public void DetailLine_ComposesePillSeverityAndNote_InOrder_SeparatedByMiddleDot()
     {
-        // Pill entries don't carry severity per the domain rules, but DetailLine composes
+        // Med entries don't carry severity per the domain rules, but DetailLine composes
         // whatever fields are present/applicable — exercise all three parts together.
-        var line = EntryRules.DetailLine(BuiltInEntryTypes.Pill, severity: null, pillName: "Aspirin", note: "with food");
+        var line = EntryRules.DetailLine(BuiltInEntryTypes.Med, severity: null, pillName: "Aspirin", note: "with food");
 
         Assert.Equal("Aspirin · with food", line);
     }
@@ -373,22 +376,22 @@ public class EntryRulesTests
     [Fact]
     public void OrderEntries_EqualTimestamps_OrdersByTypeNameAlphabetically()
     {
-        // The built-ins are entered in their seed order (Symptom, Bleeding, Pill, Cough,
+        // The built-ins are entered in their seed order (Symptom, Bleeding, Med, Cough,
         // Meal), which is not alphabetical; sharing one timestamp, they must come back
-        // alphabetical: Bleeding, Cough, Meal, Pill, Symptom.
+        // alphabetical: Bleeding, Cough, Meal, Med, Symptom.
         var same = new DateTimeOffset(2026, 8, 15, 9, 0, 0, TimeSpan.Zero);
         var entries = new[]
         {
             new TestEntry(same, BuiltInEntryTypes.Symptom, "symptom"),
             new TestEntry(same, BuiltInEntryTypes.Bleeding, "bleeding"),
-            new TestEntry(same, BuiltInEntryTypes.Pill, "pill"),
+            new TestEntry(same, BuiltInEntryTypes.Med, "med"),
             new TestEntry(same, BuiltInEntryTypes.Cough, "cough"),
             new TestEntry(same, BuiltInEntryTypes.Meal, "meal"),
         };
 
         var ordered = OrderLabels(entries);
 
-        Assert.Equal(new[] { "bleeding", "cough", "meal", "pill", "symptom" }, ordered);
+        Assert.Equal(new[] { "bleeding", "cough", "meal", "med", "symptom" }, ordered);
     }
 
     [Fact]
@@ -399,14 +402,14 @@ public class EntryRulesTests
         var same = new DateTimeOffset(2026, 8, 15, 9, 0, 0, TimeSpan.Zero);
         var entries = new[]
         {
-            new TestEntry(same, BuiltInEntryTypes.Pill, "pill"),
+            new TestEntry(same, BuiltInEntryTypes.Med, "med"),
             new TestEntry(same, "Mood", "mood"),
             new TestEntry(same, BuiltInEntryTypes.Bleeding, "bleeding"),
         };
 
         var ordered = OrderLabels(entries);
 
-        Assert.Equal(new[] { "bleeding", "mood", "pill" }, ordered);
+        Assert.Equal(new[] { "bleeding", "med", "mood" }, ordered);
     }
 
     [Fact]
@@ -423,7 +426,7 @@ public class EntryRulesTests
         {
             new TestEntry(t1, BuiltInEntryTypes.Bleeding, "second"),
             new TestEntry(t0, BuiltInEntryTypes.Symptom, "first"),
-            new TestEntry(t2, BuiltInEntryTypes.Pill, "third"),
+            new TestEntry(t2, BuiltInEntryTypes.Med, "third"),
         };
 
         var ordered = OrderLabels(entries);
@@ -437,16 +440,16 @@ public class EntryRulesTests
         var t0 = new DateTimeOffset(2026, 8, 15, 8, 0, 0, TimeSpan.Zero);
         var t1 = new DateTimeOffset(2026, 8, 15, 9, 0, 0, TimeSpan.Zero);
 
-        // Two entries tie at t1 (Pill vs Cough); one entry sits alone at the earlier t0.
+        // Two entries tie at t1 (Med vs Cough); one entry sits alone at the earlier t0.
         var entries = new[]
         {
-            new TestEntry(t1, BuiltInEntryTypes.Pill, "t1-pill"),
+            new TestEntry(t1, BuiltInEntryTypes.Med, "t1-med"),
             new TestEntry(t0, BuiltInEntryTypes.Meal, "t0-meal"),
             new TestEntry(t1, BuiltInEntryTypes.Cough, "t1-cough"),
         };
 
         var ordered = OrderLabels(entries);
 
-        Assert.Equal(new[] { "t0-meal", "t1-cough", "t1-pill" }, ordered);
+        Assert.Equal(new[] { "t0-meal", "t1-cough", "t1-med" }, ordered);
     }
 }

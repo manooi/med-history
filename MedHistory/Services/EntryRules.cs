@@ -17,7 +17,7 @@ public static class EntryRules
         type is BuiltInEntryTypes.Bleeding or BuiltInEntryTypes.Cough;
 
     public static bool RequiresPillName(string type) =>
-        type is BuiltInEntryTypes.Pill;
+        type is BuiltInEntryTypes.Med;
 
     public static bool RequiresNote(string type) =>
         type is BuiltInEntryTypes.Symptom or BuiltInEntryTypes.Meal;
@@ -45,12 +45,12 @@ public static class EntryRules
         {
             if (string.IsNullOrWhiteSpace(pillName))
             {
-                errors.Add("Pill name is required for Pill entries.");
+                errors.Add("Med name is required for Med entries.");
             }
         }
         else if (!string.IsNullOrWhiteSpace(pillName))
         {
-            errors.Add($"Pill name does not apply to {type} entries.");
+            errors.Add($"Med name does not apply to {type} entries.");
         }
 
         if (RequiresNote(type) && string.IsNullOrWhiteSpace(note))

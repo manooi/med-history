@@ -203,7 +203,7 @@ public class MedsController : Controller
             return NotFound();
         }
 
-        // The row only. Pill entries logged against this medication are the day's record of
+        // The row only. Med entries logged against this medication are the day's record of
         // what was taken and are never touched by removing the plan for it.
         var day = allocation.Day;
         _db.MedAllocations.Remove(allocation);

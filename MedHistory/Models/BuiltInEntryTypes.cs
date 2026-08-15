@@ -10,7 +10,7 @@ public static class BuiltInEntryTypes
 {
     public const string Symptom = "Symptom";
     public const string Bleeding = "Bleeding";
-    public const string Pill = "Pill";
+    public const string Med = "Med";
     public const string Cough = "Cough";
     public const string Meal = "Meal";
 
@@ -18,5 +18,5 @@ public static class BuiltInEntryTypes
     /// Seed order and display order, unchanged from the declaration order of the
     /// <c>EntryType</c> enum this replaced — the "+" buttons keep the layout the user knows.
     /// </summary>
-    public static readonly IReadOnlyList<string> All = [Symptom, Bleeding, Pill, Cough, Meal];
+    public static readonly IReadOnlyList<string> All = [Symptom, Bleeding, Med, Cough, Meal];
 }

@@ -26,7 +26,7 @@ public class Entry
     // Only meaningful for Bleeding and Cough entries.
     public Severity? Severity { get; set; }
 
-    // Only meaningful for Pill entries.
+    // Only meaningful for Med entries.
     public string? PillName { get; set; }
 
     /// <summary>

@@ -366,7 +366,7 @@ public class MedPlanRulesTests
         // The note is rendered inside EntryRules.DetailLine, which joins with the same mark —
         // a different one here would read as two conventions on one line.
         var detail = EntryRules.DetailLine(
-            BuiltInEntryTypes.Pill,
+            BuiltInEntryTypes.Med,
             null,
             "Eyedrop L",
             MedPlanRules.ComposeNote(MedSlots.Morning, MealRelation.AfterMeal, MedMethod.Eyedrop));

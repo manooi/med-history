@@ -360,7 +360,7 @@ public class MedStockRulesTests
     [Fact]
     public void UsageQuantity_NoQuantityRecorded_CountsAsOneUnit()
     {
-        // Hand-typed Pill entries, and every dose ticked before quantities existed.
+        // Hand-typed Med entries, and every dose ticked before quantities existed.
         Assert.Equal(1m, MedStockRules.UsageQuantity(null));
     }
 

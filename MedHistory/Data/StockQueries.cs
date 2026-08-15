@@ -44,7 +44,7 @@ public static class StockQueries
         var rows = await db.Entries
             .AsNoTracking()
             // A dose with neither a link nor a name can draw down nothing, so it is not read.
-            .Where(e => e.Type == BuiltInEntryTypes.Pill && (e.MedStockId != null || e.PillName != null))
+            .Where(e => e.Type == BuiltInEntryTypes.Med && (e.MedStockId != null || e.PillName != null))
             .GroupBy(e => new { e.MedStockId, e.PillName })
             .Select(g => new
             {

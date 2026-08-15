@@ -66,7 +66,7 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
 
             // MedStockId needs no configuration: like ChecklistAllocationId it is a plain
             // nullable integer with no foreign key — see the comment on Entry.MedStockId. It is
-            // deliberately not indexed; every read of it groups the whole Pill history at once,
+            // deliberately not indexed; every read of it groups the whole Med history at once,
             // which no index on one column would help.
 
             entry.HasIndex(e => e.OccurredAt);

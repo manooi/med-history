@@ -8,7 +8,7 @@ namespace MedHistory.Controllers;
 
 /// <summary>
 /// The day page and everything on it. Ticking or unticking a medication dose lives here
-/// too — a tick is a real Pill <see cref="Entry"/>, so it belongs next to the entry actions
+/// too — a tick is a real Med <see cref="Entry"/>, so it belongs next to the entry actions
 /// and always lands back on the day view where progress is shown. Adding, removing and
 /// copying forward the day's allocations lives on its own page — see
 /// <see cref="MedsController"/>.
@@ -57,12 +57,12 @@ public class DayController : Controller
             return RedirectToDay(allocation.Day);
         }
 
-        // Deliberately no active-type check: Pill is built-in and cannot be deleted, and a
-        // checklist the user is working through must keep working even if the Pill type has
+        // Deliberately no active-type check: Med is built-in and cannot be deleted, and a
+        // checklist the user is working through must keep working even if the Med type has
         // been deactivated on the /types page.
         var entry = new Entry
         {
-            Type = BuiltInEntryTypes.Pill,
+            Type = BuiltInEntryTypes.Med,
             PillName = allocation.Name,
             OccurredAt = AppTime.TickTime(allocation.Day),
             ChecklistAllocationId = allocation.Id,
