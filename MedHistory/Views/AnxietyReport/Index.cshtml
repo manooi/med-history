@@ -33,9 +33,10 @@
     }
 </div>
 
-@* A voted cell carries the day's number and the level's own emoji face, shaded darker
-   the worse the level reads — never by colour. Every real day of the month gets a cell, voted or
-   not; only days of the neighbouring month are left blank, same as the med report. *@
+@* A voted cell carries the day's number and the level's own emoji face — the emoji alone
+   carries the level, so every in-month cell gets the same plain treatment. Every real day of
+   the month gets a cell, voted or not; only days of the neighbouring month are left blank,
+   same as the med report. *@
 <div class="mt-1 grid grid-cols-7 gap-1">
     @foreach (var week in Model.Month.Weeks)
     {
@@ -51,15 +52,7 @@
                 var tally = cell.Value;
                 var date = tally.Day;
 
-                var state = tally.Level switch
-                {
-                    AnxietyLevel.Calm => "bg-white border-neutral-300 hover:bg-neutral-100",
-                    AnxietyLevel.Ok => "bg-neutral-200 border-neutral-300 hover:bg-neutral-300",
-                    AnxietyLevel.Tense => "bg-neutral-400 border-neutral-400 hover:bg-neutral-500",
-                    AnxietyLevel.Anxious => "bg-neutral-600 border-neutral-600 text-white hover:bg-neutral-700",
-                    AnxietyLevel.Panic => "bg-black border-black text-white hover:bg-neutral-800",
-                    _ => "border-transparent bg-white text-neutral-400 hover:bg-neutral-100"
-                };
+                var state = "border-neutral-300 bg-white hover:bg-neutral-100";
 
                 var label = tally.Level is null
                     ? $"{AppTime.DayLabel(date)} — no vote"
@@ -67,10 +60,10 @@
 
                 <a href="/day/@AppTime.Key(date)" title="@label" aria-label="@label"
                    class="flex min-h-14 flex-col items-center justify-center gap-1 border p-1 leading-none @state">
-                    <span class="text-sm tabular-nums @(date == Model.Today ? "underline underline-offset-2" : "")">@date.Day</span>
+                    <span class="text-sm tabular-nums @(tally.Level is null ? "text-neutral-400" : "") @(date == Model.Today ? "underline underline-offset-2" : "")">@date.Day</span>
                     @if (tally.Level is not null)
                     {
-                        <span class="text-xs">@AnxietyRules.Emoji(tally.Level.Value)</span>
+                        <span class="text-lg">@AnxietyRules.Emoji(tally.Level.Value)</span>
                     }
                 </a>
             }
