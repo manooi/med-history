@@ -11,7 +11,7 @@ Epic: `med-history-4ei` — personal medical history web app. Plan: [`plans/epic
 - [x] 5. Entry CRUD + day view (`med-history-4ei.5`)
 - [ ] 6. Photo upload + serving from bytea (`med-history-4ei.6`)
 - [x] 7. History view (`med-history-4ei.7`)
-- [ ] 8. xUnit pure-logic tests (`med-history-4ei.8`)
+- [x] 8. xUnit pure-logic tests (`med-history-4ei.8`)
 
 ## Later ideas
 
