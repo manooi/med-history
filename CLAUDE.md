@@ -19,7 +19,7 @@ Global playbook applies (~/CLAUDE.md gate): **no bead no code**, orchestrator ne
 - Theme: black/white/neutral grays — **one carve-out: destructive actions (delete/remove buttons) use red** (`text-red-600`, `hover:text-red-800`, bordered: `border-red-600 hover:bg-red-600 hover:text-white`); deactivate is NOT destructive (stays neutral). No other color classes ever; severity via label text + border weight
 - Enums stored as strings in Postgres
 - Secrets only in user-secrets: `ConnectionStrings:Default`, `Auth:Password` — never in appsettings
-- Photos: bytea in DB, served via `/photos/{id}`, 10 MB/photo cap, image/* only
+- Photos: bytea in DB, served via `/photos/{id}`, 10 MB/photo cap, image/* only; client JS downscales >1600px images to 1600px JPEG q0.85 before upload (Form.cshtml — decode failure e.g. HEIC falls back to original file, generation counter guards re-selection races)
 - Decision logic extracted as pure functions (testability rule)
 
 ## Business rules
