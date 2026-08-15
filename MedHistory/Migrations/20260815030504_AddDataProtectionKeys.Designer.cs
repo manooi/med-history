@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MedHistory.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260815025538_AddDataProtectionKeys")]
+    [Migration("20260815030504_AddDataProtectionKeys")]
     partial class AddDataProtectionKeys
     {
         /// <inheritdoc />
