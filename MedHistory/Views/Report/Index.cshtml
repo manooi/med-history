@@ -1,0 +1,89 @@
+@model ReportViewModel
+@{
+    ViewData["Title"] = $"Report — {Model.Month.Label}";
+}
+
+<header class="flex items-center justify-between gap-4 border-b border-black pb-4">
+    <a href="/report/@Model.Month.PreviousKey" title="Previous month"
+       class="border border-black px-3 py-1 text-sm hover:bg-black hover:text-white">&larr;</a>
+
+    <div class="text-center">
+        <h1 class="font-semibold">@Model.Month.Label</h1>
+        <p class="text-xs uppercase tracking-wide text-neutral-500">@Model.Month.ProgressLabel</p>
+    </div>
+
+    <a href="/report/@Model.Month.NextKey" title="Next month"
+       class="border border-black px-3 py-1 text-sm hover:bg-black hover:text-white">&rarr;</a>
+</header>
+
+<div class="mt-4 flex items-center gap-4 text-sm">
+    @if (!Model.IsCurrentMonth)
+    {
+        <a href="/report" class="underline hover:no-underline">This month</a>
+    }
+    <a href="/" class="ml-auto underline hover:no-underline">Back to today</a>
+</div>
+
+@* Weeks run Monday first, so the two grids share a column order that is set in one place —
+   see ReportRules.WeekdayLabels and ReportRules.LeadingBlanks. *@
+<div class="mt-6 grid grid-cols-7 gap-1 text-center text-xs uppercase tracking-wide text-neutral-500">
+    @foreach (var weekday in ReportRules.WeekdayLabels)
+    {
+        <div>@weekday</div>
+    }
+</div>
+
+@* A cell counts the doses its day's plan asked for against the doses ticked off it, across
+   every medication at once. Progress is carried by fill and border, never colour. *@
+<div class="mt-1 grid grid-cols-7 gap-1">
+    @foreach (var week in Model.Month.Weeks)
+    {
+        @foreach (var cell in week.Days)
+        {
+            @if (cell is null)
+            {
+                @* A day of the neighbouring month: the column is held, nothing is drawn in it. *@
+                <div></div>
+            }
+            else
+            {
+                var tally = cell.Value;
+                var date = tally.Day;
+
+                var state = tally.State switch
+                {
+                    DayProgress.Full => "border-black bg-black text-white hover:bg-neutral-700",
+                    DayProgress.Partial => "border-black bg-white text-black hover:bg-neutral-100",
+                    DayProgress.None => "border-neutral-300 bg-white text-neutral-500 hover:bg-neutral-100",
+                    _ => "border-transparent bg-white text-neutral-400 hover:bg-neutral-100"
+                };
+
+                var label = tally.Planned == 0
+                    ? $"{AppTime.DayLabel(date)} — nothing planned"
+                    : $"{AppTime.DayLabel(date)} — {tally.Ticked} of {tally.Planned} doses";
+
+                <a href="/day/@AppTime.Key(date)" title="@label" aria-label="@label"
+                   class="flex min-h-14 flex-col items-center justify-center gap-1 border p-1 leading-none @state">
+                    <span class="text-sm tabular-nums @(date == Model.Today ? "underline underline-offset-2" : "")">@date.Day</span>
+                    @if (tally.ProgressLabel.Length > 0)
+                    {
+                        <span class="text-xs tabular-nums">@tally.ProgressLabel</span>
+                    }
+                </a>
+            }
+        }
+    }
+</div>
+
+<div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-neutral-500">
+    <span class="flex items-center gap-1">
+        <span class="inline-block h-3 w-3 border border-black bg-black"></span> every dose
+    </span>
+    <span class="flex items-center gap-1">
+        <span class="inline-block h-3 w-3 border border-black bg-white"></span> some doses
+    </span>
+    <span class="flex items-center gap-1">
+        <span class="inline-block h-3 w-3 border border-neutral-300 bg-white"></span> none of them
+    </span>
+    <span>unboxed — nothing planned</span>
+</div>
