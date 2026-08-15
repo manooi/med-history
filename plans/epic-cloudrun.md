@@ -33,7 +33,7 @@ GitHub push(main) → Actions (WIF keyless auth) → build image → Artifact Re
 | `.1` | Dockerfile + .dockerignore, builds + runs locally | sonnet | — |
 | `.2` | DataProtection keys → DB (package, config, migration — NOT applied) | opus | — |
 | `.3` | ForwardedHeaders + container env handling (ports, no https-redirect) | sonnet | .1 |
-| `.4` | GCP setup runbook doc (project, Artifact Registry, Secret Manager, deploy SA + key, service) — docs/deploy-cloudrun.md | sonnet | — |
+| `.4` | GCP setup runbook doc (project, Artifact Registry, Secret Manager, deploy SA + key, service) — docs/SETUP.md | sonnet | — |
 | `.5` | GitHub Actions workflow build+deploy | sonnet | .1 .4 |
 | `.6` | VPS Postgres hardening for public TLS access (via postgresql-vps-agent) | — | — |
 | `.7` | First deploy + e2e verify against Cloud Run URL | — | all |
