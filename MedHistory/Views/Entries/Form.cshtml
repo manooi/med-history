@@ -23,6 +23,15 @@
         <label for="OccurredAt" class="block text-sm font-medium">Time</label>
         <input type="datetime-local" id="OccurredAt" name="OccurredAt" required
                value="@AppTime.InputValue(Model.OccurredAt)" class="@fieldClass" />
+        <div class="mt-1 flex gap-2">
+            @foreach (var preset in new[] { "09:00", "12:00", "18:00" })
+            {
+                <button type="button" data-time-preset="@preset"
+                        class="border border-black bg-white px-2 py-1 text-sm hover:bg-black hover:text-white">
+                    @preset
+                </button>
+            }
+        </div>
     </div>
 
     @if (EntryRules.RequiresSeverity(Model.Type))
@@ -96,4 +105,17 @@
             Delete entry
         </button>
     </form>
+}
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('[data-time-preset]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var input = document.getElementById('OccurredAt');
+                if (!input.value) return;
+                var datePart = input.value.split('T')[0];
+                input.value = datePart + 'T' + btn.getAttribute('data-time-preset');
+            });
+        });
+    </script>
 }
