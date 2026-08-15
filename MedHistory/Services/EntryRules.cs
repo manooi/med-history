@@ -83,6 +83,21 @@ public static class EntryRules
     }
 
     /// <summary>
+    /// Orders entries by <c>OccurredAt</c> ascending; entries with an equal timestamp
+    /// are ordered by type name, alphabetically (ordinal string compare on the enum's
+    /// <c>ToString()</c>) — NOT by <see cref="EntryType"/> declaration order, which is
+    /// not alphabetical (Symptom, Bleeding, Pill, Cough, Meal).
+    /// </summary>
+    public static IReadOnlyList<T> OrderEntries<T>(
+        IEnumerable<T> entries,
+        Func<T, DateTimeOffset> occurredAtSelector,
+        Func<T, EntryType> typeSelector) =>
+        entries
+            .OrderBy(occurredAtSelector)
+            .ThenBy(e => typeSelector(e).ToString(), StringComparer.Ordinal)
+            .ToList();
+
+    /// <summary>
     /// Half-open [start, end) instant range covering one local calendar day.
     /// Both bounds are normalised to UTC: Npgsql rejects a DateTimeOffset with a
     /// non-zero offset when reading or writing <c>timestamp with time zone</c>.

@@ -50,11 +50,15 @@ public class DayController : Controller
             })
             .ToListAsync();
 
+        // OccurredAt ties get a deterministic secondary sort (type name, alphabetical)
+        // rather than DB order — see EntryRules.OrderEntries for why not enum order.
+        var ordered = EntryRules.OrderEntries(rows, r => r.OccurredAt, r => r.Type);
+
         var model = new DayViewModel
         {
             Day = day,
             IsToday = day == AppTime.Today(),
-            Entries = rows.Select(r => new DayEntryViewModel
+            Entries = ordered.Select(r => new DayEntryViewModel
             {
                 Id = r.Id,
                 OccurredAtLocal = AppTime.ToLocal(r.OccurredAt),

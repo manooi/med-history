@@ -308,4 +308,75 @@ public class EntryRulesTests
         Assert.Equal(new DateTimeOffset(2026, 8, 15, 5, 0, 0, TimeSpan.Zero), start);
         Assert.Equal(new DateTimeOffset(2026, 8, 16, 5, 0, 0, TimeSpan.Zero), end);
     }
+
+    // ---- OrderEntries ----
+
+    private sealed record TestEntry(DateTimeOffset OccurredAt, EntryType Type, string Label);
+
+    private static IReadOnlyList<string> OrderLabels(IEnumerable<TestEntry> entries) =>
+        EntryRules.OrderEntries(entries, e => e.OccurredAt, e => e.Type)
+            .Select(e => e.Label)
+            .ToList();
+
+    [Fact]
+    public void OrderEntries_EqualTimestamps_OrdersByTypeNameAlphabetically()
+    {
+        // EntryType declaration order is Symptom, Bleeding, Pill, Cough, Meal — NOT
+        // alphabetical. All five share one timestamp, entered in declaration order;
+        // the result must come back alphabetical: Bleeding, Cough, Meal, Pill, Symptom.
+        var same = new DateTimeOffset(2026, 8, 15, 9, 0, 0, TimeSpan.Zero);
+        var entries = new[]
+        {
+            new TestEntry(same, EntryType.Symptom, "symptom"),
+            new TestEntry(same, EntryType.Bleeding, "bleeding"),
+            new TestEntry(same, EntryType.Pill, "pill"),
+            new TestEntry(same, EntryType.Cough, "cough"),
+            new TestEntry(same, EntryType.Meal, "meal"),
+        };
+
+        var ordered = OrderLabels(entries);
+
+        Assert.Equal(new[] { "bleeding", "cough", "meal", "pill", "symptom" }, ordered);
+    }
+
+    [Fact]
+    public void OrderEntries_DifferingTimestamps_OrdersChronologically_RegardlessOfType()
+    {
+        var t0 = new DateTimeOffset(2026, 8, 15, 8, 0, 0, TimeSpan.Zero);
+        var t1 = new DateTimeOffset(2026, 8, 15, 9, 0, 0, TimeSpan.Zero);
+        var t2 = new DateTimeOffset(2026, 8, 15, 10, 0, 0, TimeSpan.Zero);
+
+        // Type order deliberately works against alphabetical (Symptom sorts last
+        // alphabetically but is entered first here, at the earliest time) to prove
+        // the timestamp — not the type — drives the order when they differ.
+        var entries = new[]
+        {
+            new TestEntry(t1, EntryType.Bleeding, "second"),
+            new TestEntry(t0, EntryType.Symptom, "first"),
+            new TestEntry(t2, EntryType.Pill, "third"),
+        };
+
+        var ordered = OrderLabels(entries);
+
+        Assert.Equal(new[] { "first", "second", "third" }, ordered);
+    }
+
+    [Fact]
+    public void OrderEntries_MixedTimestamps_ChronologicalPrimary_AlphabeticalTieBreak()
+    {
+        var t0 = new DateTimeOffset(2026, 8, 15, 8, 0, 0, TimeSpan.Zero);
+        var t1 = new DateTimeOffset(2026, 8, 15, 9, 0, 0, TimeSpan.Zero);
+
+        // Two entries tie at t1 (Pill vs Cough); one entry sits alone at the earlier t0.
+        var entries = new[]
+        {
+            new TestEntry(t1, EntryType.Pill, "t1-pill"),
+            new TestEntry(t0, EntryType.Meal, "t0-meal"),
+            new TestEntry(t1, EntryType.Cough, "t1-cough"),
+        };
+
+        var ordered = OrderLabels(entries);
+
+        Assert.Equal(new[] { "t0-meal", "t1-cough", "t1-pill" }, ordered);
+    }
 }
