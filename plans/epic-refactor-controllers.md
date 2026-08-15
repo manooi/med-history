@@ -40,6 +40,6 @@ single-user app).
 - [x] 9b1.1 split MedsController / StocksController
 - [x] 9b1.2 Data/AllocationQueries
 - [x] 9b1.3 EntriesController slim (PhotoStore + EntryRules moves)
-- [ ] 9b1.4 DayController slim (DayQueries)
+- [x] 9b1.4 DayController slim (DayQueries)
 - [ ] 9b1.5 report-family controllers → Data/ queries (Report, AnxietyReport, TypeReport, Search, DoctorReport)
 - [ ] 9b1.6 write-side orchestration → Data/ stores (tick/untick, vote, login throttle reads/writes)
