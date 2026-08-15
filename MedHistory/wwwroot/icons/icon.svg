@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#000000" />
+  <text
+    x="256"
+    y="268"
+    text-anchor="middle"
+    dominant-baseline="central"
+    font-family="ui-monospace, SFMono-Regular, Menlo, monospace"
+    font-weight="700"
+    font-size="440"
+    fill="#ffffff"
+  >m</text>
+</svg>
