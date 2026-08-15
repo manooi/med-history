@@ -29,7 +29,8 @@ gcloud config set project $PROJECT_ID
 gcloud services enable \
   run.googleapis.com \
   artifactregistry.googleapis.com \
-  secretmanager.googleapis.com
+  secretmanager.googleapis.com \
+  iamcredentials.googleapis.com
 ```
 
 ## 2. Artifact Registry
@@ -84,14 +85,16 @@ gcloud secrets add-iam-policy-binding Auth__Password \
   --role="roles/secretmanager.secretAccessor"
 ```
 
-## 4. Deploy service account + key for GitHub Actions
+## 4. Deploy service account + Workload Identity Federation for GitHub Actions
 
-Auth is a service-account JSON key in a GitHub repo secret (matches the user's existing pipeline
-convention) — not Workload Identity Federation.
+Auth is keyless: GitHub Actions exchanges a short-lived OIDC token for GCP credentials via Workload
+Identity Federation (WIF) — no long-lived service-account key ever leaves GCP, so there's nothing to
+paste into a secret and nothing to rotate.
 
 ```bash
 export DEPLOY_SA=medhistory-deployer
 export DEPLOY_SA_EMAIL="${DEPLOY_SA}@${PROJECT_ID}.iam.gserviceaccount.com"
+export GH_REPO=<github-org-or-user>/<repo-name>
 
 gcloud iam service-accounts create $DEPLOY_SA \
   --display-name="med-history GitHub Actions deployer"
@@ -108,22 +111,36 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
 gcloud iam service-accounts add-iam-policy-binding $RUN_SA \
   --member="serviceAccount:${DEPLOY_SA_EMAIL}" \
   --role="roles/iam.serviceAccountUser"
-
-gcloud iam service-accounts keys create key.json \
-  --iam-account=$DEPLOY_SA_EMAIL
 ```
 
-Paste the full contents of `key.json` into a GitHub repo secret named `GCP_SA_KEY`
-(repo → Settings → Secrets and variables → Actions → New repository secret), then delete the local
-copy immediately — it's a live credential, don't let it sit on disk or land in shell history:
+Create the workload identity pool and an OIDC provider trusting GitHub's token issuer:
 
 ```bash
-rm key.json
+export PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format='value(projectNumber)')
+
+gcloud iam workload-identity-pools create github \
+  --location=global \
+  --display-name="GitHub Actions"
+
+gcloud iam workload-identity-pools providers create-oidc github \
+  --location=global \
+  --workload-identity-pool=github \
+  --display-name="GitHub Actions provider" \
+  --issuer-uri="https://token.actions.githubusercontent.com" \
+  --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository" \
+  --attribute-condition="assertion.repository == '${GH_REPO}'"
 ```
 
-This key has no GCP-enforced expiry. Rotate it manually roughly once a year (create a new key, update
-the `GCP_SA_KEY` repo secret, then `gcloud iam service-accounts keys delete <old-key-id>
---iam-account=$DEPLOY_SA_EMAIL`), and immediately if it's ever exposed.
+The `--attribute-condition` is mandatory, not optional hardening — without it, any GitHub repo anywhere
+could mint a token that impersonates the deploy SA. It scopes token exchange to this repo only.
+
+Grant that repo's identity permission to impersonate the deploy SA:
+
+```bash
+gcloud iam service-accounts add-iam-policy-binding $DEPLOY_SA_EMAIL \
+  --role="roles/iam.workloadIdentityUser" \
+  --member="principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/github/attribute.repository/${GH_REPO}"
+```
 
 ## 5. First manual deploy (before CI exists)
 
@@ -148,13 +165,15 @@ own login-password gate (`Auth__Password`) in front of every route, so it's not 
 
 ## 6. Values for the GitHub Actions workflow (bead `nvs.5`)
 
-The SA key itself is not a workflow input — it's already in the `GCP_SA_KEY` repo secret from §4 and the
-workflow reads it from there (e.g. via `google-github-actions/auth`).
+Nothing secret is stored in GitHub for auth — the workflow authenticates via the WIF provider and
+deploy SA set up in §4, both of which are safe to expose as repo *variables* (Settings → Secrets and
+variables → Actions → Variables tab), not secrets.
 
 | Value | Source | Example |
 |---|---|---|
-| Project ID | `$PROJECT_ID` | `medhistory` |
-| Deploy SA email | `$DEPLOY_SA_EMAIL` | `medhistory-deployer@medhistory.iam.gserviceaccount.com` |
+| `GCP_WIF_PROVIDER` variable | full provider resource name from §4 | `projects/123456789012/locations/global/workloadIdentityPools/github/providers/github` |
+| `GCP_DEPLOY_SA` variable | `$DEPLOY_SA_EMAIL` | `medhistory-deployer@medhistory.iam.gserviceaccount.com` |
+| `GCP_PROJECT_ID` variable | `$PROJECT_ID` | `medhistory` |
 | Runtime SA (for `--service-account` on deploy) | `$RUN_SA` | `medhistory-run@medhistory.iam.gserviceaccount.com` |
 | Region | — | `asia-southeast1` |
 | Artifact Registry repo | — | `medhistory` |
@@ -164,7 +183,7 @@ workflow reads it from there (e.g. via `google-github-actions/auth`).
 ## 7. Checklist — things only the user can do
 
 - [ ] GCP billing account exists and is linked to the project (§1).
-- [ ] Repo pushed to GitHub, and `key.json` from §4 pasted into the repo's `GCP_SA_KEY` Actions secret —
+- [ ] Repo pushed to GitHub, and the `GCP_WIF_PROVIDER` and `GCP_DEPLOY_SA` repo variables from §4/§6 set —
       required before `nvs.5`'s workflow can authenticate.
 - [ ] VPS Postgres hardened for public TLS access: `hostssl`-only `pg_hba.conf` entry, strong password,
       port reachable from Cloud Run's dynamic egress IPs — see epic gotcha #4 in

@@ -28,6 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write # required to mint the OIDC token Workload Identity Federation exchanges for GCP credentials
 
     steps:
       - name: Checkout
@@ -36,7 +37,11 @@ jobs:
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          # Keyless auth via Workload Identity Federation -- no long-lived SA key in this repo.
+          # Both values are GitHub repo *variables* (not secrets): neither the WIF provider resource
+          # name nor the deploy SA email is sensitive on its own. See docs/deploy-cloudrun.md section 4.
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }} # projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/POOL/providers/PROVIDER
+          service_account: ${{ vars.GCP_DEPLOY_SA }} # e.g. medhistory-deployer@PROJECT_ID.iam.gserviceaccount.com
 
       - name: Set up gcloud
         uses: google-github-actions/setup-gcloud@v2

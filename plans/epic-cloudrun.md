@@ -1,6 +1,6 @@
 # Epic: Containerize + Cloud Run deploy (`med-history-nvs`)
 
-Decisions (2026-08-15): Postgres stays on existing VPS · deploy via GitHub Actions CI (SA-key auth `GCP_SA_KEY`, matches user's expense-tracker pipeline) · secrets in GCP Secret Manager (secret name == env var name: `ConnectionStrings__Default`, `Auth__Password`) · image tag = commit SHA.
+Decisions (2026-08-15): Postgres stays on existing VPS · deploy via GitHub Actions CI (Workload Identity Federation — user reversed earlier SA-key choice 2026-08-15) · secrets in GCP Secret Manager (secret name == env var name: `ConnectionStrings__Default`, `Auth__Password`) · image tag = commit SHA.
 
 ## Why
 
@@ -9,7 +9,7 @@ Run med-history on Cloud Run instead of localhost so it's reachable anywhere; pe
 ## Architecture
 
 ```
-GitHub push(main) → Actions (SA key auth) → build image → Artifact Registry → Cloud Run (asia-southeast1)
+GitHub push(main) → Actions (WIF keyless auth) → build image → Artifact Registry → Cloud Run (asia-southeast1)
                                                                       │ env from Secret Manager
                                                                       └→ VPS Postgres (TLS, sslmode=require)
 ```
@@ -23,7 +23,7 @@ GitHub push(main) → Actions (SA key auth) → build image → Artifact Registr
 5. **Connection string** gains `SSL Mode=Require` (+ `Trust Server Certificate=true` unless proper CA on VPS).
 6. **Migrations stay manual** — user runs `dotnet ef database update` from local against VPS. No auto-migrate on startup.
 7. **Secrets:** Secret Manager secrets named exactly `ConnectionStrings__Default` + `Auth__Password`, mapped 1:1 to env vars (user convention). DotNetEnv tolerates missing .env; env vars flow through IConfiguration unchanged.
-8. **CI:** GitHub Actions with deploy-SA JSON key in repo secret `GCP_SA_KEY` (user's proven pattern; WIF rejected for setup overhead). Manual key rotation ~yearly. Requires pushing this repo to GitHub (not yet done — explicit step).
+8. **CI:** GitHub Actions with Workload Identity Federation — repo variables `GCP_WIF_PROVIDER` + `GCP_DEPLOY_SA`, `id-token: write`, no long-lived key. Requires pushing this repo to GitHub (not yet done — explicit step).
 9. **Service shape:** region asia-southeast1, min 0 / max 1 instance (single user; also removes multi-instance edge cases), 512 Mi, startup probe GET /login.
 
 ## Scope
