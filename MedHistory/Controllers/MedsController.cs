@@ -110,7 +110,7 @@ public class MedsController : Controller
         // Non-null: ValidateNewAllocation rejects a name that normalises away.
         var normalizedName = ChecklistRules.NormalizeName(name)!;
         var candidateDays = ChecklistRules.ExpandRange(rangeFrom, rangeTo);
-        var existingByDay = await AllocationNamesByDay(rangeFrom, rangeTo);
+        var existingByDay = await _db.AllocationNamesByDayAsync(rangeFrom, rangeTo);
         var targetDays = ChecklistRules.DaysToAllocate(candidateDays, normalizedName, existingByDay);
 
         // Resolved once for the whole range: every day gets the same name, so it can only reach
@@ -158,7 +158,7 @@ public class MedsController : Controller
 
         var previous = day.AddDays(-1);
         var source = await _db.MedAllocations.AsNoTracking().Where(a => a.Day == previous).OrderBy(a => a.Id).ToListAsync();
-        var copied = ChecklistRules.AllocationsToCopy(source, await AllocationNames(day));
+        var copied = ChecklistRules.AllocationsToCopy(source, await _db.AllocationNamesAsync(day));
         var stocks = await _db.StockedMedicationsAsync();
 
         // The plan only, in full: the copies carry the same slots, dose, meal relation and
@@ -298,13 +298,13 @@ public class MedsController : Controller
         var editedRef = new ChecklistRules.AllocationRef(allocation.Id, day, allocation.Name);
 
         IReadOnlyList<ChecklistRules.AllocationRef> candidates = applyForward
-            ? await AllocationRefsFrom(day)
+            ? await _db.AllocationRefsFromAsync(day)
             : [editedRef];
 
         var affected = ChecklistRules.AffectedAllocations(editedRef, applyForward, candidates);
         var affectedIds = affected.Select(a => a.Id).ToHashSet();
 
-        var namesByDay = await AllocationRefsByDay(affected.Select(a => a.Day).Distinct().ToList());
+        var namesByDay = await _db.AllocationRefsByDayAsync(affected.Select(a => a.Day).Distinct().ToList());
         var collisionDays = ChecklistRules.RenameCollisionDays(normalizedName, affectedIds, namesByDay);
 
         if (collisionDays.Count > 0)
@@ -342,47 +342,6 @@ public class MedsController : Controller
             id, rows.Count, applyForward);
 
         return RedirectToDay(day);
-    }
-
-    private async Task<List<string>> AllocationNames(DateOnly day) =>
-        await _db.MedAllocations.AsNoTracking().Where(a => a.Day == day).Select(a => a.Name).ToListAsync();
-
-    /// <summary>Every allocation name on each day in [from, to], inclusive — for range skip-checks.</summary>
-    private async Task<IReadOnlyDictionary<DateOnly, IReadOnlyList<string>>> AllocationNamesByDay(
-        DateOnly from, DateOnly to)
-    {
-        var rows = await _db.MedAllocations
-            .AsNoTracking()
-            .Where(a => a.Day >= from && a.Day <= to)
-            .Select(a => new { a.Day, a.Name })
-            .ToListAsync();
-
-        return rows
-            .GroupBy(r => r.Day)
-            .ToDictionary(g => g.Key, g => (IReadOnlyList<string>)g.Select(r => r.Name).ToList());
-    }
-
-    /// <summary>Every allocation dated on or after <paramref name="fromDay"/> — the applyForward candidate pool.</summary>
-    private async Task<IReadOnlyList<ChecklistRules.AllocationRef>> AllocationRefsFrom(DateOnly fromDay) =>
-        await _db.MedAllocations
-            .AsNoTracking()
-            .Where(a => a.Day >= fromDay)
-            .Select(a => new ChecklistRules.AllocationRef(a.Id, a.Day, a.Name))
-            .ToListAsync();
-
-    /// <summary>Every allocation on each of the given days — for the rename-collision check.</summary>
-    private async Task<IReadOnlyDictionary<DateOnly, IReadOnlyList<ChecklistRules.AllocationRef>>> AllocationRefsByDay(
-        IReadOnlyCollection<DateOnly> days)
-    {
-        var rows = await _db.MedAllocations
-            .AsNoTracking()
-            .Where(a => days.Contains(a.Day))
-            .Select(a => new ChecklistRules.AllocationRef(a.Id, a.Day, a.Name))
-            .ToListAsync();
-
-        return rows
-            .GroupBy(r => r.Day)
-            .ToDictionary(g => g.Key, g => (IReadOnlyList<ChecklistRules.AllocationRef>)g.ToList());
     }
 
     private IActionResult RedirectToDay(DateOnly day) =>

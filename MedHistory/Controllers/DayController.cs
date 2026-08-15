@@ -42,7 +42,7 @@ public class DayController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Tick(int id, string slot)
     {
-        var (allocation, parsed) = await ResolveSlot(id, slot);
+        var (allocation, parsed) = await _db.ResolveSlotAsync(id, slot);
 
         if (allocation is null)
         {
@@ -52,7 +52,7 @@ public class DayController : Controller
         // A slot is ticked exactly when a linked entry exists, so ticking one that already has
         // an entry must add nothing: a second entry would leave the slot ticked after an untick
         // removed only one of them. A double submit therefore just lands back on the day.
-        if (ChecklistRules.FindTick(await Ticks(allocation.Day), id, parsed) is not null)
+        if (ChecklistRules.FindTick(await _db.TicksAsync(allocation.Day), id, parsed) is not null)
         {
             return RedirectToDay(allocation.Day);
         }
@@ -95,14 +95,14 @@ public class DayController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Untick(int id, string slot)
     {
-        var (allocation, parsed) = await ResolveSlot(id, slot);
+        var (allocation, parsed) = await _db.ResolveSlotAsync(id, slot);
 
         if (allocation is null)
         {
             return NotFound();
         }
 
-        var tick = ChecklistRules.FindTick(await Ticks(allocation.Day), id, parsed);
+        var tick = ChecklistRules.FindTick(await _db.TicksAsync(allocation.Day), id, parsed);
 
         if (tick is null)
         {
@@ -250,43 +250,6 @@ public class DayController : Controller
         };
 
         return View("Index", model);
-    }
-
-    /// <summary>
-    /// Loads the allocation a checklist POST names, together with the slot it addresses. The
-    /// allocation comes back null when either is unusable: no such allocation, an unrecognised
-    /// slot name, or a slot the allocation does not have. Both are route values a hand-made
-    /// request can say anything in, so the slot is checked against the plan and not trusted.
-    /// </summary>
-    private async Task<(MedAllocation? Allocation, MedSlots Slot)> ResolveSlot(int id, string? slot)
-    {
-        var allocation = await _db.MedAllocations.FindAsync(id);
-
-        if (allocation is null || !MedPlanRules.TryParseSlot(slot, out var parsed) || !allocation.Slots.HasFlag(parsed))
-        {
-            return (null, MedSlots.None);
-        }
-
-        return (allocation, parsed);
-    }
-
-    /// <summary>
-    /// The day's checklist ticks — the entries a slot control created, which is the whole of
-    /// what the checklist reads. Scoped to the day rather than to the allocation so that an
-    /// entry the user has since moved to another date stops counting here, exactly as it stops
-    /// appearing in the day's timeline.
-    /// </summary>
-    private async Task<List<ChecklistTick>> Ticks(DateOnly day)
-    {
-        var (start, end) = AppTime.DayRange(day);
-
-        var rows = await _db.Entries
-            .AsNoTracking()
-            .Where(e => e.OccurredAt >= start && e.OccurredAt < end && e.ChecklistAllocationId != null)
-            .Select(e => new { e.Id, e.ChecklistAllocationId, e.ChecklistSlot })
-            .ToListAsync();
-
-        return rows.Select(r => new ChecklistTick(r.Id, r.ChecklistAllocationId, r.ChecklistSlot)).ToList();
     }
 
     private IActionResult RedirectToDay(DateOnly day) =>
