@@ -9,6 +9,11 @@
 
   <ItemGroup>
     <PackageReference Include="DotNetEnv" Version="3.2.0" />
+    <!-- Explicit (normally framework-provided, hence NU1510) so the patched Data Protection
+         ships with the app instead of depending on the container's ASP.NET runtime tag:
+         10.0.0-10.0.6 are vulnerable to CVE-2026-40372, auth-cookie forgery. -->
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="10.0.11" NoWarn="NU1510" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="10.0.4" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.4">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>

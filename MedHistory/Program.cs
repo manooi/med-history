@@ -2,6 +2,7 @@ using MedHistory.Data;
 using MedHistory.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 
 // .env (repo root or MedHistory/) feeds ConnectionStrings__Default and Auth__Password
@@ -23,6 +24,12 @@ builder.Services.AddHttpContextAccessor();
 
 var dbLoggerProvider = new DbLoggerProvider(connectionString);
 builder.Logging.AddProvider(dbLoggerProvider);
+
+// The application name must stay fixed: it is the key-ring's purpose discriminator,
+// so changing it would orphan every key already persisted in the database.
+builder.Services.AddDataProtection()
+    .PersistKeysToDbContext<AppDbContext>()
+    .SetApplicationName("medhistory");
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>

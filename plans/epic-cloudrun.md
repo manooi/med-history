@@ -43,7 +43,7 @@ Build order: (.1 .2 .4 parallel) → .3 → .5 → .6 → .7. User actions requi
 ## Checklist
 
 - [x] .1 Dockerfile
-- [ ] .2 DataProtection persistence
+- [x] .2 DataProtection persistence
 - [ ] .3 proxy/container env
 - [x] .4 GCP runbook
 - [ ] .5 CI workflow

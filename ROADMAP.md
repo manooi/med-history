@@ -18,7 +18,7 @@ Epic: `med-history-4ei` — personal medical history web app. Plan: [`plans/epic
 ## v2 — Cloud Run (`med-history-nvs`, plan: [`plans/epic-cloudrun.md`](./plans/epic-cloudrun.md))
 
 - [x] 10. Dockerfile + .dockerignore (`nvs.1`)
-- [ ] 11. DataProtection keys → DB (`nvs.2`)
+- [x] 11. DataProtection keys → DB (`nvs.2`)
 - [ ] 12. ForwardedHeaders + container env (`nvs.3`)
 - [x] 13. GCP runbook `docs/deploy-cloudrun.md` (`nvs.4`)
 - [ ] 14. GitHub Actions build+deploy (`nvs.5`)

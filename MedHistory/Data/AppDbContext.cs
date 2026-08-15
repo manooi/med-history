@@ -1,9 +1,10 @@
 using MedHistory.Models;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace MedHistory.Data;
 
-public class AppDbContext : DbContext
+public class AppDbContext : DbContext, IDataProtectionKeyContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
@@ -16,6 +17,10 @@ public class AppDbContext : DbContext
     // Mapped so migrations own the schema; rows are inserted by DbLoggerProvider
     // over a separate connection, never through this context.
     public DbSet<LogEntry> Logs => Set<LogEntry>();
+
+    // Data Protection keys live in Postgres so Cloud Run's ephemeral instances
+    // stop invalidating login cookies and antiforgery tokens on every deploy.
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
