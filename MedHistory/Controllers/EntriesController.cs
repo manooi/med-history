@@ -2,6 +2,7 @@ using MedHistory.Data;
 using MedHistory.Models;
 using MedHistory.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace MedHistory.Controllers;
 
@@ -34,7 +35,8 @@ public class EntriesController : Controller
 
     [HttpPost("/entries")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(EntryFormViewModel form)
+    [RequestSizeLimit(60 * 1024 * 1024)]
+    public async Task<IActionResult> Create(EntryFormViewModel form, List<IFormFile>? photos)
     {
         if (!Enum.IsDefined(form.Type))
         {
@@ -43,6 +45,7 @@ public class EntriesController : Controller
 
         form.Id = null;
         ApplyRules(form);
+        ValidatePhotos(photos);
 
         if (!ModelState.IsValid)
         {
@@ -51,6 +54,7 @@ public class EntriesController : Controller
 
         var entry = new Entry { Type = form.Type };
         CopyInto(entry, form);
+        await AttachPhotos(entry, photos);
 
         _db.Entries.Add(entry);
         await _db.SaveChangesAsync();
@@ -75,13 +79,15 @@ public class EntriesController : Controller
             OccurredAt = AppTime.ToLocal(entry.OccurredAt).DateTime,
             Note = entry.Note,
             Severity = entry.Severity,
-            PillName = entry.PillName
+            PillName = entry.PillName,
+            ExistingPhotos = await LoadPhotoSummaries(id)
         });
     }
 
     [HttpPost("/entries/{id:int}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Update(int id, EntryFormViewModel form)
+    [RequestSizeLimit(60 * 1024 * 1024)]
+    public async Task<IActionResult> Update(int id, EntryFormViewModel form, List<IFormFile>? photos)
     {
         var entry = await _db.Entries.FindAsync(id);
 
@@ -94,13 +100,16 @@ public class EntriesController : Controller
         form.Id = entry.Id;
         form.Type = entry.Type;
         ApplyRules(form);
+        ValidatePhotos(photos);
 
         if (!ModelState.IsValid)
         {
+            form.ExistingPhotos = await LoadPhotoSummaries(id);
             return View("Form", form);
         }
 
         CopyInto(entry, form);
+        await AttachPhotos(entry, photos);
         await _db.SaveChangesAsync();
 
         return RedirectToDay(AppTime.DayOf(entry.OccurredAt));
@@ -153,4 +162,51 @@ public class EntriesController : Controller
 
     private IActionResult RedirectToDay(DateOnly day) =>
         RedirectToAction(nameof(DayController.ByDate), "Day", new { date = AppTime.Key(day) });
+
+    private void ValidatePhotos(List<IFormFile>? photos)
+    {
+        if (photos is null)
+        {
+            return;
+        }
+
+        foreach (var photo in photos)
+        {
+            foreach (var error in PhotoRules.Validate(photo.ContentType, photo.Length))
+            {
+                ModelState.AddModelError(string.Empty, error);
+            }
+        }
+    }
+
+    // Bytes are read straight into the Photo row; the app never touches disk.
+    private static async Task AttachPhotos(Entry entry, List<IFormFile>? photos)
+    {
+        if (photos is null)
+        {
+            return;
+        }
+
+        foreach (var file in photos)
+        {
+            using var stream = new MemoryStream();
+            await file.CopyToAsync(stream);
+
+            entry.Photos.Add(new Photo
+            {
+                Data = stream.ToArray(),
+                ContentType = file.ContentType,
+                FileName = Path.GetFileName(file.FileName),
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+        }
+    }
+
+    // Ids and names only — Data is never selected outside PhotosController.Get.
+    private async Task<List<PhotoSummary>> LoadPhotoSummaries(int entryId) =>
+        await _db.Photos
+            .Where(p => p.EntryId == entryId)
+            .OrderBy(p => p.CreatedAt)
+            .Select(p => new PhotoSummary { Id = p.Id, FileName = p.FileName })
+            .ToListAsync();
 }

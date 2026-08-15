@@ -17,5 +17,16 @@ public class EntryFormViewModel
 
     public string? PillName { get; set; }
 
+    /// <summary>Photos already attached to the entry; empty for a new entry.</summary>
+    public IReadOnlyList<PhotoSummary> ExistingPhotos { get; set; } = [];
+
     public bool IsEdit => Id.HasValue;
+}
+
+/// <summary>Display-only projection of a Photo — never carries the image bytes.</summary>
+public class PhotoSummary
+{
+    public required int Id { get; init; }
+
+    public required string FileName { get; init; }
 }

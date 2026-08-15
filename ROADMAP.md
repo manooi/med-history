@@ -9,7 +9,7 @@ Epic: `med-history-4ei` — personal medical history web app. Plan: [`plans/epic
 - [x] 3. EF Core data layer — Entry/Photo, Npgsql, migration (`med-history-4ei.3`)
 - [x] 4. Cookie auth, single password (`med-history-4ei.4`)
 - [x] 5. Entry CRUD + day view (`med-history-4ei.5`)
-- [ ] 6. Photo upload + serving from bytea (`med-history-4ei.6`)
+- [x] 6. Photo upload + serving from bytea (`med-history-4ei.6`)
 - [x] 7. History view (`med-history-4ei.7`)
 - [x] 8. xUnit pure-logic tests (`med-history-4ei.8`)
 

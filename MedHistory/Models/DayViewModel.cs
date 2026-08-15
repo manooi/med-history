@@ -24,5 +24,6 @@ public class DayEntryViewModel
 
     public string? Detail { get; init; }
 
-    public int PhotoCount { get; init; }
+    /// <summary>Ids only — thumbnails are fetched by the browser via GET /photos/{id}.</summary>
+    public required IReadOnlyList<int> PhotoIds { get; init; }
 }

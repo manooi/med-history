@@ -33,7 +33,8 @@ public class DayController : Controller
     {
         var (start, end) = AppTime.DayRange(day);
 
-        // Projected rather than Include'd: the photo bytes are never needed here.
+        // Projected rather than Include'd: the photo bytes are never needed here,
+        // only the ids so the view can request thumbnails via GET /photos/{id}.
         var rows = await _db.Entries
             .Where(e => e.OccurredAt >= start && e.OccurredAt < end)
             .OrderBy(e => e.OccurredAt)
@@ -45,7 +46,7 @@ public class DayController : Controller
                 e.Note,
                 e.Severity,
                 e.PillName,
-                PhotoCount = e.Photos.Count
+                PhotoIds = e.Photos.Select(p => p.Id).ToList()
             })
             .ToListAsync();
 
@@ -59,7 +60,7 @@ public class DayController : Controller
                 OccurredAtLocal = AppTime.ToLocal(r.OccurredAt),
                 Type = r.Type,
                 Detail = EntryRules.DetailLine(r.Type, r.Severity, r.PillName, r.Note),
-                PhotoCount = r.PhotoCount
+                PhotoIds = r.PhotoIds
             }).ToList()
         };
 

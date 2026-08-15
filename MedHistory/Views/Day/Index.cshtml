@@ -61,10 +61,14 @@
                             {
                                 <span class="block text-sm text-neutral-600">@entry.Detail</span>
                             }
-                            @if (entry.PhotoCount > 0)
+                            @if (entry.PhotoIds.Count > 0)
                             {
-                                <span class="block text-xs text-neutral-500">
-                                    @entry.PhotoCount photo@(entry.PhotoCount == 1 ? "" : "s")
+                                <span class="mt-1 flex flex-wrap gap-1">
+                                    @foreach (var photoId in entry.PhotoIds)
+                                    {
+                                        <img src="/photos/@photoId" loading="lazy" alt=""
+                                             class="h-12 w-12 border border-neutral-300 object-cover" />
+                                    }
                                 </span>
                             }
                         </span>
