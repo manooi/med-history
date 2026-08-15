@@ -53,8 +53,7 @@ public class EntriesController : Controller
 
         form.Id = null;
         form.Type = canonicalType;
-        ApplyRules(form);
-        ValidatePhotos(photos);
+        ValidateForm(form, photos);
 
         if (!ModelState.IsValid)
         {
@@ -62,8 +61,8 @@ public class EntriesController : Controller
         }
 
         var entry = new Entry { Type = form.Type };
-        CopyInto(entry, form);
-        await AttachPhotos(entry, photos);
+        EntryRules.CopyInto(entry, form);
+        await entry.AttachPhotosAsync(photos);
 
         _db.Entries.Add(entry);
         await _db.SaveChangesAsync();
@@ -93,7 +92,7 @@ public class EntriesController : Controller
             Note = entry.Note,
             Severity = entry.Severity,
             PillName = entry.PillName,
-            ExistingPhotos = await LoadPhotoSummaries(id)
+            ExistingPhotos = await _db.LoadPhotoSummariesAsync(id)
         });
     }
 
@@ -114,17 +113,16 @@ public class EntriesController : Controller
         // deactivated — the active-type check above deliberately does not run here.
         form.Id = entry.Id;
         form.Type = entry.Type;
-        ApplyRules(form);
-        ValidatePhotos(photos);
+        ValidateForm(form, photos);
 
         if (!ModelState.IsValid)
         {
-            form.ExistingPhotos = await LoadPhotoSummaries(id);
+            form.ExistingPhotos = await _db.LoadPhotoSummariesAsync(id);
             return View("Form", form);
         }
 
-        CopyInto(entry, form);
-        await AttachPhotos(entry, photos);
+        EntryRules.CopyInto(entry, form);
+        await entry.AttachPhotosAsync(photos);
         await _db.SaveChangesAsync();
 
         _logger.LogInformation("Entry {EntryId} updated, type {EntryType}", entry.Id, entry.Type);
@@ -172,60 +170,20 @@ public class EntriesController : Controller
         return (availability, canonical);
     }
 
-    private void ApplyRules(EntryFormViewModel form)
+    private void ValidateForm(EntryFormViewModel form, List<IFormFile>? photos)
     {
-        // An unparseable datetime binds to default(DateTime), which cannot be
-        // turned into an instant — catch it before the conversion throws.
-        if (form.OccurredAt == default)
+        var occurredAtError = EntryRules.ValidateOccurredAt(form.OccurredAt);
+
+        if (occurredAtError is not null)
         {
-            ModelState.AddModelError(nameof(EntryFormViewModel.OccurredAt), "Enter a valid date and time.");
+            ModelState.AddModelError(nameof(EntryFormViewModel.OccurredAt), occurredAtError);
         }
 
         foreach (var error in EntryRules.Validate(form.Type, form.Severity, form.PillName, form.Note))
         {
             ModelState.AddModelError(string.Empty, error);
         }
-    }
 
-    private static void CopyInto(Entry entry, EntryFormViewModel form)
-    {
-        var previousPillName = entry.PillName;
-
-        entry.OccurredAt = AppTime.FromLocal(form.OccurredAt);
-        entry.Note = Trimmed(form.Note);
-        entry.Severity = EntryRules.RequiresSeverity(entry.Type) ? form.Severity : null;
-        entry.PillName = EntryRules.RequiresPillName(entry.Type) ? Trimmed(form.PillName) : null;
-
-        // DoseQuantity is deliberately absent: only a checklist tick ever sets it, and what it
-        // recorded is the dose actually taken. An entry without one counts as a single unit.
-
-        // MedStockId is the same kind of stamp, but naming the medication by hand contradicts it:
-        // a tick recorded which stock this dose came out of, and typing a different name says it
-        // came out of something else. Dropping the link puts the dose back on name matching,
-        // which is what every hand-made dose follows. An unchanged name keeps the link, so
-        // correcting a note or a time never disconnects a ticked dose from its stock.
-        if (!MedStockRules.NamesMatch(entry.PillName, previousPillName))
-        {
-            entry.MedStockId = null;
-        }
-    }
-
-    private void LogPhotosAttached(int entryId, List<IFormFile>? photos)
-    {
-        if (photos is { Count: > 0 })
-        {
-            _logger.LogInformation("Entry {EntryId} gained {PhotoCount} photo(s)", entryId, photos.Count);
-        }
-    }
-
-    private static string? Trimmed(string? value) =>
-        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-
-    private IActionResult RedirectToDay(DateOnly day) =>
-        RedirectToAction(nameof(DayController.ByDate), "Day", new { date = AppTime.Key(day) });
-
-    private void ValidatePhotos(List<IFormFile>? photos)
-    {
         if (photos is null)
         {
             return;
@@ -240,34 +198,14 @@ public class EntriesController : Controller
         }
     }
 
-    // Bytes are read straight into the Photo row; the app never touches disk.
-    private static async Task AttachPhotos(Entry entry, List<IFormFile>? photos)
+    private void LogPhotosAttached(int entryId, List<IFormFile>? photos)
     {
-        if (photos is null)
+        if (photos is { Count: > 0 })
         {
-            return;
-        }
-
-        foreach (var file in photos)
-        {
-            using var stream = new MemoryStream();
-            await file.CopyToAsync(stream);
-
-            entry.Photos.Add(new Photo
-            {
-                Data = stream.ToArray(),
-                ContentType = file.ContentType,
-                FileName = Path.GetFileName(file.FileName),
-                CreatedAt = DateTimeOffset.UtcNow
-            });
+            _logger.LogInformation("Entry {EntryId} gained {PhotoCount} photo(s)", entryId, photos.Count);
         }
     }
 
-    // Ids and names only — Data is never selected outside PhotosController.Get.
-    private async Task<List<PhotoSummary>> LoadPhotoSummaries(int entryId) =>
-        await _db.Photos
-            .Where(p => p.EntryId == entryId)
-            .OrderBy(p => p.CreatedAt)
-            .Select(p => new PhotoSummary { Id = p.Id, FileName = p.FileName })
-            .ToListAsync();
+    private IActionResult RedirectToDay(DateOnly day) =>
+        RedirectToAction(nameof(DayController.ByDate), "Day", new { date = AppTime.Key(day) });
 }

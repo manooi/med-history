@@ -476,4 +476,156 @@ public class EntryRulesTests
 
         Assert.Equal(new[] { "t0-meal", "t1-cough", "t1-med" }, ordered);
     }
+
+    // ---- ValidateOccurredAt ----
+
+    [Fact]
+    public void ValidateOccurredAt_DefaultValue_ReturnsError()
+    {
+        // An unparseable datetime-local input binds to default(DateTime); it must be caught
+        // here, before AppTime.FromLocal is asked to convert it.
+        var error = EntryRules.ValidateOccurredAt(default);
+
+        Assert.Equal("Enter a valid date and time.", error);
+    }
+
+    [Fact]
+    public void ValidateOccurredAt_ARealValue_ReturnsNull()
+    {
+        var error = EntryRules.ValidateOccurredAt(new DateTime(2026, 8, 15, 9, 0, 0));
+
+        Assert.Null(error);
+    }
+
+    // ---- CopyInto ----
+    //
+    // The PillName/MedStockId matrix below is the seam EntriesController used to own directly;
+    // MedStockRulesTests already covers MedStockRules.NamesMatch's own truth table (null vs null,
+    // casing, spacing), so these only exercise how CopyInto reacts to it.
+
+    private static Entry MedEntry(string? pillName, int? medStockId) => new()
+    {
+        Type = BuiltInEntryTypes.Med,
+        PillName = pillName,
+        MedStockId = medStockId
+    };
+
+    private static EntryFormViewModel FormFor(Entry entry, string? pillName, string? note = null, Severity? severity = null) => new()
+    {
+        Type = entry.Type,
+        OccurredAt = new DateTime(2026, 8, 15, 9, 0, 0),
+        PillName = pillName,
+        Note = note,
+        Severity = severity
+    };
+
+    [Fact]
+    public void CopyInto_PillNameUnchanged_KeepsMedStockId()
+    {
+        var entry = MedEntry("Panadol", medStockId: 5);
+        var form = FormFor(entry, pillName: "Panadol");
+
+        EntryRules.CopyInto(entry, form);
+
+        Assert.Equal(5, entry.MedStockId);
+    }
+
+    [Fact]
+    public void CopyInto_PillNameChanged_ClearsMedStockId()
+    {
+        var entry = MedEntry("Panadol", medStockId: 5);
+        var form = FormFor(entry, pillName: "Ibuprofen");
+
+        EntryRules.CopyInto(entry, form);
+
+        Assert.Null(entry.MedStockId);
+    }
+
+    [Fact]
+    public void CopyInto_PillNameSameMedicationDifferentCasingAndSpacing_KeepsMedStockId()
+    {
+        // Not the identical string NamesMatch is still true for — the link survives a hand
+        // correction that only touches casing or stray whitespace.
+        var entry = MedEntry("Panadol", medStockId: 5);
+        var form = FormFor(entry, pillName: "  panadol ");
+
+        EntryRules.CopyInto(entry, form);
+
+        Assert.Equal(5, entry.MedStockId);
+        Assert.Equal("panadol", entry.PillName); // trimmed, casing left as typed
+    }
+
+    [Fact]
+    public void CopyInto_NonMedType_PillNameStaysNullRegardlessOfFormValue()
+    {
+        // form.PillName is never populated for a non-Med type in the real form, but CopyInto
+        // must not trust it either way — RequiresPillName gates the copy.
+        var entry = new Entry { Type = BuiltInEntryTypes.Symptom, PillName = null, MedStockId = null };
+        var form = FormFor(entry, pillName: "Aspirin", note: "Headache");
+
+        EntryRules.CopyInto(entry, form);
+
+        Assert.Null(entry.PillName);
+    }
+
+    [Fact]
+    public void CopyInto_Note_IsTrimmedAndCopied_RegardlessOfType()
+    {
+        // Note is copied unconditionally — unlike Severity/PillName it is not gated by a
+        // RequiresX check, so even a type that does not require a note still carries one.
+        var entry = new Entry { Type = BuiltInEntryTypes.Meal };
+        var form = FormFor(entry, pillName: null, note: "  soup  ");
+
+        EntryRules.CopyInto(entry, form);
+
+        Assert.Equal("soup", entry.Note);
+    }
+
+    [Fact]
+    public void CopyInto_WhitespaceOnlyNote_BecomesNull()
+    {
+        var entry = new Entry { Type = BuiltInEntryTypes.Meal, Note = "leftover rice" };
+        var form = FormFor(entry, pillName: null, note: "   ");
+
+        EntryRules.CopyInto(entry, form);
+
+        Assert.Null(entry.Note);
+    }
+
+    [Fact]
+    public void CopyInto_Severity_CopiedOnlyWhenTypeRequiresIt()
+    {
+        var entry = new Entry { Type = BuiltInEntryTypes.Bleeding };
+        var form = FormFor(entry, pillName: null, severity: Models.Severity.Severe);
+
+        EntryRules.CopyInto(entry, form);
+
+        Assert.Equal(Models.Severity.Severe, entry.Severity);
+    }
+
+    [Fact]
+    public void CopyInto_Severity_IgnoredWhenTypeDoesNotSupportIt()
+    {
+        // The posted value is never trusted for a type that carries no severity field at all.
+        var entry = new Entry { Type = BuiltInEntryTypes.Symptom, Severity = null };
+        var form = FormFor(entry, pillName: null, note: "Headache", severity: Models.Severity.Severe);
+
+        EntryRules.CopyInto(entry, form);
+
+        Assert.Null(entry.Severity);
+    }
+
+    [Fact]
+    public void CopyInto_DoesNotTouchDoseQuantity()
+    {
+        // Only a checklist tick ever stamps this; a hand edit through the entry form must
+        // leave whatever was already stamped alone.
+        var entry = MedEntry("Panadol", medStockId: 5);
+        entry.DoseQuantity = 2.5m;
+        var form = FormFor(entry, pillName: "Panadol");
+
+        EntryRules.CopyInto(entry, form);
+
+        Assert.Equal(2.5m, entry.DoseQuantity);
+    }
 }
