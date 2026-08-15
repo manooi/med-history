@@ -113,4 +113,7 @@ public class MedAllocationEditViewModel
 
     /// <summary>When true, the new plan also replaces every future allocation sharing the row's old name.</summary>
     public bool ApplyForward { get; init; }
+
+    /// <summary>Every tracked stock, for the medication field's datalist suggestions.</summary>
+    public required IReadOnlyList<MedStockRow> Stocks { get; init; }
 }

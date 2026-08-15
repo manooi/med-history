@@ -20,9 +20,17 @@
 
     <div>
         <label for="med-name" class="block text-xs uppercase tracking-wide text-neutral-500">Medication</label>
-        <input type="text" id="med-name" name="name" required autocomplete="off"
+        <input type="text" id="med-name" name="name" required autocomplete="off" list="stock-names"
                maxlength="@ChecklistRules.NameMaxLength" value="@Model.Name"
                class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black" />
+        @* Suggests tracked stock names but still takes free text — an eyedrop or anything else
+           with no stock row is typed as-is. *@
+        <datalist id="stock-names">
+            @foreach (var stock in Model.Stocks)
+            {
+                <option value="@stock.Name"></option>
+            }
+        </datalist>
     </div>
 
     <div class="mt-4 w-28">

@@ -217,7 +217,8 @@ public class MedsController : Controller
             DoseQuantity = MedPlanRules.FormatQuantity(allocation.DoseQuantity),
             MealRelation = allocation.MealRelation,
             Method = allocation.Method,
-            ApplyForward = false
+            ApplyForward = false,
+            Stocks = await _db.StockRowsAsync()
         });
     }
 
@@ -241,6 +242,7 @@ public class MedsController : Controller
 
         var chosen = MedPlanRules.ParseSlots(slots ?? []);
         var day = allocation.Day;
+        var stocksForEdit = await _db.StockRowsAsync();
 
         IActionResult Invalid() => View("Edit", new MedAllocationEditViewModel
         {
@@ -251,7 +253,8 @@ public class MedsController : Controller
             DoseQuantity = doseQuantity ?? string.Empty,
             MealRelation = mealRelation,
             Method = method,
-            ApplyForward = applyForward
+            ApplyForward = applyForward,
+            Stocks = stocksForEdit
         });
 
         // Reuses the add form's name and slot rules. Its duplicate-name check is skipped here
