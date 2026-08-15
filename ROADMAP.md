@@ -25,8 +25,14 @@ Epic: `med-history-4ei` — personal medical history web app. Plan: [`plans/epic
 - [ ] 15. VPS Postgres hardening (`nvs.6`)
 - [x] 16. First deploy + e2e verify (`nvs.7`)
 
+## v3 — quality of life
+
+- [ ] 17. Login throttling — 2s fail delay + DB-backed lockout (`med-history-435`)
+- [ ] 18. Client-side image downscale before upload (`med-history-26d`)
+- [ ] 19. Search over note + med name (`med-history-f1t`)
+- [ ] 20. Doctor summary export, print-CSS (`med-history-lqv`)
+- [ ] 21. PWA manifest + home-screen icon (`med-history-9lf`)
+
 ## Later ideas
 
 - Charts/trends per entry type
-- Export (PDF/CSV) for doctor visits
-- Client-side image downscale before upload
