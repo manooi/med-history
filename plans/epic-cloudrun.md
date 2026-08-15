@@ -46,6 +46,6 @@ Build order: (.1 .2 .4 parallel) → .3 → .5 → .6 → .7. User actions requi
 - [x] .2 DataProtection persistence
 - [ ] .3 proxy/container env
 - [x] .4 GCP runbook
-- [ ] .5 CI workflow
+- [x] .5 CI workflow
 - [ ] .6 VPS Postgres hardening
 - [ ] .7 first deploy + verify
