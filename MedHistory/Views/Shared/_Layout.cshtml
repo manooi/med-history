@@ -7,23 +7,23 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body class="bg-white text-black">
-    <nav class="border-b border-black">
-        <div class="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
-            <a href="/" class="font-semibold hover:underline">med-history</a>
-            <div class="flex items-center gap-4 text-sm">
-                <a href="/" class="hover:underline">Today</a>
-                <a href="/history" class="hover:underline">History</a>
-                <a href="/types" class="hover:underline">Types</a>
-                @if (User.Identity?.IsAuthenticated == true)
-                {
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <nav class="border-b border-black">
+            <div class="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
+                <a href="/" class="font-semibold hover:underline">med-history</a>
+                <div class="flex items-center gap-4 text-sm">
+                    <a href="/" class="hover:underline">Today</a>
+                    <a href="/history" class="hover:underline">History</a>
+                    <a href="/types" class="hover:underline">Types</a>
                     <form method="post" action="/logout" class="inline">
                         @Html.AntiForgeryToken()
                         <button type="submit" class="hover:underline bg-transparent border-0 p-0">Logout</button>
                     </form>
-                }
+                </div>
             </div>
-        </div>
-    </nav>
+        </nav>
+    }
     <main class="max-w-2xl mx-auto px-4 py-6">
         @RenderBody()
     </main>
