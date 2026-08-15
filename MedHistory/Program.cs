@@ -3,6 +3,7 @@ using MedHistory.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 
 // .env (repo root or MedHistory/) feeds ConnectionStrings__Default and Auth__Password
@@ -51,6 +52,18 @@ builder.Services.AddAuthorization(options =>
         .Build();
 });
 
+// Cloud Run terminates TLS at its own proxy and forwards the original scheme/client IP
+// via X-Forwarded-Proto / X-Forwarded-For. That proxy isn't a fixed, known address, so
+// the default KnownNetworks/KnownProxies allowlist (loopback only) would reject the
+// headers — clearing both is the standard approach for single-hop PaaS proxies like
+// Cloud Run.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 var app = builder.Build();
 
 dbLoggerProvider.HttpContextAccessor = app.Services.GetRequiredService<IHttpContextAccessor>();
@@ -67,7 +80,25 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+// Must run before anything that inspects Request.Scheme or RemoteIpAddress (HTTPS
+// redirection, auth) so Cloud Run's X-Forwarded-* headers take effect first.
+app.UseForwardedHeaders();
+
+// On Cloud Run the scheme arrives via X-Forwarded-Proto (applied above), so this
+// redirect is a harmless no-op there. Skip it when containerized — the aspnet base
+// image sets DOTNET_RUNNING_IN_CONTAINER, and a local `docker run` has no proxy in
+// front, so redirecting would just loop on plain http. Plain local `dotnet run`
+// leaves the variable unset, so the redirect stays active for that flow.
+var isRunningInContainer = string.Equals(
+    Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"),
+    "true",
+    StringComparison.OrdinalIgnoreCase);
+
+if (!isRunningInContainer)
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseRouting();
 
 app.UseAuthentication();
