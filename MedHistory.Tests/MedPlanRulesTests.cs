@@ -1,3 +1,4 @@
+using System.Globalization;
 using MedHistory.Models;
 using MedHistory.Services;
 
@@ -371,5 +372,149 @@ public class MedPlanRulesTests
             MedPlanRules.ComposeNote(MedSlots.Morning, MealRelation.AfterMeal, MedMethod.Eyedrop));
 
         Assert.Equal("Eyedrop L · morning · after meal · eyedrop", detail);
+    }
+
+    // ---- TryParseQuantity ----
+
+    [Theory]
+    [InlineData("1", 1)]
+    [InlineData("0.25", 0.25)]
+    [InlineData("2.5", 2.5)]
+    [InlineData("99", 99)]
+    [InlineData(" 1.5 ", 1.5)]
+    public void TryParseQuantity_ReadsADecimal(string raw, double expected)
+    {
+        Assert.True(MedPlanRules.TryParseQuantity(raw, out var quantity));
+        Assert.Equal((decimal)expected, quantity);
+    }
+
+    [Fact]
+    public void TryParseQuantity_ReadsTheDotAsTheDecimalPoint_WhateverTheCulture()
+    {
+        // A number input posts "1.5" everywhere; a culture where the comma separates decimals
+        // must not read that as fifteen.
+        var original = Thread.CurrentThread.CurrentCulture;
+
+        try
+        {
+            Thread.CurrentThread.CurrentCulture = new CultureInfo("de-DE");
+
+            Assert.True(MedPlanRules.TryParseQuantity("1.5", out var quantity));
+            Assert.Equal(1.5m, quantity);
+        }
+        finally
+        {
+            Thread.CurrentThread.CurrentCulture = original;
+        }
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("two")]
+    [InlineData("1/2")]
+    [InlineData("1.5kg")]
+    public void TryParseQuantity_NotANumber_False(string? raw)
+    {
+        Assert.False(MedPlanRules.TryParseQuantity(raw, out _));
+    }
+
+    // ---- FormatQuantity ----
+
+    [Theory]
+    [InlineData(1, "1")]
+    [InlineData(2, "2")]
+    [InlineData(0.5, "0.5")]
+    [InlineData(0.25, "0.25")]
+    [InlineData(2.75, "2.75")]
+    [InlineData(-2, "-2")]
+    public void FormatQuantity_DropsTrailingZeros(double value, string expected)
+    {
+        Assert.Equal(expected, MedPlanRules.FormatQuantity((decimal)value));
+    }
+
+    [Fact]
+    public void FormatQuantity_ScaleFromTheDatabaseIsNotShown()
+    {
+        // A numeric(5,2) column hands back 2.00; the page must still read "2".
+        Assert.Equal("2", MedPlanRules.FormatQuantity(2.00m));
+    }
+
+    [Fact]
+    public void FormatQuantity_RoundTripsThroughTryParseQuantity()
+    {
+        // What a form input is filled with is what it posts back.
+        Assert.True(MedPlanRules.TryParseQuantity(MedPlanRules.FormatQuantity(0.75m), out var quantity));
+        Assert.Equal(0.75m, quantity);
+    }
+
+    [Fact]
+    public void FormatQuantity_UsesTheDotWhateverTheCulture()
+    {
+        var original = Thread.CurrentThread.CurrentCulture;
+
+        try
+        {
+            Thread.CurrentThread.CurrentCulture = new CultureInfo("de-DE");
+
+            Assert.Equal("0.5", MedPlanRules.FormatQuantity(0.5m));
+        }
+        finally
+        {
+            Thread.CurrentThread.CurrentCulture = original;
+        }
+    }
+
+    // ---- QuantityLabel ----
+
+    [Fact]
+    public void QuantityLabel_OneUnit_IsEmpty()
+    {
+        // The default is not worth the space on a row.
+        Assert.Empty(MedPlanRules.QuantityLabel(MedPlanRules.DefaultDoseQuantity));
+    }
+
+    [Theory]
+    [InlineData(2, "×2")]
+    [InlineData(0.5, "×0.5")]
+    [InlineData(0.25, "×0.25")]
+    [InlineData(1.5, "×1.5")]
+    public void QuantityLabel_AwayFromOne_ReadsAsAMultiplier(double quantity, string expected)
+    {
+        Assert.Equal(expected, MedPlanRules.QuantityLabel((decimal)quantity));
+    }
+
+    [Fact]
+    public void QuantityLabel_ScaleFromTheDatabaseIsNotShown()
+    {
+        Assert.Empty(MedPlanRules.QuantityLabel(1.00m));
+        Assert.Equal("×2", MedPlanRules.QuantityLabel(2.00m));
+    }
+
+    // ---- ComposeNote, with a quantity ----
+
+    [Fact]
+    public void ComposeNote_OneUnit_ReadsExactlyAsItDidBeforeQuantitiesExisted()
+    {
+        Assert.Equal(
+            MedPlanRules.ComposeNote(MedSlots.Morning, MealRelation.AfterMeal, MedMethod.Eat),
+            MedPlanRules.ComposeNote(MedSlots.Morning, MealRelation.AfterMeal, MedMethod.Eat, 1m));
+    }
+
+    [Fact]
+    public void ComposeNote_AQuantityLeadsTheNote()
+    {
+        Assert.Equal(
+            "×2 · morning · after meal · eat",
+            MedPlanRules.ComposeNote(MedSlots.Morning, MealRelation.AfterMeal, MedMethod.Eat, 2m));
+    }
+
+    [Fact]
+    public void ComposeNote_AQuantityWithNothingElseToSay_IsStillLegible()
+    {
+        Assert.Equal(
+            "×0.5 · bedtime",
+            MedPlanRules.ComposeNote(MedSlots.Bedtime, MealRelation.None, MedMethod.Other, 0.5m));
     }
 }

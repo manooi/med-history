@@ -193,6 +193,9 @@ public class EntriesController : Controller
         entry.Note = Trimmed(form.Note);
         entry.Severity = EntryRules.RequiresSeverity(entry.Type) ? form.Severity : null;
         entry.PillName = EntryRules.RequiresPillName(entry.Type) ? Trimmed(form.PillName) : null;
+
+        // DoseQuantity is deliberately absent: only a checklist tick ever sets it, and what it
+        // recorded is the dose actually taken. An entry without one counts as a single unit.
     }
 
     private void LogPhotosAttached(int entryId, List<IFormFile>? photos)

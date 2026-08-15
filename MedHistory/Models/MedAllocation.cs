@@ -38,8 +38,8 @@ public enum MedMethod
 
 /// <summary>
 /// A medication the user has allocated to one day: what it is, when in the day it is taken,
-/// and how. The slots are the plan — one dose per slot, so the day's requirement is simply
-/// how many slots are set, and there is no separate count to keep in step with them.
+/// how much, and how. The slots are the plan — one dose per slot, so the day's requirement is
+/// simply how many slots are set, and there is no separate count to keep in step with them.
 ///
 /// The row holds no foreign key to the entries a tick creates; the link runs the other way,
 /// from <see cref="Entry.ChecklistAllocationId"/>, so deleting an allocation leaves the doses
@@ -59,6 +59,18 @@ public class MedAllocation
 
     /// <summary>Times of day this is taken at; at least one. One slot is one dose.</summary>
     public MedSlots Slots { get; set; }
+
+    /// <summary>
+    /// Units taken at each slot — two tablets, half a tablet, one drop. It applies to every
+    /// slot alike: a plan that differs between morning and bedtime is two allocations, not one
+    /// row carrying two quantities.
+    ///
+    /// This is the plan as it stands now. What a dose actually was is stamped onto the entry
+    /// the moment it is ticked — see <see cref="Entry.DoseQuantity"/> — so editing this never
+    /// rewrites a dose already taken. Bounds and step live in
+    /// <see cref="Services.MedPlanRules"/>.
+    /// </summary>
+    public decimal DoseQuantity { get; set; } = Services.MedPlanRules.DefaultDoseQuantity;
 
     public MealRelation MealRelation { get; set; }
 

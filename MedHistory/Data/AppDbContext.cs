@@ -23,6 +23,10 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
     // ChecklistRules.
     public DbSet<MedAllocation> MedAllocations => Set<MedAllocation>();
 
+    // How much of each medication is on hand. One row per name, and the name is the only
+    // link to the doses that draw it down — see MedStock.
+    public DbSet<MedStock> MedStocks => Set<MedStock>();
+
     public DbSet<Photo> Photos => Set<Photo>();
 
     // Mapped so migrations own the schema; rows are inserted by DbLoggerProvider
@@ -53,6 +57,10 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
             // integer with no foreign key — see the comment on Entry.ChecklistAllocationId.
             entry.Property(e => e.ChecklistSlot)
                 .HasMaxLength(MedPlanRules.SlotNameMaxLength);
+
+            // Nullable and left that way for hand-made entries: null reads as one unit
+            // wherever doses are totalled, so no backfill is needed or wanted.
+            entry.Property(e => e.DoseQuantity).HasPrecision(5, 2);
 
             entry.HasIndex(e => e.OccurredAt);
         });
@@ -86,6 +94,13 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
                 .HasMaxLength(MedPlanRules.SlotsMaxLength)
                 .IsRequired();
 
+            // The store default exists for the migration's sake — it back-fills one unit onto
+            // rows planned before quantities existed. Nothing inserts a zero quantity for it to
+            // apply to afterwards: validation rejects anything below a quarter unit.
+            allocation.Property(a => a.DoseQuantity)
+                .HasPrecision(5, 2)
+                .HasDefaultValue(MedPlanRules.DefaultDoseQuantity);
+
             allocation.Property(a => a.MealRelation)
                 .HasConversion<string>()
                 .HasMaxLength(32)
@@ -98,6 +113,19 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
 
             // Every read is "the allocations of one day".
             allocation.HasIndex(a => a.Day);
+        });
+
+        modelBuilder.Entity<MedStock>(stock =>
+        {
+            stock.ToTable("MedStocks");
+
+            stock.Property(s => s.Name).HasMaxLength(MedStock.NameMaxLength).IsRequired();
+            stock.Property(s => s.TotalCount).HasPrecision(7, 2);
+
+            // Names are unique case-insensitively, enforced by a unique index on lower("Name")
+            // created in the AddDoseQuantityAndMedStock migration — the same arrangement
+            // EntryTypes uses, and for the same reason: EF's model builder has no API for an
+            // expression index, so it cannot live here.
         });
 
         modelBuilder.Entity<Photo>(photo =>

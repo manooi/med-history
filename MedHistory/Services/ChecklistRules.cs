@@ -19,16 +19,29 @@ public readonly record struct ChecklistSlotState(MedSlots Slot, string Name, str
 /// <summary>
 /// A checklist row as the day view renders it. Progress is not stored: a slot is ticked
 /// exactly when an entry linked to it exists, so the row is rebuilt from the day's entries
-/// every render and cannot drift out of step with them.
+/// every render and cannot drift out of step with them. The same holds for the stock left —
+/// it is summed from every logged dose, not carried anywhere.
 /// </summary>
+/// <param name="DoseQuantity">Units each slot is worth, as the plan stands now.</param>
+/// <param name="StockRemaining">
+/// Units left of the stock this medication draws on, or null when nothing stocks it.
+/// </param>
 public readonly record struct ChecklistRow(
     int AllocationId,
     string Name,
     string Description,
+    decimal DoseQuantity,
+    decimal? StockRemaining,
     IReadOnlyList<ChecklistSlotState> Slots)
 {
     /// <summary>Doses expected that day — one per slot.</summary>
     public int RequiredCount => Slots.Count;
+
+    /// <summary>"×2" when a slot is worth more or less than one unit, empty otherwise.</summary>
+    public string QuantityLabel => MedPlanRules.QuantityLabel(DoseQuantity);
+
+    /// <summary>"(18 left)" when this medication is stocked, empty otherwise.</summary>
+    public string StockLabel => MedStockRules.RemainingLabel(StockRemaining);
 
     public int DoneCount => Slots.Count(slot => slot.IsTicked);
 
@@ -116,6 +129,50 @@ public static class ChecklistRules
     }
 
     /// <summary>
+    /// Returns one message per broken rule for a dose quantity, and the parsed value when there
+    /// are none. Split out of <see cref="ValidateNewAllocation"/> because the quantity is one
+    /// field the add form, the range add and the edit form all post and all judge identically.
+    ///
+    /// The raw string is taken rather than a decimal so that "not a number at all" is a rule
+    /// broken here with a readable message, rather than a model-binding failure phrased in
+    /// framework language.
+    /// </summary>
+    public static IReadOnlyList<string> ValidateDoseQuantity(string? rawQuantity, out decimal quantity)
+    {
+        quantity = MedPlanRules.DefaultDoseQuantity;
+
+        if (string.IsNullOrWhiteSpace(rawQuantity))
+        {
+            return ["Dose is required."];
+        }
+
+        if (!MedPlanRules.TryParseQuantity(rawQuantity, out var parsed))
+        {
+            return ["Dose must be a number."];
+        }
+
+        if (parsed < MedPlanRules.MinDoseQuantity || parsed > MedPlanRules.MaxDoseQuantity)
+        {
+            return
+            [
+                $"Dose must be between {MedPlanRules.FormatQuantity(MedPlanRules.MinDoseQuantity)} " +
+                $"and {MedPlanRules.FormatQuantity(MedPlanRules.MaxDoseQuantity)}."
+            ];
+        }
+
+        // Only worth saying once the value is in range — "between 0.25 and 99" already covers
+        // what is wrong with 0.1, and two messages about one field read as two problems.
+        if (parsed % MedPlanRules.DoseQuantityStep != 0m)
+        {
+            return [$"Dose must be a multiple of {MedPlanRules.FormatQuantity(MedPlanRules.DoseQuantityStep)}."];
+        }
+
+        quantity = parsed;
+
+        return [];
+    }
+
+    /// <summary>
     /// Returns one message per broken rule for a bulk-add date range; an empty list means the
     /// range may be expanded. Name and slot rules are still <see cref="ValidateNewAllocation"/>'s
     /// job — this only judges the range itself. A day that already holds the medication is not
@@ -179,18 +236,26 @@ public static class ChecklistRules
     /// harmless: an entry whose allocation was deleted stays in the timeline as an ordinary
     /// Pill entry and ticks nothing. Ticks whose slot is missing or unrecognised are ignored
     /// the same way.
+    ///
+    /// <paramref name="stock"/> is optional because the checklist works perfectly well with
+    /// nothing stocked: a medication no stock row names simply shows no count, and passing
+    /// nothing at all is that case for every row.
     /// </summary>
     public static IReadOnlyList<ChecklistRow> DeriveRows(
         IEnumerable<MedAllocation> allocations,
-        IEnumerable<ChecklistTick> ticks)
+        IEnumerable<ChecklistTick> ticks,
+        IEnumerable<MedStockRow>? stock = null)
     {
         var logged = ticks.ToList();
+        var stocked = stock?.ToList();
 
         return allocations
             .Select(allocation => new ChecklistRow(
                 allocation.Id,
                 allocation.Name,
                 MedPlanRules.DescribeAllocation(allocation.MealRelation, allocation.Method),
+                allocation.DoseQuantity,
+                MedStockRules.FindRemaining(stocked, allocation.Name),
                 MedPlanRules.Each(allocation.Slots)
                     .Select(slot => new ChecklistSlotState(
                         slot,

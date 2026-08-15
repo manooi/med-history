@@ -1,10 +1,12 @@
+using System.Globalization;
 using MedHistory.Models;
 
 namespace MedHistory.Services;
 
 /// <summary>
-/// The vocabulary of a medication plan — how a slot set is written down, and how slots, meal
-/// relations and methods read to a human. Pure: no clock, no database, no HTTP.
+/// The vocabulary of a medication plan — how a slot set and a dose quantity are written down,
+/// and how slots, quantities, meal relations and methods read to a human. Pure: no clock, no
+/// database, no HTTP.
 ///
 /// A slot set is stored as a comma-separated list of names in day order with no spaces
 /// ("Morning,Evening"), not as the flags enum's own <c>ToString</c> ("Morning, Evening") and
@@ -27,6 +29,22 @@ public static class MedPlanRules
     /// <summary>Every slot, in the order they occur in a day — the display order everywhere.</summary>
     public static readonly IReadOnlyList<MedSlots> AllSlots =
         [MedSlots.Morning, MedSlots.Noon, MedSlots.Evening, MedSlots.Bedtime];
+
+    /// <summary>What a dose is worth unless the plan says otherwise: one unit per slot.</summary>
+    public const decimal DefaultDoseQuantity = 1m;
+
+    /// <summary>
+    /// The granularity a dose may be planned in — quarter units, which is as finely as a
+    /// tablet is realistically split. Quantities off the step are rejected rather than rounded:
+    /// the column keeps two decimals, so accepting 0.3 would store something never typed.
+    /// </summary>
+    public const decimal DoseQuantityStep = 0.25m;
+
+    /// <summary>Smallest plannable dose — one step. Zero would be a plan to take nothing.</summary>
+    public const decimal MinDoseQuantity = DoseQuantityStep;
+
+    /// <summary>A ceiling loose enough never to be met in practice, tight enough to catch a typo.</summary>
+    public const decimal MaxDoseQuantity = 99m;
 
     private const char Separator = ',';
 
@@ -96,6 +114,31 @@ public static class MedPlanRules
     };
 
     /// <summary>
+    /// Reads a quantity typed into a number input. Invariant culture on purpose: an
+    /// <c>&lt;input type="number"&gt;</c> posts "1.5" whatever the browser's locale, while MVC's
+    /// form binder reads it in the server's culture and would reject the dot wherever a comma is
+    /// the decimal separator. False for anything that is not a plain decimal, blank included.
+    /// </summary>
+    public static bool TryParseQuantity(string? raw, out decimal quantity) =>
+        decimal.TryParse(raw?.Trim(), NumberStyles.Number, CultureInfo.InvariantCulture, out quantity);
+
+    /// <summary>
+    /// A quantity as it reads on screen and as it goes back into a number input: no trailing
+    /// zeros, so a <c>numeric(x,2)</c> column that comes back as 2.00 still shows as "2".
+    /// Invariant so the decimal point matches what the form will post back.
+    /// </summary>
+    public static string FormatQuantity(decimal quantity) =>
+        quantity.ToString("0.##", CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// How a dose quantity reads beside a medication — "×2", or empty at one unit, which is the
+    /// default and not worth the space. Deliberately unit-free: a plan may be eaten, applied or
+    /// dropped into an eye, so "tablets" would be wrong as often as right.
+    /// </summary>
+    public static string QuantityLabel(decimal quantity) =>
+        quantity == DefaultDoseQuantity ? string.Empty : $"×{FormatQuantity(quantity)}";
+
+    /// <summary>
     /// Human label for a meal relation. Empty for <see cref="MealRelation.None"/> — "it does not
     /// matter" is worth nothing on screen, and an empty label is what the composers drop.
     /// </summary>
@@ -139,12 +182,18 @@ public static class MedPlanRules
         Join(MealRelationLabel(relation), MethodLabel(method));
 
     /// <summary>
-    /// The note a ticked slot writes onto its entry — "morning · after meal · eyedrop". The
-    /// timeline shows notes as typed, so this is what makes a ticked dose legible there without
-    /// the reader having to hold the checklist in their head.
+    /// The note a ticked slot writes onto its entry — "×2 · morning · after meal · eyedrop".
+    /// The timeline shows notes as typed, so this is what makes a ticked dose legible there
+    /// without the reader having to hold the checklist in their head. The quantity leads
+    /// because it is the part a reader is most likely to be checking, and drops out entirely at
+    /// one unit, leaving the note exactly as it read before quantities existed.
     /// </summary>
-    public static string ComposeNote(MedSlots slot, MealRelation relation, MedMethod method) =>
-        Join(SlotLabel(slot), MealRelationLabel(relation), MethodLabel(method));
+    public static string ComposeNote(
+        MedSlots slot,
+        MealRelation relation,
+        MedMethod method,
+        decimal quantity = DefaultDoseQuantity) =>
+        Join(QuantityLabel(quantity), SlotLabel(slot), MealRelationLabel(relation), MethodLabel(method));
 
     /// <summary>Joins the parts that have something to say, in the separator the timeline uses.</summary>
     private static string Join(params string[] parts) =>

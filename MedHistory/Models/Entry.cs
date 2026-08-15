@@ -47,5 +47,17 @@ public class Entry
     /// </summary>
     public string? ChecklistSlot { get; set; }
 
+    /// <summary>
+    /// Units this dose was, copied from the allocation's
+    /// <see cref="MedAllocation.DoseQuantity"/> when the slot was ticked. A historical fact, not
+    /// a reference: a later edit to the plan changes what the next dose will be and leaves this
+    /// alone, which is the whole reason the number is stored here rather than looked up.
+    ///
+    /// Null on every entry the user typed in by hand, and on every dose ticked before quantities
+    /// existed. Both count as one unit wherever doses are totalled — see
+    /// <see cref="Services.MedStockRules"/>.
+    /// </summary>
+    public decimal? DoseQuantity { get; set; }
+
     public List<Photo> Photos { get; set; } = [];
 }

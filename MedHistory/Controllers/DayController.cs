@@ -67,9 +67,13 @@ public class DayController : Controller
             OccurredAt = AppTime.TickTime(allocation.Day),
             ChecklistAllocationId = allocation.Id,
             ChecklistSlot = MedPlanRules.SlotName(parsed),
-            // The timeline shows the note as typed, so the slot and how the dose is taken are
-            // written into it — otherwise a ticked dose reads as a bare medication name there.
-            Note = MedPlanRules.ComposeNote(parsed, allocation.MealRelation, allocation.Method)
+            // Stamped, not looked up: this is what the dose was, and a later edit to the plan
+            // must not rewrite it — see Entry.DoseQuantity.
+            DoseQuantity = allocation.DoseQuantity,
+            // The timeline shows the note as typed, so the slot, the dose and how it is taken
+            // are written into it — otherwise a ticked dose reads as a bare medication name.
+            Note = MedPlanRules.ComposeNote(
+                parsed, allocation.MealRelation, allocation.Method, allocation.DoseQuantity)
         };
 
         _db.Entries.Add(entry);
@@ -161,6 +165,11 @@ public class DayController : Controller
             .Where(r => r.ChecklistAllocationId is not null)
             .Select(r => new ChecklistTick(r.Id, r.ChecklistAllocationId, r.ChecklistSlot));
 
+        // What is left of each medication counts every dose ever logged, not this day's — so it
+        // cannot come off the rows above. Skipped entirely on a day with nothing planned, which
+        // has no row for a count to appear on.
+        IReadOnlyList<MedStockRow> stock = allocations.Count == 0 ? [] : await _db.StockRowsAsync();
+
         // OccurredAt ties get a deterministic secondary sort (type name, alphabetical)
         // rather than DB order — see EntryRules.OrderEntries.
         var ordered = EntryRules.OrderEntries(rows, r => r.OccurredAt, r => r.Type);
@@ -170,7 +179,7 @@ public class DayController : Controller
             Day = day,
             IsToday = day == AppTime.Today(),
             NewEntryTypes = EntryTypeRules.SortForDisplay(activeTypes, name => name),
-            Checklist = ChecklistRules.DeriveRows(allocations, ticks),
+            Checklist = ChecklistRules.DeriveRows(allocations, ticks, stock),
             Entries = ordered.Select(r => new DayEntryViewModel
             {
                 Id = r.Id,

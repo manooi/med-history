@@ -14,8 +14,18 @@ public class ChecklistRulesTests
         string name,
         MedSlots slots = MedSlots.Morning,
         MealRelation mealRelation = MealRelation.None,
-        MedMethod method = MedMethod.Eat) =>
-        new() { Id = id, Day = Day, Name = name, Slots = slots, MealRelation = mealRelation, Method = method };
+        MedMethod method = MedMethod.Eat,
+        decimal doseQuantity = 1m) =>
+        new()
+        {
+            Id = id,
+            Day = Day,
+            Name = name,
+            Slots = slots,
+            DoseQuantity = doseQuantity,
+            MealRelation = mealRelation,
+            Method = method
+        };
 
     /// <summary>A tick as it comes off the day's entries: entry id, allocation, slot name.</summary>
     private static ChecklistTick Tick(int entryId, int? allocationId, string? slot) =>
@@ -810,5 +820,167 @@ public class ChecklistRulesTests
 
         Assert.Equal(TimeSpan.Zero, tick.Offset);
         Assert.Equal(now, tick);
+    }
+
+    // ---- ValidateDoseQuantity ----
+
+    [Theory]
+    [InlineData("1", 1)]
+    [InlineData("0.25", 0.25)]
+    [InlineData("0.5", 0.5)]
+    [InlineData("2", 2)]
+    [InlineData("2.75", 2.75)]
+    [InlineData("99", 99)]
+    public void ValidateDoseQuantity_AQuarterUnitStepInRange_IsAccepted(string raw, double expected)
+    {
+        Assert.Empty(ChecklistRules.ValidateDoseQuantity(raw, out var quantity));
+        Assert.Equal((decimal)expected, quantity);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void ValidateDoseQuantity_Missing_IsRejected(string? raw)
+    {
+        Assert.Single(ChecklistRules.ValidateDoseQuantity(raw, out _));
+    }
+
+    [Theory]
+    [InlineData("two")]
+    [InlineData("1/2")]
+    [InlineData("½")]
+    public void ValidateDoseQuantity_NotANumber_IsRejected(string raw)
+    {
+        Assert.Single(ChecklistRules.ValidateDoseQuantity(raw, out _));
+    }
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("-1")]
+    [InlineData("0.1")]
+    [InlineData("99.25")]
+    [InlineData("1000")]
+    public void ValidateDoseQuantity_OutsideTheBounds_IsRejected(string raw)
+    {
+        // Zero included: a plan to take nothing is not a plan.
+        Assert.Single(ChecklistRules.ValidateDoseQuantity(raw, out _));
+    }
+
+    [Theory]
+    [InlineData("0.3")]
+    [InlineData("1.1")]
+    [InlineData("2.333")]
+    public void ValidateDoseQuantity_OffTheStep_IsRejectedRatherThanRounded(string raw)
+    {
+        // The column keeps two decimals, so accepting these would store a number never typed.
+        Assert.Single(ChecklistRules.ValidateDoseQuantity(raw, out _));
+    }
+
+    [Fact]
+    public void ValidateDoseQuantity_OutOfRange_ComplainsOnlyOnce()
+    {
+        // 0.1 is both below the minimum and off the step; naming both reads as two problems.
+        Assert.Single(ChecklistRules.ValidateDoseQuantity("0.1", out _));
+    }
+
+    [Fact]
+    public void ValidateDoseQuantity_Rejected_LeavesTheDefaultQuantity()
+    {
+        // Nothing may end up stored from a rejected submit, but the out value must still be
+        // usable rather than zero — every caller re-renders the form and drops it.
+        ChecklistRules.ValidateDoseQuantity("nonsense", out var quantity);
+
+        Assert.Equal(MedPlanRules.DefaultDoseQuantity, quantity);
+    }
+
+    [Fact]
+    public void ValidateDoseQuantity_AcceptsWhatTheFormOffers()
+    {
+        // Whatever the form's min/max/step allow must survive the server's own rules.
+        for (var value = MedPlanRules.MinDoseQuantity;
+             value <= MedPlanRules.MaxDoseQuantity;
+             value += MedPlanRules.DoseQuantityStep)
+        {
+            Assert.Empty(ChecklistRules.ValidateDoseQuantity(MedPlanRules.FormatQuantity(value), out _));
+        }
+    }
+
+    // ---- DeriveRows: dose quantity ----
+
+    [Fact]
+    public void DeriveRows_CarriesTheAllocationsDoseQuantity()
+    {
+        var rows = ChecklistRules.DeriveRows([Allocation(1, "Pill A", doseQuantity: 2m)], []);
+
+        Assert.Equal(2m, rows[0].DoseQuantity);
+        Assert.Equal("×2", rows[0].QuantityLabel);
+    }
+
+    [Fact]
+    public void DeriveRows_OneUnit_ShowsNoQuantity()
+    {
+        var rows = ChecklistRules.DeriveRows([Allocation(1, "Pill A")], []);
+
+        Assert.Empty(rows[0].QuantityLabel);
+    }
+
+    // ---- DeriveRows: stock ----
+
+    [Fact]
+    public void DeriveRows_NoStockPassed_ShowsNoCount()
+    {
+        var rows = ChecklistRules.DeriveRows([Allocation(1, "Pill A")], []);
+
+        Assert.Null(rows[0].StockRemaining);
+        Assert.Empty(rows[0].StockLabel);
+    }
+
+    [Fact]
+    public void DeriveRows_StockNamingThisMedication_ShowsWhatIsLeft()
+    {
+        var rows = ChecklistRules.DeriveRows(
+            [Allocation(1, "Pill A")],
+            [],
+            [new MedStockRow(1, "Pill A", 30m, 12m)]);
+
+        Assert.Equal(18m, rows[0].StockRemaining);
+        Assert.Equal("(18 left)", rows[0].StockLabel);
+    }
+
+    [Fact]
+    public void DeriveRows_StockIsMatchedIgnoringCaseAndSpacing()
+    {
+        var rows = ChecklistRules.DeriveRows(
+            [Allocation(1, "Eyedrop L")],
+            [],
+            [new MedStockRow(1, " eyedrop l ", 10m, 4m)]);
+
+        Assert.Equal(6m, rows[0].StockRemaining);
+    }
+
+    [Fact]
+    public void DeriveRows_StockNamingSomethingElse_ShowsNoCount()
+    {
+        var rows = ChecklistRules.DeriveRows(
+            [Allocation(1, "Pill A")],
+            [],
+            [new MedStockRow(1, "Pill B", 30m, 0m)]);
+
+        Assert.Null(rows[0].StockRemaining);
+    }
+
+    [Fact]
+    public void DeriveRows_OverdrawnStock_StillTicksAndShowsTheShortfall()
+    {
+        // Running out is information, never a reason the day cannot be worked through.
+        var rows = ChecklistRules.DeriveRows(
+            [Allocation(1, "Pill A", MedSlots.Morning)],
+            [Tick(10, 1, "Morning")],
+            [new MedStockRow(1, "Pill A", 5m, 7m)]);
+
+        Assert.Equal(-2m, rows[0].StockRemaining);
+        Assert.Equal("(-2 left)", rows[0].StockLabel);
+        Assert.True(rows[0].Slots[0].IsTicked);
     }
 }

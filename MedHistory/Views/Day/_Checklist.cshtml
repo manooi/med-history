@@ -29,9 +29,21 @@
             {
                 <li class="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3">
                     <span class="min-w-0 flex-1">
-                        <span class="block text-sm font-medium @(row.IsComplete ? "text-neutral-500 line-through" : "")">
+                        <span class="flex flex-wrap items-center gap-2 text-sm font-medium @(row.IsComplete ? "text-neutral-500 line-through" : "")">
                             @row.Name
+                            @if (row.QuantityLabel.Length > 0)
+                            {
+                                @* Only away from one unit; "×1" on every row would be noise. *@
+                                <span class="border border-neutral-400 px-1 text-xs font-normal text-neutral-600">
+                                    @row.QuantityLabel
+                                </span>
+                            }
                         </span>
+                        @if (row.StockLabel.Length > 0)
+                        {
+                            @* Stock left over the whole history, not this day's — see MedStock. *@
+                            <span class="block text-xs text-neutral-500">@row.StockLabel</span>
+                        }
                         @if (row.Description.Length > 0)
                         {
                             <span class="block text-xs text-neutral-500">@row.Description</span>
