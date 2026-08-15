@@ -5,12 +5,12 @@
     ViewData["Title"] = $"Meds — {dayLabel}";
 }
 
-<header class="flex items-center justify-between gap-4 border-b border-black pb-4">
+<header class="flex items-center justify-between gap-4 border-b border-black pb-4 dark:border-neutral-100">
     <div>
         <h1 class="font-semibold">Meds</h1>
-        <p class="text-sm text-neutral-500">@dayLabel</p>
+        <p class="text-sm text-neutral-500 dark:text-neutral-400">@dayLabel</p>
     </div>
-    <a href="/day/@dayKey" class="border border-black px-3 py-1 text-sm hover:bg-black hover:text-white">
+    <a href="/day/@dayKey" class="border border-black px-3 py-1 text-sm hover:bg-black hover:text-white dark:border-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
         Back to day
     </a>
 </header>
@@ -18,10 +18,10 @@
 @* Stock belongs to no day: a row counts every dose of that medication ever logged, whichever
    day the page happens to be showing. It leads the page because the flow is stock-first —
    register what is on hand, then plan doses against it. *@
-<section class="mt-6 border border-black">
-    <h2 class="border-b border-black bg-neutral-100 px-4 py-2 text-sm font-semibold uppercase tracking-wide">Stock</h2>
+<section class="mt-6 border border-black dark:border-neutral-100">
+    <h2 class="border-b border-black bg-neutral-100 px-4 py-2 text-sm font-semibold uppercase tracking-wide dark:border-neutral-100 dark:bg-neutral-900">Stock</h2>
     <div class="p-4">
-    <p class="text-xs text-neutral-500">
+    <p class="text-xs text-neutral-500 dark:text-neutral-400">
         Counts every dose logged against a medication, on any day. Raise a total to record a refill;
         renaming keeps the doses already ticked against it.
     </p>
@@ -30,7 +30,7 @@
     {
         @* Kept out of the validation summary below: these belong to this section's own forms,
            and a shared ModelState would print them over the add-medication form as well. *@
-        <ul class="mt-3 text-sm text-neutral-700">
+        <ul class="mt-3 text-sm text-neutral-700 dark:text-neutral-300">
             @foreach (var error in Model.StockErrors)
             {
                 <li>@error</li>
@@ -40,13 +40,13 @@
 
     @if (Model.Stocks.Count == 0)
     {
-        <p class="px-1 py-6 text-center text-sm text-neutral-500">
+        <p class="px-1 py-6 text-center text-sm text-neutral-500 dark:text-neutral-400">
             Nothing stocked yet.
         </p>
     }
     else
     {
-        <ul class="mt-3 divide-y divide-neutral-300">
+        <ul class="mt-3 divide-y divide-neutral-300 dark:divide-neutral-700">
             @foreach (var stock in Model.Stocks)
             {
                 <li class="px-1 py-3">
@@ -60,14 +60,14 @@
                                    maxlength="@MedStockRules.NameMaxLength"
                                    value="@Model.StockNameInput(stock)"
                                    aria-label="Medication name"
-                                   class="min-w-0 flex-1 border border-black bg-white px-2 py-1 text-sm font-medium text-black" />
+                                   class="min-w-0 flex-1 border border-black bg-white px-2 py-1 text-sm font-medium text-black dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100" />
                             <input type="number" name="total" required step="0.01" min="0"
                                    max="@MedPlanRules.FormatQuantity(MedStockRules.MaxTotal)"
                                    value="@Model.StockTotalInput(stock)"
                                    aria-label="Total stocked of @stock.Name"
-                                   class="w-20 shrink-0 border border-black bg-white px-2 py-1 text-sm text-black" />
+                                   class="w-20 shrink-0 border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100" />
                             <button type="submit"
-                                    class="shrink-0 border border-black bg-white px-2 py-1 text-xs text-black hover:bg-black hover:text-white">
+                                    class="shrink-0 border border-black bg-white px-2 py-1 text-xs text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
                                 Save
                             </button>
                         </form>
@@ -77,13 +77,13 @@
                         <form method="post" action="/day/@dayKey/meds/stock/@stock.Id/delete" asp-antiforgery="true" class="shrink-0">
                             <button type="submit" onclick="return confirm('Stop tracking stock for this medication? Logged doses are kept.');"
                                     aria-label="Stop tracking stock"
-                                    class="px-2 py-1 text-sm leading-none text-red-600 hover:text-red-800">
+                                    class="px-2 py-1 text-sm leading-none text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
                                 &times;
                             </button>
                         </form>
                     </div>
 
-                    <p class="mt-1 text-xs text-neutral-500">
+                    <p class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
                         @MedPlanRules.FormatQuantity(stock.Consumed) taken ·
                         @MedPlanRules.FormatQuantity(stock.Remaining) left
                     </p>
@@ -95,37 +95,37 @@
     <form method="post" action="/day/@dayKey/meds/stock" asp-antiforgery="true"
           class="mt-4 flex flex-wrap items-end gap-2">
         <div class="min-w-0 flex-1">
-            <label for="stock-name" class="block text-xs uppercase tracking-wide text-neutral-500">Medication</label>
+            <label for="stock-name" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Medication</label>
             <input type="text" id="stock-name" name="name" required autocomplete="off"
                    maxlength="@MedStockRules.NameMaxLength" value="@Model.NewStockName"
-                   class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black" />
+                   class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100" />
         </div>
 
         <div class="w-28">
-            <label for="stock-total" class="block text-xs uppercase tracking-wide text-neutral-500">Total</label>
+            <label for="stock-total" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Total</label>
             <input type="number" id="stock-total" name="total" required step="0.01" min="0"
                    max="@MedPlanRules.FormatQuantity(MedStockRules.MaxTotal)" value="@Model.NewStockTotal"
-                   class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black" />
+                   class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100" />
         </div>
 
         <button type="submit"
-                class="shrink-0 border border-black bg-white px-3 py-1 text-sm text-black hover:bg-black hover:text-white">
+                class="shrink-0 border border-black bg-white px-3 py-1 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
             Track
         </button>
     </form>
     </div>
 </section>
 
-<section class="mt-6 border border-black">
-    <h2 class="border-b border-black bg-neutral-100 px-4 py-2 text-sm font-semibold uppercase tracking-wide">Add medication</h2>
+<section class="mt-6 border border-black dark:border-neutral-100">
+    <h2 class="border-b border-black bg-neutral-100 px-4 py-2 text-sm font-semibold uppercase tracking-wide dark:border-neutral-100 dark:bg-neutral-900">Add medication</h2>
     <form method="post" action="/day/@dayKey/meds" asp-antiforgery="true" class="p-4">
-    <div asp-validation-summary="All" class="mb-2 mt-2 text-sm text-neutral-700"></div>
+    <div asp-validation-summary="All" class="mb-2 mt-2 text-sm text-neutral-700 dark:text-neutral-300"></div>
 
     <div class="mt-4">
-        <label for="med-name" class="block text-xs uppercase tracking-wide text-neutral-500">Medication</label>
+        <label for="med-name" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Medication</label>
         <input type="text" id="med-name" name="name" required autocomplete="off" list="stock-names"
                maxlength="@ChecklistRules.NameMaxLength" value="@Model.NewMedName"
-               class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black" />
+               class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100" />
         @* Suggests tracked stock names but still takes free text — an eyedrop or anything else
            with no stock row is typed as-is. *@
         <datalist id="stock-names">
@@ -137,42 +137,42 @@
     </div>
 
     <div class="mt-4 w-28">
-        <label for="med-dose" class="block text-xs uppercase tracking-wide text-neutral-500">Dose</label>
+        <label for="med-dose" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Dose</label>
         <input type="number" id="med-dose" name="doseQuantity" required
                step="@MedPlanRules.FormatQuantity(MedPlanRules.DoseQuantityStep)"
                min="@MedPlanRules.FormatQuantity(MedPlanRules.MinDoseQuantity)"
                max="@MedPlanRules.FormatQuantity(MedPlanRules.MaxDoseQuantity)"
                value="@Model.NewMedDoseQuantity"
-               class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black" />
+               class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100" />
     </div>
-    <p class="mt-1 text-xs text-neutral-500">Units taken at each time of day — tablets, drops, whatever this is measured in.</p>
+    <p class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">Units taken at each time of day — tablets, drops, whatever this is measured in.</p>
 
     <div class="mt-4 flex flex-wrap gap-2">
         <div class="min-w-0 flex-1">
-            <label for="med-from" class="block text-xs uppercase tracking-wide text-neutral-500">From</label>
+            <label for="med-from" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">From</label>
             <input type="date" id="med-from" name="from" value="@AppTime.Key(Model.NewMedFrom)"
-                   class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black" />
+                   class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100" />
         </div>
         <div class="min-w-0 flex-1">
-            <label for="med-to" class="block text-xs uppercase tracking-wide text-neutral-500">To</label>
+            <label for="med-to" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">To</label>
             <input type="date" id="med-to" name="to" value="@AppTime.Key(Model.NewMedTo)"
-                   class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black" />
+                   class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100" />
         </div>
     </div>
     @* Same day in both fields (the default) is a single-day add — this is not a separate form. *@
-    <p class="mt-1 text-xs text-neutral-500">Adds to every day in range; days that already have this medication are skipped.</p>
+    <p class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">Adds to every day in range; days that already have this medication are skipped.</p>
 
     <fieldset class="mt-4">
-        <legend class="text-xs uppercase tracking-wide text-neutral-500">Times of day</legend>
+        <legend class="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Times of day</legend>
         <div class="mt-1 flex flex-wrap gap-2">
             @foreach (var slot in MedPlanRules.AllSlots)
             {
                 var slotName = MedPlanRules.SlotName(slot);
 
-                <label class="flex items-center gap-2 border border-black bg-white px-2 py-1 text-sm">
+                <label class="flex items-center gap-2 border border-black bg-white px-2 py-1 text-sm dark:border-neutral-100 dark:bg-neutral-950">
                     <input type="checkbox" name="slots" value="@slotName"
                            checked="@Model.NewMedSlots.HasFlag(slot)"
-                           class="accent-black" />
+                           class="accent-black dark:accent-neutral-100" />
                     @MedPlanRules.SlotLabel(slot)
                 </label>
             }
@@ -181,9 +181,9 @@
 
     <div class="mt-4 flex flex-wrap items-end gap-2">
         <div class="min-w-0 flex-1">
-            <label for="med-meal" class="block text-xs uppercase tracking-wide text-neutral-500">Meal</label>
+            <label for="med-meal" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Meal</label>
             <select id="med-meal" name="mealRelation"
-                    class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black">
+                    class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100">
                 @foreach (var relation in Enum.GetValues<MealRelation>())
                 {
                     <option value="@relation" selected="@(relation == Model.NewMedMealRelation)">
@@ -194,9 +194,9 @@
         </div>
 
         <div class="min-w-0 flex-1">
-            <label for="med-method" class="block text-xs uppercase tracking-wide text-neutral-500">Method</label>
+            <label for="med-method" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Method</label>
             <select id="med-method" name="method"
-                    class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black">
+                    class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100">
                 @foreach (var method in Enum.GetValues<MedMethod>())
                 {
                     <option value="@method" selected="@(method == Model.NewMedMethod)">
@@ -207,26 +207,26 @@
         </div>
 
         <button type="submit"
-                class="shrink-0 border border-black bg-white px-3 py-1 text-sm text-black hover:bg-black hover:text-white">
+                class="shrink-0 border border-black bg-white px-3 py-1 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
             Add
         </button>
     </div>
     </form>
 </section>
 
-<section class="mt-6 border border-black">
-    <h2 class="border-b border-black bg-neutral-100 px-4 py-2 text-sm font-semibold uppercase tracking-wide">This day's plan</h2>
+<section class="mt-6 border border-black dark:border-neutral-100">
+    <h2 class="border-b border-black bg-neutral-100 px-4 py-2 text-sm font-semibold uppercase tracking-wide dark:border-neutral-100 dark:bg-neutral-900">This day's plan</h2>
     <div class="p-4">
 
     @if (Model.Allocations.Count == 0)
     {
-        <p class="px-1 py-6 text-center text-sm text-neutral-500">
+        <p class="px-1 py-6 text-center text-sm text-neutral-500 dark:text-neutral-400">
             Nothing allocated for this day.
         </p>
     }
     else
     {
-        <ul class="mt-3 divide-y divide-neutral-300">
+        <ul class="mt-3 divide-y divide-neutral-300 dark:divide-neutral-700">
             @foreach (var item in Model.Allocations)
             {
                 <li class="flex items-start gap-2 px-1 py-3">
@@ -236,28 +236,28 @@
                             @if (item.QuantityLabel.Length > 0)
                             {
                                 @* Only shown away from one unit — "×1" on every row would be noise. *@
-                                <span class="border border-neutral-400 px-1 text-xs font-normal text-neutral-600">
+                                <span class="border border-neutral-400 px-1 text-xs font-normal text-neutral-600 dark:border-neutral-600 dark:text-neutral-400">
                                     @item.QuantityLabel
                                 </span>
                             }
                         </span>
-                        <span class="block text-xs text-neutral-500">
+                        <span class="block text-xs text-neutral-500 dark:text-neutral-400">
                             @* Slots are the plan: one slot is one dose, so this line is the whole requirement. *@
                             @string.Join(" · ", item.SlotLabels)
                         </span>
                         @if (item.Description.Length > 0)
                         {
-                            <span class="block text-xs text-neutral-500">@item.Description</span>
+                            <span class="block text-xs text-neutral-500 dark:text-neutral-400">@item.Description</span>
                         }
                     </span>
                     <a href="/checklist/@item.Id/edit"
-                       class="shrink-0 self-center px-2 py-1 text-xs text-neutral-500 hover:text-black">
+                       class="shrink-0 self-center px-2 py-1 text-xs text-neutral-500 hover:text-black dark:text-neutral-400 dark:hover:text-neutral-100">
                         Edit
                     </a>
                     <form method="post" action="/checklist/@item.Id/delete" asp-antiforgery="true" class="shrink-0">
                         <button type="submit" onclick="return confirm('Remove this medication from the checklist? Logged doses are kept.');"
                                 aria-label="Remove from checklist"
-                                class="px-2 py-1 text-sm leading-none text-red-600 hover:text-red-800">
+                                class="px-2 py-1 text-sm leading-none text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
                             &times;
                         </button>
                     </form>
@@ -270,7 +270,7 @@
     {
         <form method="post" action="/day/@dayKey/meds/copy-previous" asp-antiforgery="true" class="mt-3">
             <button type="submit"
-                    class="border border-black bg-white px-2 py-1 text-xs text-black hover:bg-black hover:text-white">
+                    class="border border-black bg-white px-2 py-1 text-xs text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
                 Copy previous day
             </button>
         </form>

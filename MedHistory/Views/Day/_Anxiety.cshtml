@@ -6,11 +6,11 @@
 @* One editable vote a day. Tapping the level already set clears it — see
    AnxietyRules.DecideVote — so there is no separate clear control, only the five level
    buttons themselves. *@
-<section class="mt-6 border border-black">
-    <div class="flex items-center justify-between gap-3 border-b border-black px-3 py-2">
+<section class="mt-6 border border-black dark:border-neutral-100">
+    <div class="flex items-center justify-between gap-3 border-b border-black px-3 py-2 dark:border-neutral-100">
         <h2 class="text-sm font-semibold uppercase tracking-wide">Anxiety</h2>
         <a href="/anxiety-report"
-           class="border border-black bg-white px-2 py-1 text-xs text-black hover:bg-black hover:text-white">
+           class="border border-black bg-white px-2 py-1 text-xs text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
             Report
         </a>
     </div>
@@ -24,7 +24,7 @@
 
             <form method="post" action="/day/@dayKey/anxiety/@level" asp-antiforgery="true">
                 <button type="submit" title="@title" aria-label="@title"
-                        class="border px-2 py-1 text-xs leading-none @(isSelected ? "border-black bg-black text-white hover:bg-white hover:text-black" : "border-neutral-400 bg-white text-neutral-600 hover:border-black hover:bg-black hover:text-white")">
+                        class="border px-2 py-1 text-xs leading-none @(isSelected ? "border-black bg-black text-white hover:bg-white hover:text-black dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950 dark:hover:bg-neutral-950 dark:hover:text-neutral-100" : "border-neutral-400 bg-white text-neutral-600 hover:border-black hover:bg-black hover:text-white dark:border-neutral-600 dark:bg-neutral-950 dark:text-neutral-400 dark:hover:border-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950")">
                     @AnxietyRules.Emoji(level) @label
                 </button>
             </form>

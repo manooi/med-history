@@ -4,15 +4,55 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - MedHistory</title>
+    @* Ahead of the stylesheet so the theme is decided before the first paint, never corrected
+       after it. The stored override wins over the system preference; anything else means
+       "auto". The navbar toggle reads and writes the page's theme through medTheme. *@
+    <script>
+        (function () {
+            var media = window.matchMedia('(prefers-color-scheme: dark)');
+
+            function stored() {
+                var value = localStorage.getItem('theme');
+                return value === 'dark' || value === 'light' ? value : null;
+            }
+
+            function apply() {
+                document.documentElement.dataset.theme = stored() || (media.matches ? 'dark' : 'light');
+            }
+
+            window.medTheme = {
+                mode: function () {
+                    return stored() || 'auto';
+                },
+                set: function (mode) {
+                    if (mode === 'auto') {
+                        localStorage.removeItem('theme');
+                    } else {
+                        localStorage.setItem('theme', mode);
+                    }
+                    apply();
+                }
+            };
+
+            apply();
+
+            // The system only gets a say while the reader has not overridden it.
+            media.addEventListener('change', function () {
+                if (!stored()) {
+                    apply();
+                }
+            });
+        })();
+    </script>
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <meta name="theme-color" content="#000000" />
 </head>
-<body class="bg-white text-black">
+<body class="bg-white text-black dark:bg-neutral-950 dark:text-neutral-100">
     @if (User.Identity?.IsAuthenticated == true)
     {
-        <nav class="border-b border-black print:hidden">
+        <nav class="border-b border-black dark:border-neutral-100 print:hidden">
             <div class="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
                 <a href="/" class="font-mono font-bold tracking-tight hover:underline">med-history</a>
                 <div class="flex items-center gap-4 text-sm">
@@ -20,15 +60,39 @@
                     <a href="/history" class="hover:underline">History</a>
                     <div class="group relative inline-block">
                         <a href="/report" class="hover:underline">Reports ▾</a>
-                        <div class="absolute left-0 z-10 hidden w-44 flex-col border border-black bg-white text-black group-hover:flex">
-                            <a href="/med-report" class="px-3 py-2 hover:bg-black hover:text-white">Med</a>
-                            <a href="/anxiety-report" class="px-3 py-2 hover:bg-black hover:text-white">Anxiety</a>
-                            <a href="/type-report" class="px-3 py-2 hover:bg-black hover:text-white">Type</a>
-                            <a href="/doctor-report" class="px-3 py-2 hover:bg-black hover:text-white">Doctor</a>
+                        <div class="absolute left-0 z-10 hidden w-44 flex-col border border-black bg-white text-black group-hover:flex dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100">
+                            <a href="/med-report" class="px-3 py-2 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">Med</a>
+                            <a href="/anxiety-report" class="px-3 py-2 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">Anxiety</a>
+                            <a href="/type-report" class="px-3 py-2 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">Type</a>
+                            <a href="/doctor-report" class="px-3 py-2 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">Doctor</a>
                         </div>
                     </div>
                     <a href="/search" class="hover:underline">Search</a>
                     <a href="/types" class="hover:underline">Types</a>
+                    @* The label is the mode the page is in, not the one a click would move to.
+                       Only the script knows which that is, so the markup ships a placeholder
+                       and the script below — inline, so it runs before the nav is painted —
+                       writes the real word in. *@
+                    <button type="button" id="theme-toggle" class="hover:underline bg-transparent border-0 p-0">Auto</button>
+                    <script>
+                        (function () {
+                            var button = document.getElementById('theme-toggle');
+                            var next = { auto: 'dark', dark: 'light', light: 'auto' };
+
+                            function render() {
+                                var mode = window.medTheme.mode();
+                                button.textContent = mode.charAt(0).toUpperCase() + mode.slice(1);
+                                button.setAttribute('aria-label', 'Theme: ' + mode + '. Switch to ' + next[mode] + '.');
+                            }
+
+                            button.addEventListener('click', function () {
+                                window.medTheme.set(next[window.medTheme.mode()]);
+                                render();
+                            });
+
+                            render();
+                        })();
+                    </script>
                     <form method="post" action="/logout" class="inline">
                         @Html.AntiForgeryToken()
                         <button type="submit" class="hover:underline bg-transparent border-0 p-0">Logout</button>

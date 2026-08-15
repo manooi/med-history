@@ -3,19 +3,19 @@
     ViewData["Title"] = Model.Query is null ? "Search" : $"Search — {Model.Query}";
 }
 
-<header class="border-b border-black pb-4">
+<header class="border-b border-black pb-4 dark:border-neutral-100">
     <h1 class="font-semibold">Search</h1>
-    <p class="text-xs uppercase tracking-wide text-neutral-500">Notes and med names</p>
+    <p class="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Notes and med names</p>
 </header>
 
 <form method="get" action="/search" class="mt-6 flex items-end gap-2">
     <div class="flex-1">
         <label for="q" class="block text-sm font-medium">Query</label>
         <input type="text" id="q" name="q" autocomplete="off" value="@Model.Query"
-               class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black" />
+               class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100" />
     </div>
     <button type="submit"
-            class="border border-black bg-white px-4 py-1 text-sm text-black hover:bg-black hover:text-white">
+            class="border border-black bg-white px-4 py-1 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
         Search
     </button>
 </form>
@@ -25,13 +25,13 @@
     <section class="mt-6">
         @if (Model.MatchedDayCount == 0)
         {
-            <p class="border border-dashed border-neutral-400 px-4 py-10 text-center text-sm text-neutral-500">
+            <p class="border border-dashed border-neutral-400 px-4 py-10 text-center text-sm text-neutral-500 dark:border-neutral-600 dark:text-neutral-400">
                 No entries matched &ldquo;@Model.Query&rdquo;.
             </p>
         }
         else
         {
-            <p class="text-sm text-neutral-500">
+            <p class="text-sm text-neutral-500 dark:text-neutral-400">
                 @(Model.MatchedDayCount == 1 ? "1 day matched" : $"{Model.MatchedDayCount} days matched")
             </p>
 
@@ -42,19 +42,19 @@
                         <h2 class="text-sm font-semibold">
                             <a href="/day/@AppTime.Key(day.Day)" class="underline hover:no-underline">@AppTime.DayLabel(day.Day)</a>
                         </h2>
-                        <ul class="mt-2 border-y border-neutral-300 divide-y divide-neutral-300">
+                        <ul class="mt-2 border-y border-neutral-300 divide-y divide-neutral-300 dark:border-neutral-700 dark:divide-neutral-700">
                             @foreach (var entry in day.Entries)
                             {
-                                <li class="hover:bg-neutral-100">
+                                <li class="hover:bg-neutral-100 dark:hover:bg-neutral-900">
                                     <a href="/entries/@entry.Id/edit" class="flex items-center gap-4 px-1 py-3">
-                                        <span class="w-12 shrink-0 text-sm tabular-nums text-neutral-600">
+                                        <span class="w-12 shrink-0 text-sm tabular-nums text-neutral-600 dark:text-neutral-400">
                                             @AppTime.TimeLabel(entry.OccurredAtLocal)
                                         </span>
                                         <span class="min-w-0 flex-1">
                                             <span class="block text-sm font-medium">@entry.Type</span>
                                             @if (entry.Detail is not null)
                                             {
-                                                <span class="block text-sm text-neutral-600">@entry.Detail</span>
+                                                <span class="block text-sm text-neutral-600 dark:text-neutral-400">@entry.Detail</span>
                                             }
                                             @if (entry.PhotoIds.Count > 0)
                                             {
@@ -62,7 +62,7 @@
                                                     @foreach (var photoId in entry.PhotoIds)
                                                     {
                                                         <img src="/photos/@photoId" loading="lazy" alt="" data-lightbox
-                                                             class="h-12 w-12 border border-neutral-300 object-cover cursor-zoom-in" />
+                                                             class="h-12 w-12 border border-neutral-300 object-cover cursor-zoom-in dark:border-neutral-700" />
                                                     }
                                                 </span>
                                             }
@@ -83,7 +83,7 @@
                         <a href="/search?q=@Uri.EscapeDataString(Model.Query)&page=@(Model.Page - 1)"
                            class="underline hover:no-underline">&larr; Newer</a>
                     }
-                    <span class="text-neutral-500">Page @Model.Page of @Model.PageCount</span>
+                    <span class="text-neutral-500 dark:text-neutral-400">Page @Model.Page of @Model.PageCount</span>
                     @if (Model.HasOlderPage)
                     {
                         <a href="/search?q=@Uri.EscapeDataString(Model.Query)&page=@(Model.Page + 1)"

@@ -5,24 +5,24 @@
     ViewData["Title"] = $"Edit medication — {dayLabel}";
 }
 
-<header class="flex items-center justify-between gap-4 border-b border-black pb-4">
+<header class="flex items-center justify-between gap-4 border-b border-black pb-4 dark:border-neutral-100">
     <div>
         <h1 class="font-semibold">Edit medication</h1>
-        <p class="text-sm text-neutral-500">@dayLabel</p>
+        <p class="text-sm text-neutral-500 dark:text-neutral-400">@dayLabel</p>
     </div>
-    <a href="/day/@dayKey/meds" class="border border-black px-3 py-1 text-sm hover:bg-black hover:text-white">
+    <a href="/day/@dayKey/meds" class="border border-black px-3 py-1 text-sm hover:bg-black hover:text-white dark:border-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
         Cancel
     </a>
 </header>
 
 <form method="post" action="/checklist/@Model.Id/edit" asp-antiforgery="true" class="mt-6">
-    <div asp-validation-summary="All" class="mb-2 text-sm text-neutral-700"></div>
+    <div asp-validation-summary="All" class="mb-2 text-sm text-neutral-700 dark:text-neutral-300"></div>
 
     <div>
-        <label for="med-name" class="block text-xs uppercase tracking-wide text-neutral-500">Medication</label>
+        <label for="med-name" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Medication</label>
         <input type="text" id="med-name" name="name" required autocomplete="off" list="stock-names"
                maxlength="@ChecklistRules.NameMaxLength" value="@Model.Name"
-               class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black" />
+               class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100" />
         @* Suggests tracked stock names but still takes free text — an eyedrop or anything else
            with no stock row is typed as-is. *@
         <datalist id="stock-names">
@@ -34,29 +34,29 @@
     </div>
 
     <div class="mt-4 w-28">
-        <label for="med-dose" class="block text-xs uppercase tracking-wide text-neutral-500">Dose</label>
+        <label for="med-dose" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Dose</label>
         <input type="number" id="med-dose" name="doseQuantity" required
                step="@MedPlanRules.FormatQuantity(MedPlanRules.DoseQuantityStep)"
                min="@MedPlanRules.FormatQuantity(MedPlanRules.MinDoseQuantity)"
                max="@MedPlanRules.FormatQuantity(MedPlanRules.MaxDoseQuantity)"
                value="@Model.DoseQuantity"
-               class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black" />
+               class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100" />
     </div>
-    <p class="mt-1 text-xs text-neutral-500">
+    <p class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
         Units taken at each time of day. Doses already logged keep the amount they were taken as.
     </p>
 
     <fieldset class="mt-4">
-        <legend class="text-xs uppercase tracking-wide text-neutral-500">Times of day</legend>
+        <legend class="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Times of day</legend>
         <div class="mt-1 flex flex-wrap gap-2">
             @foreach (var slot in MedPlanRules.AllSlots)
             {
                 var slotName = MedPlanRules.SlotName(slot);
 
-                <label class="flex items-center gap-2 border border-black bg-white px-2 py-1 text-sm">
+                <label class="flex items-center gap-2 border border-black bg-white px-2 py-1 text-sm dark:border-neutral-100 dark:bg-neutral-950">
                     <input type="checkbox" name="slots" value="@slotName"
                            checked="@Model.Slots.HasFlag(slot)"
-                           class="accent-black" />
+                           class="accent-black dark:accent-neutral-100" />
                     @MedPlanRules.SlotLabel(slot)
                 </label>
             }
@@ -65,9 +65,9 @@
 
     <div class="mt-4 flex flex-wrap items-end gap-2">
         <div class="min-w-0 flex-1">
-            <label for="med-meal" class="block text-xs uppercase tracking-wide text-neutral-500">Meal</label>
+            <label for="med-meal" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Meal</label>
             <select id="med-meal" name="mealRelation"
-                    class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black">
+                    class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100">
                 @foreach (var relation in Enum.GetValues<MealRelation>())
                 {
                     <option value="@relation" selected="@(relation == Model.MealRelation)">
@@ -78,9 +78,9 @@
         </div>
 
         <div class="min-w-0 flex-1">
-            <label for="med-method" class="block text-xs uppercase tracking-wide text-neutral-500">Method</label>
+            <label for="med-method" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Method</label>
             <select id="med-method" name="method"
-                    class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black">
+                    class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100">
                 @foreach (var method in Enum.GetValues<MedMethod>())
                 {
                     <option value="@method" selected="@(method == Model.Method)">
@@ -92,17 +92,17 @@
     </div>
 
     <label class="mt-4 flex items-start gap-2 text-sm">
-        <input type="checkbox" name="applyForward" value="true" checked="@Model.ApplyForward" class="accent-black mt-0.5" />
+        <input type="checkbox" name="applyForward" value="true" checked="@Model.ApplyForward" class="accent-black mt-0.5 dark:accent-neutral-100" />
         <span>Apply to all future days with this name</span>
     </label>
-    <p class="mt-1 text-xs text-neutral-500">
+    <p class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
         Only allocations dated on or after @dayLabel that still carry this medication's current name are changed.
         Days before this one, and doses already logged, are never touched.
     </p>
 
     <div class="mt-4">
         <button type="submit"
-                class="border border-black bg-white px-3 py-1 text-sm text-black hover:bg-black hover:text-white">
+                class="border border-black bg-white px-3 py-1 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
             Save
         </button>
     </div>

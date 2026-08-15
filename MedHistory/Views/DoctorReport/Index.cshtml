@@ -9,24 +9,24 @@
 
 @* Controls are hidden on paper — a printed page is for reading, not for changing the range. *@
 <div class="print:hidden">
-    <header class="border-b border-black pb-4">
+    <header class="border-b border-black pb-4 dark:border-neutral-100">
         <h1 class="font-semibold">Doctor report</h1>
-        <p class="text-xs uppercase tracking-wide text-neutral-500">Printable date-range summary for visits</p>
+        <p class="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Printable date-range summary for visits</p>
     </header>
 
     <form method="get" action="/doctor-report" class="mt-6 flex flex-wrap items-end gap-2">
         <div class="min-w-0 flex-1">
-            <label for="doctor-from" class="block text-xs uppercase tracking-wide text-neutral-500">From</label>
+            <label for="doctor-from" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">From</label>
             <input type="date" id="doctor-from" name="from" value="@AppTime.Key(Model.From)"
-                   class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black" />
+                   class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100" />
         </div>
         <div class="min-w-0 flex-1">
-            <label for="doctor-to" class="block text-xs uppercase tracking-wide text-neutral-500">To</label>
+            <label for="doctor-to" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">To</label>
             <input type="date" id="doctor-to" name="to" value="@AppTime.Key(Model.To)"
-                   class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black" />
+                   class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100" />
         </div>
         <button type="submit"
-                class="border border-black bg-white px-4 py-1 text-sm text-black hover:bg-black hover:text-white">
+                class="border border-black bg-white px-4 py-1 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
             Apply
         </button>
     </form>
@@ -38,9 +38,9 @@
 </div>
 
 @* The printed report itself: everything below prints, everything above does not. *@
-<header class="mt-6 border-b border-black pb-4">
+<header class="mt-6 border-b border-black pb-4 dark:border-neutral-100">
     <h2 class="font-semibold">med-history — @AppTime.DayLabel(Model.From) to @AppTime.DayLabel(Model.To)</h2>
-    <p class="mt-2 text-sm text-neutral-600">
+    <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
         @if (Model.TypeCounts.Count == 0)
         {
             @:Nothing logged in this range.
@@ -50,13 +50,13 @@
             @string.Join(" · ", Model.TypeCounts.Select(t => $"{t.Type} {t.Count}"))
         }
     </p>
-    <p class="text-sm text-neutral-600">anxiety voted @Model.VotedDayCount/@Model.TotalDayCount days</p>
+    <p class="text-sm text-neutral-600 dark:text-neutral-400">anxiety voted @Model.VotedDayCount/@Model.TotalDayCount days</p>
 </header>
 
 <section class="mt-6">
     @if (Model.Days.Count == 0)
     {
-        <p class="border border-dashed border-neutral-400 px-4 py-10 text-center text-sm text-neutral-500">
+        <p class="border border-dashed border-neutral-400 px-4 py-10 text-center text-sm text-neutral-500 dark:border-neutral-600 dark:text-neutral-400">
             Nothing logged in this range.
         </p>
     }
@@ -70,25 +70,25 @@
                         <span>@AppTime.DayLabel(day.Day)</span>
                         @if (day.AnxietyLabel is not null)
                         {
-                            <span class="text-xs font-normal uppercase tracking-wide text-neutral-500">anxiety: @day.AnxietyLabel</span>
+                            <span class="text-xs font-normal uppercase tracking-wide text-neutral-500 dark:text-neutral-400">anxiety: @day.AnxietyLabel</span>
                         }
                     </h3>
-                    <ul class="mt-2 border-y border-neutral-300 divide-y divide-neutral-300">
+                    <ul class="mt-2 border-y border-neutral-300 divide-y divide-neutral-300 dark:border-neutral-700 dark:divide-neutral-700">
                         @foreach (var entry in day.Entries)
                         {
                             <li class="flex items-center gap-4 px-1 py-2">
-                                <span class="w-12 shrink-0 text-sm tabular-nums text-neutral-600">
+                                <span class="w-12 shrink-0 text-sm tabular-nums text-neutral-600 dark:text-neutral-400">
                                     @AppTime.TimeLabel(entry.OccurredAtLocal)
                                 </span>
                                 <span class="min-w-0 flex-1">
                                     <span class="text-sm font-medium">@entry.Type</span>
                                     @if (entry.Detail is not null)
                                     {
-                                        <span class="block text-sm text-neutral-600">@entry.Detail</span>
+                                        <span class="block text-sm text-neutral-600 dark:text-neutral-400">@entry.Detail</span>
                                     }
                                     @if (entry.PhotoCount > 0)
                                     {
-                                        <span class="block text-xs text-neutral-500">(@entry.PhotoCount @(entry.PhotoCount == 1 ? "photo" : "photos"))</span>
+                                        <span class="block text-xs text-neutral-500 dark:text-neutral-400">(@entry.PhotoCount @(entry.PhotoCount == 1 ? "photo" : "photos"))</span>
                                     }
                                 </span>
                             </li>

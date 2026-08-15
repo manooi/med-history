@@ -5,10 +5,10 @@
 
     var postUrl = isEdit ? $"/entries/{Model.Id}" : "/entries";
     var cancelDay = Model.OccurredAt == default ? AppTime.Today() : DateOnly.FromDateTime(Model.OccurredAt);
-    var fieldClass = "mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black";
+    var fieldClass = "mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100";
 }
 
-<h1 class="border-b border-black pb-4 font-semibold">@(isEdit ? "Edit" : "New") @Model.Type</h1>
+<h1 class="border-b border-black pb-4 font-semibold dark:border-neutral-100">@(isEdit ? "Edit" : "New") @Model.Type</h1>
 
 <form method="post" action="@postUrl" enctype="multipart/form-data" asp-antiforgery="true" class="mt-6 space-y-4">
     <input type="hidden" name="Type" value="@Model.Type" />
@@ -17,7 +17,7 @@
         <input type="hidden" name="Id" value="@Model.Id" />
     }
 
-    <div asp-validation-summary="All" class="text-sm text-neutral-700"></div>
+    <div asp-validation-summary="All" class="text-sm text-neutral-700 dark:text-neutral-300"></div>
 
     <div>
         <label for="OccurredAt" class="block text-sm font-medium">Time</label>
@@ -27,7 +27,7 @@
             @foreach (var preset in new[] { "09:00", "12:00", "18:00" })
             {
                 <button type="button" data-time-preset="@preset"
-                        class="border border-black bg-white px-2 py-1 text-sm hover:bg-black hover:text-white">
+                        class="border border-black bg-white px-2 py-1 text-sm hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
                     @preset
                 </button>
             }
@@ -59,15 +59,15 @@
 
     <div>
         <label for="photos" class="block text-sm font-medium">
-            Photos <span class="font-normal text-neutral-500">(optional, up to @(PhotoRules.MaxSizeBytes / (1024 * 1024)) MB each)</span>
+            Photos <span class="font-normal text-neutral-500 dark:text-neutral-400">(optional, up to @(PhotoRules.MaxSizeBytes / (1024 * 1024)) MB each)</span>
         </label>
         <input type="file" id="photos" name="photos" multiple accept="image/*"
-               class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black file:mr-3 file:border file:border-black file:bg-white file:px-2 file:py-0.5 file:text-sm file:text-black hover:file:bg-black hover:file:text-white" />
+               class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black file:mr-3 file:border file:border-black file:bg-white file:px-2 file:py-0.5 file:text-sm file:text-black hover:file:bg-black hover:file:text-white dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100 dark:file:border-neutral-100 dark:file:bg-neutral-950 dark:file:text-neutral-100 dark:hover:file:bg-neutral-100 dark:hover:file:text-neutral-950" />
     </div>
 
     <div class="flex items-center gap-3 pt-2">
         <button type="submit"
-                class="border border-black bg-white px-4 py-1 text-sm text-black hover:bg-black hover:text-white">
+                class="border border-black bg-white px-4 py-1 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-950 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
             Save
         </button>
         <a href="/day/@AppTime.Key(cancelDay)" class="text-sm underline hover:no-underline">Cancel</a>
@@ -76,17 +76,17 @@
 
 @if (isEdit && Model.ExistingPhotos.Count > 0)
 {
-    <div class="mt-8 border-t border-neutral-300 pt-4">
+    <div class="mt-8 border-t border-neutral-300 pt-4 dark:border-neutral-700">
         <span class="block text-sm font-medium">Existing photos</span>
         <ul class="mt-2 flex flex-wrap gap-3">
             @foreach (var photo in Model.ExistingPhotos)
             {
                 <li class="flex flex-col items-center gap-1">
                     <img src="/photos/@photo.Id" loading="lazy" alt="@photo.FileName" data-lightbox
-                         class="h-20 w-20 max-h-20 border border-neutral-400 object-cover cursor-zoom-in" />
+                         class="h-20 w-20 max-h-20 border border-neutral-400 object-cover cursor-zoom-in dark:border-neutral-600" />
                     <form method="post" action="/photos/@photo.Id/delete" asp-antiforgery="true">
                         <button type="submit" onclick="return confirm('Remove this photo?');"
-                                class="text-xs text-red-600 underline hover:no-underline">
+                                class="text-xs text-red-600 underline hover:no-underline dark:text-red-400">
                             Remove
                         </button>
                     </form>
@@ -99,9 +99,9 @@
 @if (isEdit)
 {
     <form method="post" action="/entries/@Model.Id/delete" asp-antiforgery="true"
-          class="mt-10 border-t border-neutral-300 pt-4">
+          class="mt-10 border-t border-neutral-300 pt-4 dark:border-neutral-700">
         <button type="submit" onclick="return confirm('Delete this entry?');"
-                class="border border-red-600 bg-white px-4 py-1 text-sm text-red-600 hover:bg-red-600 hover:text-white">
+                class="border border-red-600 bg-white px-4 py-1 text-sm text-red-600 hover:bg-red-600 hover:text-white dark:border-red-400 dark:bg-neutral-950 dark:text-red-400">
             Delete entry
         </button>
     </form>

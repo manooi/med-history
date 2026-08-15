@@ -32,6 +32,7 @@ Epic: `med-history-4ei` — personal medical history web app. Plan: [`plans/epic
 - [x] 19. Search over note + med name (`med-history-f1t`)
 - [x] 20. Doctor summary export, print-CSS (`med-history-lqv`)
 - [x] 21. PWA manifest + home-screen icon (`med-history-9lf`)
+- [x] 22. Dark mode — system-follow + toggle, near-black (`med-history-d36`)
 - [ ] 23. Controller refactor epic — split Meds + Data query layer (`med-history-9b1`, plan: [`plans/epic-refactor-controllers.md`](./plans/epic-refactor-controllers.md))
 
 ## Later ideas

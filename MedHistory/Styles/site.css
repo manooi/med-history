@@ -1,6 +1,18 @@
 @import "tailwindcss";
 @source "../Views/**/*.cshtml";
 
+/* Dark is driven by data-theme on <html>, which the head script in _Layout sets from the
+   stored override or, failing that, the system preference — a bare media query could not be
+   overridden by the navbar toggle. The variant nests inside "not print" so that dark styling
+   simply does not exist on paper: the doctor report prints black on white either way. */
+@custom-variant dark {
+  @media not print {
+    &:where([data-theme="dark"], [data-theme="dark"] *) {
+      @slot;
+    }
+  }
+}
+
 @layer base {
   body {
     @apply bg-white text-black;
@@ -8,5 +20,13 @@
 
   button, [type="submit"], [type="button"] {
     cursor: pointer;
+  }
+}
+
+/* Hands the native widgets — date pickers, the file button, scrollbars — to the browser's own
+   dark rendering. Print-excluded for the same reason as the variant above. */
+@media not print {
+  [data-theme="dark"] {
+    color-scheme: dark;
   }
 }
