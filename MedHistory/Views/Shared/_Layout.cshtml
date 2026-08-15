@@ -9,7 +9,7 @@
 <body class="bg-white text-black">
     <nav class="border-b border-black">
         <div class="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
-            <a href="/" class="font-semibold">med-history</a>
+            <a href="/" class="font-semibold hover:underline">med-history</a>
             <div class="flex items-center gap-4 text-sm">
                 <a href="/" class="hover:underline">Today</a>
                 <a href="/history" class="hover:underline">History</a>
@@ -17,7 +17,7 @@
                 {
                     <form method="post" action="/logout" class="inline">
                         @Html.AntiForgeryToken()
-                        <button type="submit" class="hover:underline bg-transparent border-0 p-0 cursor-pointer">Logout</button>
+                        <button type="submit" class="hover:underline bg-transparent border-0 p-0">Logout</button>
                     </form>
                 }
             </div>

@@ -5,4 +5,8 @@
   body {
     @apply bg-white text-black;
   }
+
+  button, [type="submit"], [type="button"] {
+    cursor: pointer;
+  }
 }
