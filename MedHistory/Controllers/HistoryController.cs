@@ -34,10 +34,10 @@ public class HistoryController : Controller
             Days = grouped.Select(d => new HistoryDayViewModel
             {
                 Day = d.Day,
-                Counts = d.Counts
-                    .Select(c => new HistoryTypeCount { Type = c.Key, Count = c.Value })
-                    .OrderBy(c => c.Type)
-                    .ToList()
+                // Same badge order as the day view's buttons: built-ins first, then customs.
+                Counts = EntryTypeRules.SortForDisplay(
+                    d.Counts.Select(c => new HistoryTypeCount { Type = c.Key, Count = c.Value }),
+                    c => c.Type)
             }).ToList()
         };
 

@@ -1,14 +1,5 @@
 namespace MedHistory.Models;
 
-public enum EntryType
-{
-    Symptom,
-    Bleeding,
-    Pill,
-    Cough,
-    Meal
-}
-
 public enum Severity
 {
     Light,
@@ -22,7 +13,13 @@ public class Entry
 
     public DateTimeOffset OccurredAt { get; set; }
 
-    public EntryType Type { get; set; }
+    /// <summary>
+    /// Name of an <see cref="EntryTypeDef"/>, held as plain text with no foreign key:
+    /// deactivating a type must never touch the entries already logged under it, and a
+    /// historical entry stays readable even if its type row is later gone. The app
+    /// validates the name against the active types when an entry is created.
+    /// </summary>
+    public string Type { get; set; } = string.Empty;
 
     public string? Note { get; set; }
 

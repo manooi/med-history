@@ -5,22 +5,27 @@ namespace MedHistory.Services;
 /// <summary>
 /// Pure entry rules — no clock, no database, no HTTP. Controllers call these so
 /// the same decisions can be unit tested without spinning up the app.
+///
+/// Types are identified by name (ordinal comparison — names come from the EntryTypes
+/// table, and the app stores and compares them in their canonical casing). Only the
+/// five built-ins carry type-specific fields; any other name is a user-added type,
+/// which means no severity, no pill name, an optional note, and photos allowed.
 /// </summary>
 public static class EntryRules
 {
-    public static bool RequiresSeverity(EntryType type) =>
-        type is EntryType.Bleeding or EntryType.Cough;
+    public static bool RequiresSeverity(string type) =>
+        type is BuiltInEntryTypes.Bleeding or BuiltInEntryTypes.Cough;
 
-    public static bool RequiresPillName(EntryType type) =>
-        type is EntryType.Pill;
+    public static bool RequiresPillName(string type) =>
+        type is BuiltInEntryTypes.Pill;
 
-    public static bool RequiresNote(EntryType type) =>
-        type is EntryType.Symptom or EntryType.Meal;
+    public static bool RequiresNote(string type) =>
+        type is BuiltInEntryTypes.Symptom or BuiltInEntryTypes.Meal;
 
     /// <summary>
     /// Returns one message per broken rule; an empty list means the entry is valid.
     /// </summary>
-    public static IReadOnlyList<string> Validate(EntryType type, Severity? severity, string? pillName, string? note)
+    public static IReadOnlyList<string> Validate(string type, Severity? severity, string? pillName, string? note)
     {
         var errors = new List<string>();
 
@@ -60,7 +65,7 @@ public static class EntryRules
     /// One-line summary shown under the type in the day timeline. Null when the
     /// entry carries nothing worth showing.
     /// </summary>
-    public static string? DetailLine(EntryType type, Severity? severity, string? pillName, string? note)
+    public static string? DetailLine(string type, Severity? severity, string? pillName, string? note)
     {
         var parts = new List<string>(3);
 
@@ -84,17 +89,16 @@ public static class EntryRules
 
     /// <summary>
     /// Orders entries by <c>OccurredAt</c> ascending; entries with an equal timestamp
-    /// are ordered by type name, alphabetically (ordinal string compare on the enum's
-    /// <c>ToString()</c>) — NOT by <see cref="EntryType"/> declaration order, which is
-    /// not alphabetical (Symptom, Bleeding, Pill, Cough, Meal).
+    /// are ordered by type name, alphabetically (ordinal string compare) — a stable
+    /// tie-break that does not depend on the order types were added to the database.
     /// </summary>
     public static IReadOnlyList<T> OrderEntries<T>(
         IEnumerable<T> entries,
         Func<T, DateTimeOffset> occurredAtSelector,
-        Func<T, EntryType> typeSelector) =>
+        Func<T, string> typeSelector) =>
         entries
             .OrderBy(occurredAtSelector)
-            .ThenBy(e => typeSelector(e).ToString(), StringComparer.Ordinal)
+            .ThenBy(typeSelector, StringComparer.Ordinal)
             .ToList();
 
     /// <summary>

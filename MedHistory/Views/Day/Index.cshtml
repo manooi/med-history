@@ -31,10 +31,15 @@
 </div>
 
 <div class="mt-6 flex flex-wrap gap-2">
-    @foreach (var type in Enum.GetValues<EntryType>())
+    @foreach (var type in Model.NewEntryTypes)
     {
-        <a href="@($"/entries/new?type={type}&date={dayKey}")"
+        @* Names are user-supplied, so they are escaped into the query string. *@
+        <a href="/entries/new?type=@Uri.EscapeDataString(type)&amp;date=@dayKey"
            class="border border-black bg-white px-3 py-1 text-sm text-black hover:bg-black hover:text-white">+ @type</a>
+    }
+    @if (Model.NewEntryTypes.Count == 0)
+    {
+        <a href="/types" class="text-sm underline hover:no-underline">No active types — manage types</a>
     }
 </div>
 

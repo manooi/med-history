@@ -50,14 +50,23 @@ public class DayController : Controller
             })
             .ToListAsync();
 
+        // The "+" buttons come from the types table, so adding a type needs no code change.
+        // Deactivated types drop out here while their existing entries keep rendering.
+        var activeTypes = await _db.EntryTypes
+            .AsNoTracking()
+            .Where(t => t.IsActive)
+            .Select(t => t.Name)
+            .ToListAsync();
+
         // OccurredAt ties get a deterministic secondary sort (type name, alphabetical)
-        // rather than DB order — see EntryRules.OrderEntries for why not enum order.
+        // rather than DB order — see EntryRules.OrderEntries.
         var ordered = EntryRules.OrderEntries(rows, r => r.OccurredAt, r => r.Type);
 
         var model = new DayViewModel
         {
             Day = day,
             IsToday = day == AppTime.Today(),
+            NewEntryTypes = EntryTypeRules.SortForDisplay(activeTypes, name => name),
             Entries = ordered.Select(r => new DayEntryViewModel
             {
                 Id = r.Id,

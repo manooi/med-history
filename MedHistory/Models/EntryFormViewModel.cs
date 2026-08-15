@@ -6,7 +6,7 @@ public class EntryFormViewModel
     public int? Id { get; set; }
 
     /// <summary>Chosen at creation and immutable afterwards.</summary>
-    public EntryType Type { get; set; }
+    public string Type { get; set; } = string.Empty;
 
     /// <summary>Local wall-clock time as typed into the datetime-local input.</summary>
     public DateTime OccurredAt { get; set; }

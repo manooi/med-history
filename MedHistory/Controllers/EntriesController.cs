@@ -18,9 +18,11 @@ public class EntriesController : Controller
     }
 
     [HttpGet("/entries/new")]
-    public IActionResult New(EntryType type, string? date)
+    public async Task<IActionResult> New(string? type, string? date)
     {
-        if (!Enum.IsDefined(type))
+        var (availability, canonicalType) = await ResolveType(type);
+
+        if (availability != TypeAvailability.Ok || canonicalType is null)
         {
             return BadRequest();
         }
@@ -29,9 +31,9 @@ public class EntriesController : Controller
 
         return View("Form", new EntryFormViewModel
         {
-            Type = type,
+            Type = canonicalType,
             OccurredAt = day.ToDateTime(TimeOnly.FromDateTime(DateTime.Now), DateTimeKind.Unspecified),
-            Severity = EntryRules.RequiresSeverity(type) ? Models.Severity.Light : null
+            Severity = EntryRules.RequiresSeverity(canonicalType) ? Models.Severity.Light : null
         });
     }
 
@@ -40,12 +42,17 @@ public class EntriesController : Controller
     [RequestSizeLimit(60 * 1024 * 1024)]
     public async Task<IActionResult> Create(EntryFormViewModel form, List<IFormFile>? photos)
     {
-        if (!Enum.IsDefined(form.Type))
+        // The type arrives in a hidden field, so it is re-checked here: it must still
+        // exist and still be active before an entry can be filed under it.
+        var (availability, canonicalType) = await ResolveType(form.Type);
+
+        if (availability != TypeAvailability.Ok || canonicalType is null)
         {
             return BadRequest();
         }
 
         form.Id = null;
+        form.Type = canonicalType;
         ApplyRules(form);
         ValidatePhotos(photos);
 
@@ -102,7 +109,9 @@ public class EntriesController : Controller
             return NotFound();
         }
 
-        // Type is fixed at creation; the posted value is never trusted.
+        // Type is fixed at creation; the posted value is never trusted. Taking it from
+        // the stored row is also what keeps an entry editable after its type has been
+        // deactivated — the active-type check above deliberately does not run here.
         form.Id = entry.Id;
         form.Type = entry.Type;
         ApplyRules(form);
@@ -144,6 +153,23 @@ public class EntriesController : Controller
         _logger.LogInformation("Entry {EntryId} deleted, type {EntryType}", id, type);
 
         return RedirectToDay(day);
+    }
+
+    /// <summary>
+    /// Looks a posted type name up against the types table. The name is returned in its
+    /// stored casing so entries are never filed under a variant the user typed into the URL.
+    /// </summary>
+    private async Task<(TypeAvailability Availability, string? CanonicalName)> ResolveType(string? name)
+    {
+        var types = await _db.EntryTypes
+            .AsNoTracking()
+            .Select(t => new { t.Name, t.IsActive })
+            .ToListAsync();
+
+        var availability = EntryTypeRules.CheckAvailable(name, types.Select(t => (t.Name, t.IsActive)));
+        var canonical = types.FirstOrDefault(t => EntryTypeRules.NamesMatch(t.Name, name))?.Name;
+
+        return (availability, canonical);
     }
 
     private void ApplyRules(EntryFormViewModel form)

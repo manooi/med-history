@@ -8,6 +8,9 @@ public class DayViewModel
 
     public required IReadOnlyList<DayEntryViewModel> Entries { get; init; }
 
+    /// <summary>Active type names, already in the order the "+" buttons should appear.</summary>
+    public required IReadOnlyList<string> NewEntryTypes { get; init; }
+
     public DateOnly PreviousDay => Day.AddDays(-1);
 
     public DateOnly NextDay => Day.AddDays(1);
@@ -20,7 +23,7 @@ public class DayEntryViewModel
     /// <summary>Already converted out of UTC — render as-is.</summary>
     public required DateTimeOffset OccurredAtLocal { get; init; }
 
-    public required EntryType Type { get; init; }
+    public required string Type { get; init; }
 
     public string? Detail { get; init; }
 

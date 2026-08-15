@@ -12,6 +12,11 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
 
     public DbSet<Entry> Entries => Set<Entry>();
 
+    // The types an entry can be created as. Seeded with the five built-ins; rows are
+    // added from the /types page, which is what makes new entry types a data change
+    // rather than a code change.
+    public DbSet<EntryTypeDef> EntryTypes => Set<EntryTypeDef>();
+
     public DbSet<Photo> Photos => Set<Photo>();
 
     // Mapped so migrations own the schema; rows are inserted by DbLoggerProvider
@@ -28,9 +33,10 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
 
         modelBuilder.Entity<Entry>(entry =>
         {
+            // Plain text, not a foreign key — see the comment on Entry.Type. The column
+            // is unchanged from when this was an enum: enums were already persisted by name.
             entry.Property(e => e.Type)
-                .HasConversion<string>()
-                .HasMaxLength(32)
+                .HasMaxLength(EntryTypeDef.NameMaxLength)
                 .IsRequired();
 
             entry.Property(e => e.Severity)
@@ -38,6 +44,18 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
                 .HasMaxLength(32);
 
             entry.HasIndex(e => e.OccurredAt);
+        });
+
+        modelBuilder.Entity<EntryTypeDef>(type =>
+        {
+            type.ToTable("EntryTypes");
+
+            type.Property(t => t.Name).HasMaxLength(EntryTypeDef.NameMaxLength).IsRequired();
+            type.Property(t => t.IsActive).HasDefaultValue(true);
+
+            // Names are unique case-insensitively, enforced by a unique index on
+            // lower("Name") created in the AddEntryTypes migration: EF's model builder
+            // has no API for an expression index, so it cannot live here.
         });
 
         modelBuilder.Entity<Photo>(photo =>

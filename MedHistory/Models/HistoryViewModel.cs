@@ -15,7 +15,7 @@ public class HistoryDayViewModel
 
 public class HistoryTypeCount
 {
-    public required EntryType Type { get; init; }
+    public required string Type { get; init; }
 
     public required int Count { get; init; }
 }

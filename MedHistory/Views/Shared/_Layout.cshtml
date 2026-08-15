@@ -13,6 +13,7 @@
             <div class="flex items-center gap-4 text-sm">
                 <a href="/" class="hover:underline">Today</a>
                 <a href="/history" class="hover:underline">History</a>
+                <a href="/types" class="hover:underline">Types</a>
                 @if (User.Identity?.IsAuthenticated == true)
                 {
                     <form method="post" action="/logout" class="inline">
