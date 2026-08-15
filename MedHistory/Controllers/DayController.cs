@@ -167,7 +167,7 @@ public class DayController : Controller
             // The unique index on Day is the real guard; the check above only beats it if two
             // votes for the same not-yet-voted day race, which is worth losing quietly rather
             // than a 500 — the winning request already recorded the vote, and PRG makes the
-            // loser's redirect harmless. Same pattern as MedsController.AddStock.
+            // loser's redirect harmless. Same pattern as StocksController.AddStock.
             return RedirectToDay(day);
         }
 

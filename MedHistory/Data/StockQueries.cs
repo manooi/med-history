@@ -26,6 +26,19 @@ public static class StockQueries
     }
 
     /// <summary>
+    /// Every stocked medication, for turning a name into a stock link. Read whole because that is
+    /// what <see cref="MedStockRules.ResolveStockId"/> matches against and the table holds one
+    /// person's medications — a query per name would be the expensive way round.
+    ///
+    /// Shared between <see cref="MedHistory.Controllers.MedsController"/>'s allocation writes and
+    /// <see cref="MedHistory.Controllers.StocksController"/>'s relinking — both resolve a plan's
+    /// stock link from the same read, which is what keeps a rename visible to either side without
+    /// a second query shape.
+    /// </summary>
+    public static async Task<List<MedStock>> StockedMedicationsAsync(this AppDbContext db) =>
+        await db.MedStocks.AsNoTracking().ToListAsync();
+
+    /// <summary>
     /// What every dose has been logged against, summed in the database: one row per distinct
     /// (stock link, medication name) pair, not one query per stock row.
     ///
