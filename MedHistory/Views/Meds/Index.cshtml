@@ -18,9 +18,10 @@
 @* Stock belongs to no day: a row counts every dose of that medication ever logged, whichever
    day the page happens to be showing. It leads the page because the flow is stock-first —
    register what is on hand, then plan doses against it. *@
-<section class="mt-6">
-    <h2 class="text-sm font-semibold uppercase tracking-wide">Stock</h2>
-    <p class="mt-1 text-xs text-neutral-500">
+<section class="mt-6 border border-black">
+    <h2 class="border-b border-black bg-neutral-100 px-4 py-2 text-sm font-semibold uppercase tracking-wide">Stock</h2>
+    <div class="p-4">
+    <p class="text-xs text-neutral-500">
         Counts every dose logged against a medication, on any day. Raise a total to record a refill;
         renaming keeps the doses already ticked against it.
     </p>
@@ -45,7 +46,7 @@
     }
     else
     {
-        <ul class="mt-3 border-y border-neutral-300 divide-y divide-neutral-300">
+        <ul class="mt-3 divide-y divide-neutral-300">
             @foreach (var stock in Model.Stocks)
             {
                 <li class="px-1 py-3">
@@ -112,10 +113,12 @@
             Track
         </button>
     </form>
+    </div>
 </section>
 
-<form method="post" action="/day/@dayKey/meds" asp-antiforgery="true" class="mt-8 border-t border-neutral-300 pt-6">
-    <h2 class="text-sm font-semibold uppercase tracking-wide">Add medication</h2>
+<section class="mt-6 border border-black">
+    <h2 class="border-b border-black bg-neutral-100 px-4 py-2 text-sm font-semibold uppercase tracking-wide">Add medication</h2>
+    <form method="post" action="/day/@dayKey/meds" asp-antiforgery="true" class="p-4">
     <div asp-validation-summary="All" class="mb-2 mt-2 text-sm text-neutral-700"></div>
 
     <div class="mt-4">
@@ -208,10 +211,12 @@
             Add
         </button>
     </div>
-</form>
+    </form>
+</section>
 
-<section class="mt-8 border-t border-neutral-300 pt-6">
-    <h2 class="text-sm font-semibold uppercase tracking-wide">This day's plan</h2>
+<section class="mt-6 border border-black">
+    <h2 class="border-b border-black bg-neutral-100 px-4 py-2 text-sm font-semibold uppercase tracking-wide">This day's plan</h2>
+    <div class="p-4">
 
     @if (Model.Allocations.Count == 0)
     {
@@ -221,7 +226,7 @@
     }
     else
     {
-        <ul class="mt-3 border-y border-neutral-300 divide-y divide-neutral-300">
+        <ul class="mt-3 divide-y divide-neutral-300">
             @foreach (var item in Model.Allocations)
             {
                 <li class="flex items-start gap-2 px-1 py-3">
@@ -270,4 +275,5 @@
             </button>
         </form>
     }
+    </div>
 </section>
