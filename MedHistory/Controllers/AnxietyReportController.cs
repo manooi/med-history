@@ -1,16 +1,15 @@
 using MedHistory.Data;
-using MedHistory.Models;
 using MedHistory.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace MedHistory.Controllers;
 
 /// <summary>
 /// The month calendar of anxiety votes, one cell per day. Read-only: nothing here changes a
 /// vote, and every voted cell links back to the day page where the vote itself is set — see
-/// <see cref="DayController.Vote"/>. Shaped the same way <see cref="ReportController"/> shapes
-/// the med report: one query for the month, handed to a pure rules method that owns the grid.
+/// <see cref="DayController.Vote"/>. The month's data and view-model assembly live in
+/// <see cref="AnxietyQueries.MonthAsync"/> — this controller is route parsing and view selection
+/// only, the same split <see cref="ReportController"/> makes for the med report.
 /// </summary>
 public class AnxietyReportController : Controller
 {
@@ -39,21 +38,7 @@ public class AnxietyReportController : Controller
 
     private async Task<IActionResult> ShowMonth(DateOnly anyDayOfMonth)
     {
-        // Normalised here so the query range is the calendar month whatever the caller held.
-        var month = ReportRules.FirstOfMonth(anyDayOfMonth);
-        var next = month.AddMonths(1);
-
-        var votes = await _db.AnxietyVotes
-            .AsNoTracking()
-            .Where(v => v.Day >= month && v.Day < next)
-            .ToListAsync();
-
-        var model = new AnxietyReportViewModel
-        {
-            Month = AnxietyRules.BuildMonth(month, votes),
-            Today = AppTime.Today()
-        };
-
+        var model = await _db.MonthAsync(anyDayOfMonth);
         return View("Index", model);
     }
 }
