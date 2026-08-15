@@ -1,6 +1,18 @@
+# dotnet
+bin/
+obj/
+*.user
+.vs/
 
-# Beads / Dolt files (added by bd init)
-.dolt/
-*.db
-.beads-credential-key
-.beads/proxieddb/
+# node
+node_modules/
+
+# generated css (tailwind build output)
+MedHistory/wwwroot/css/site.css
+
+# local secrets — never commit
+appsettings.*.local.json
+*.pfx
+
+# OS
+.DS_Store

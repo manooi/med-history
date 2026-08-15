@@ -1,77 +1,40 @@
-# Project Instructions for AI Agents
+# CLAUDE.md
 
-This file provides instructions and context for AI coding agents working on this project.
+## Project
 
-<!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:6cd5cc61 -->
-## Beads Issue Tracker
+Personal medical history web app — single user. ASP.NET Core MVC (.NET 10) + PostgreSQL (EF Core/Npgsql) + Tailwind v4. Daily timestamped entries (symptom, bleeding, pill, cough, meal), photos stored in DB as bytea, single-password cookie auth.
 
-This project uses **bd (beads)** for issue tracking. Run `bd prime` to see full workflow context and commands.
+## Repo layout
 
-### Quick Reference
+- `MedHistory/` — app source; dev commands: `cd MedHistory && dotnet build|run|watch`, css: `npm run css`
+- `MedHistory.Tests/` — xUnit tests; `dotnet test` from repo root
+- Repo root — `plans/`, `problems/`, `ROADMAP.md`, this file, `.beads/`, `.claude/`
 
-```bash
-bd ready              # Find available work
-bd show <id>          # View issue details
-bd update <id> --claim  # Claim work
-bd close <id>         # Complete work
-```
+## Working process
 
-### Rules
+Global playbook applies (~/CLAUDE.md gate): **no bead no code**, orchestrator never edits `MedHistory*/` source — all src via `builder` agent (`.claude/agents/builder.md`, model per bead: opus = design-heavy, sonnet = bounded). One bead = one worktree `../med-history-wt/<id>` = one branch `bead/<id>`; merges serial `--ff-only`.
 
-- Use `bd` for ALL task tracking — do NOT use TodoWrite, TaskCreate, or markdown TODO lists
-- Run `bd prime` for detailed command reference and session close protocol
-- Use `bd remember` for persistent knowledge — do NOT use MEMORY.md files
+## Conventions
 
-**Architecture in one line:** issues live in a local Dolt DB; sync uses `refs/dolt/data` on your git remote; `.beads/issues.jsonl` is a passive export. See https://github.com/gastownhall/beads/blob/main/docs/SYNC_CONCEPTS.md for details and anti-patterns.
+- Theme: strict black/white/neutral grays only — **no color Tailwind classes ever**; severity via label text + border weight
+- Enums stored as strings in Postgres
+- Secrets only in user-secrets: `ConnectionStrings:Default`, `Auth:Password` — never in appsettings
+- Photos: bytea in DB, served via `/photos/{id}`, 10 MB/photo cap, image/* only
+- Decision logic extracted as pure functions (testability rule)
 
-## Agent Context Profiles
+## Business rules
 
-The managed Beads block is task-tracking guidance, not permission to override repository, user, or orchestrator instructions.
+- Entry types: Symptom, Bleeding, Pill, Cough, Meal — single `Entry` table, type-specific nullable columns (`Severity` only Bleeding/Cough; `PillName` only Pill)
+- Multiple entries per day, timestamped `OccurredAt` (timestamptz), day view groups by local date
 
-- **Conservative (default)**: Use `bd` for task tracking. Do not run git commits, git pushes, or Dolt remote sync unless explicitly asked. At handoff, report changed files, validation, and suggested next commands.
-- **Minimal**: Keep tool instruction files as pointers to `bd prime`; use the same conservative git policy unless active instructions say otherwise.
-- **Team-maintainer**: Only when the repository explicitly opts in, agents may close beads, run quality gates, commit, and push as part of session close. A current "do not commit" or "do not push" instruction still wins.
+## Problems log
 
-## Session Completion
+`problems/PROBLEMS.md` (one-line index) + `problems/PROBLEMS_DETAILS.md` (full write-ups). Every resolved bug → both files + regression test same commit.
 
-This protocol applies when ending a Beads implementation workflow. It is subordinate to explicit user, repository, and orchestrator instructions.
+## Roadmap / plans
 
-1. **File issues for remaining work** - Create beads for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **Handle git/sync by active profile**:
-   ```bash
-   # Conservative/minimal/default: report status and proposed commands; wait for approval.
-   git status
+`ROADMAP.md` numbered items — tick `[x]` in the same commit as the implementation. Epic plan: `plans/epic-medhistory.md`.
 
-   # Team-maintainer opt-in only, unless current instructions forbid it:
-   git pull --rebase
-   git push
-   git status
-   ```
-5. **Hand off** - Summarize changes, validation, issue status, and any blocked sync/commit/push step
+## Beads
 
-**Critical rules:**
-- Explicit user or orchestrator instructions override this Beads block.
-- Do not commit or push without clear authority from the active profile or the current user request.
-- If a required sync or push is blocked, stop and report the exact command and error.
-<!-- END BEADS INTEGRATION -->
-
-
-## Build & Test
-
-_Add your build and test commands here_
-
-```bash
-# Example:
-# npm install
-# npm test
-```
-
-## Architecture Overview
-
-_Add a brief overview of your project architecture_
-
-## Conventions & Patterns
-
-_Add your project-specific conventions here_
+Epic `med-history-4ei`, children `.1`–`.8`. `bd ready` / `bd show <id>` / `bd update <id> --claim` / `bd close <id>`. `.beads/issues.jsonl` is passive export — never hand-merge.
