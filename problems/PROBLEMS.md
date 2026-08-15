@@ -1,3 +1,5 @@
 # PROBLEMS
 
 _Index of resolved bugs. Details in PROBLEMS_DETAILS.md, same number._
+
+1. Logout link never signed out — layout had GET anchor, endpoint is POST-only → replaced with POST form + antiforgery in _Layout (med-history-4ei.11)

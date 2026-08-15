@@ -13,7 +13,13 @@
             <div class="flex items-center gap-4 text-sm">
                 <a href="/" class="hover:underline">Today</a>
                 <a href="/history" class="hover:underline">History</a>
-                <a href="/logout" class="hover:underline">Logout</a>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <form method="post" action="/logout" class="inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="hover:underline bg-transparent border-0 p-0 cursor-pointer">Logout</button>
+                    </form>
+                }
             </div>
         </div>
     </nav>
