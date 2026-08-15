@@ -15,9 +15,14 @@
                 <div class="flex items-center gap-4 text-sm">
                     <a href="/" class="hover:underline">Today</a>
                     <a href="/history" class="hover:underline">History</a>
-                    <a href="/med-report" class="hover:underline">Med report</a>
-                    <a href="/anxiety-report" class="hover:underline">Anxiety</a>
-                    <a href="/type-report" class="hover:underline">Type report</a>
+                    <div class="group relative inline-block">
+                        <a href="/report" class="hover:underline">Reports ▾</a>
+                        <div class="absolute right-0 z-10 hidden w-44 flex-col border border-black bg-white text-black group-hover:flex">
+                            <a href="/med-report" class="px-3 py-2 hover:bg-black hover:text-white">Med report</a>
+                            <a href="/anxiety-report" class="px-3 py-2 hover:bg-black hover:text-white">Anxiety report</a>
+                            <a href="/type-report" class="px-3 py-2 hover:bg-black hover:text-white">Type report</a>
+                        </div>
+                    </div>
                     <a href="/types" class="hover:underline">Types</a>
                     <form method="post" action="/logout" class="inline">
                         @Html.AntiForgeryToken()
