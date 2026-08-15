@@ -50,8 +50,8 @@
         <ul class="border-y border-neutral-300 divide-y divide-neutral-300">
             @foreach (var entry in Model.Entries)
             {
-                <li>
-                    <a href="/entries/@entry.Id/edit" class="flex gap-4 px-1 py-3 hover:bg-neutral-100">
+                <li class="flex items-center gap-2 px-1 py-3 hover:bg-neutral-100">
+                    <a href="/entries/@entry.Id/edit" class="flex min-w-0 flex-1 gap-4">
                         <span class="w-12 shrink-0 text-sm tabular-nums text-neutral-600">
                             @AppTime.TimeLabel(entry.OccurredAtLocal)
                         </span>
@@ -73,6 +73,12 @@
                             }
                         </span>
                     </a>
+                    <form method="post" action="/entries/@entry.Id/delete" asp-antiforgery="true" class="shrink-0">
+                        <button type="submit" onclick="return confirm('Delete this entry?');" aria-label="Delete entry"
+                                class="px-2 py-1 text-sm leading-none text-neutral-400 hover:text-black">
+                            &times;
+                        </button>
+                    </form>
                 </li>
             }
         </ul>
