@@ -19,6 +19,8 @@ single-user app).
 | `9b1.2` | `Data/AllocationQueries` — dedupe allocation/tick/slot EF helpers across Meds/Stocks/Day controllers | 9b1.1 |
 | `9b1.3` | `EntriesController` slim — photo pipeline → `Data/PhotoStore`; `CopyInto`/`ApplyRules` → `EntryRules` (+ tests for moved pure logic, MedStockId-clearing rule preserved) | — |
 | `9b1.4` | `DayController` slim — `ShowDay` assembly → `Data/DayQueries.DayPageAsync` | — |
+| `9b1.5` | Report-family controllers → `Data/*Queries` returning view models (five controllers to ~60 lines) | — |
+| `9b1.6` | Write-side orchestration → `Data/ChecklistStore`, `AnxietyStore`, `LoginThrottleStore` (guards intact; throttle delay + Decide stay visible in AccountController) | 9b1.4 |
 
 ## Build order
 
@@ -39,3 +41,5 @@ single-user app).
 - [x] 9b1.2 Data/AllocationQueries
 - [x] 9b1.3 EntriesController slim (PhotoStore + EntryRules moves)
 - [ ] 9b1.4 DayController slim (DayQueries)
+- [ ] 9b1.5 report-family controllers → Data/ queries (Report, AnxietyReport, TypeReport, Search, DoctorReport)
+- [ ] 9b1.6 write-side orchestration → Data/ stores (tick/untick, vote, login throttle reads/writes)
