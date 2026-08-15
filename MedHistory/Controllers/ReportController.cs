@@ -24,10 +24,10 @@ public class ReportController : Controller
         _db = db;
     }
 
-    [HttpGet("/report")]
+    [HttpGet("/med-report")]
     public Task<IActionResult> Index() => ShowMonth(ReportRules.FirstOfMonth(AppTime.Today()));
 
-    [HttpGet("/report/{ym}")]
+    [HttpGet("/med-report/{ym}")]
     public Task<IActionResult> ByMonth(string ym)
     {
         if (!ReportRules.TryParseMonth(ym, out var month))

@@ -4,7 +4,7 @@
 }
 
 <header class="flex items-center justify-between gap-4 border-b border-black pb-4">
-    <a href="/report/@Model.Month.PreviousKey" title="Previous month"
+    <a href="/med-report/@Model.Month.PreviousKey" title="Previous month"
        class="border border-black px-3 py-1 text-sm hover:bg-black hover:text-white">&larr;</a>
 
     <div class="text-center">
@@ -12,14 +12,14 @@
         <p class="text-xs uppercase tracking-wide text-neutral-500">@Model.Month.ProgressLabel</p>
     </div>
 
-    <a href="/report/@Model.Month.NextKey" title="Next month"
+    <a href="/med-report/@Model.Month.NextKey" title="Next month"
        class="border border-black px-3 py-1 text-sm hover:bg-black hover:text-white">&rarr;</a>
 </header>
 
 <div class="mt-4 flex items-center gap-4 text-sm">
     @if (!Model.IsCurrentMonth)
     {
-        <a href="/report" class="underline hover:no-underline">This month</a>
+        <a href="/med-report" class="underline hover:no-underline">This month</a>
     }
     <a href="/" class="ml-auto underline hover:no-underline">Back to today</a>
 </div>

@@ -97,7 +97,7 @@ public static class ReportRules
 {
     public const int DaysPerWeek = 7;
 
-    /// <summary>The URL segment form of a month, e.g. <c>/report/2026-08</c>.</summary>
+    /// <summary>The URL segment form of a month, e.g. <c>/med-report/2026-08</c>.</summary>
     public const string MonthFormat = "yyyy-MM";
 
     /// <summary>Column headings, in the grid's own order. Monday first, as the weeks are built.</summary>
