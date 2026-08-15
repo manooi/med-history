@@ -35,6 +35,12 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
 
     public DbSet<Photo> Photos => Set<Photo>();
 
+    // Failed login POSTs, kept only long enough to throttle and lock out repeated failures — see
+    // LoginThrottleRules. A successful login clears the table outright rather than adding a row,
+    // so in practice every row here has Succeeded false; the column exists for the schema to say
+    // that plainly instead of it being implicit.
+    public DbSet<LoginAttempt> LoginAttempts => Set<LoginAttempt>();
+
     // Mapped so migrations own the schema; rows are inserted by DbLoggerProvider
     // over a separate connection, never through this context.
     public DbSet<LogEntry> Logs => Set<LogEntry>();
@@ -166,6 +172,14 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
                 .WithMany(e => e.Photos)
                 .HasForeignKey(p => p.EntryId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<LoginAttempt>(attempt =>
+        {
+            attempt.ToTable("LoginAttempts");
+
+            // Every read is "failures in the last N minutes" — see LoginThrottleRules.CutoffUtc.
+            attempt.HasIndex(a => a.AttemptedAtUtc);
         });
 
         modelBuilder.Entity<LogEntry>(log =>

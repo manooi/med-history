@@ -1,21 +1,26 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using MedHistory.Data;
 using MedHistory.Models;
+using MedHistory.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace MedHistory.Controllers;
 
 public class AccountController : Controller
 {
+    private readonly AppDbContext _db;
     private readonly IConfiguration _configuration;
     private readonly ILogger<AccountController> _logger;
 
-    public AccountController(IConfiguration configuration, ILogger<AccountController> logger)
+    public AccountController(AppDbContext db, IConfiguration configuration, ILogger<AccountController> logger)
     {
+        _db = db;
         _configuration = configuration;
         _logger = logger;
     }
@@ -46,6 +51,27 @@ public class AccountController : Controller
             return RedisplayLogin(model);
         }
 
+        var now = DateTime.UtcNow;
+
+        var recentFailures = await _db.LoginAttempts
+            .AsNoTracking()
+            .Where(a => !a.Succeeded && a.AttemptedAtUtc >= LoginThrottleRules.CutoffUtc(now))
+            .Select(a => a.AttemptedAtUtc)
+            .ToListAsync();
+
+        var throttleDecision = LoginThrottleRules.Decide(recentFailures, now);
+
+        if (throttleDecision is LoginThrottleDecision.LockedUntil lockedUntil)
+        {
+            // Neither the password nor a fresh attempt is recorded here — a locked-out request
+            // never touches either, which is what keeps the lockout's own expiry from moving.
+            var remainingMinutes = Math.Max(1, (int)Math.Ceiling((lockedUntil.UntilUtc - now).TotalMinutes));
+            _logger.LogWarning("Login rejected: locked out from {RemoteAddress}",
+                HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown");
+            ModelState.AddModelError(string.Empty, $"Too many attempts — try again in {remainingMinutes} min.");
+            return RedisplayLogin(model);
+        }
+
         var providedBytes = Encoding.UTF8.GetBytes(model.Password);
         var configuredBytes = Encoding.UTF8.GetBytes(configuredPassword);
 
@@ -57,9 +83,20 @@ public class AccountController : Controller
             // The submitted password never reaches the log, here or anywhere.
             _logger.LogWarning("Login failed: incorrect password from {RemoteAddress}",
                 HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown");
+
+            _db.LoginAttempts.Add(new LoginAttempt { AttemptedAtUtc = now, Succeeded = false });
+            await _db.SaveChangesAsync();
+
+            // Fixed cost per wrong guess, locked out or not — see LoginThrottleRules.FailDelay.
+            await Task.Delay(LoginThrottleRules.FailDelay);
+
             ModelState.AddModelError(string.Empty, "Incorrect password.");
             return RedisplayLogin(model);
         }
+
+        // A successful login clears the failure streak outright rather than recording a success
+        // row — see the comment on LoginAttempt.
+        await _db.LoginAttempts.ExecuteDeleteAsync();
 
         var identity = new ClaimsIdentity(
             new[] { new Claim(ClaimTypes.Name, "owner") },
