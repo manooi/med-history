@@ -30,9 +30,6 @@ Epic: `med-history-4ei` — personal medical history web app. Plan: [`plans/epic
 - [x] 17. Login throttling — 2s fail delay + DB-backed lockout (`med-history-435`)
 - [x] 18. Client-side image downscale before upload (`med-history-26d`)
 - [x] 19. Search over note + med name (`med-history-f1t`)
-- [x] 17. Login throttling — 2s fail delay + DB-backed lockout (`med-history-435`)
-- [x] 18. Client-side image downscale before upload (`med-history-26d`)
-- [x] 19. Search over note + med name (`med-history-f1t`)
 - [x] 20. Doctor summary export, print-CSS (`med-history-lqv`)
 - [x] 21. PWA manifest + home-screen icon (`med-history-9lf`)
 
