@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "med_history",
+  "project_id": "60a6021f-8b3b-4b86-bf5f-bce27f9c7991"
+}
