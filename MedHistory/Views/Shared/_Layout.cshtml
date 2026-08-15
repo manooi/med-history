@@ -52,10 +52,10 @@
 <body class="bg-white text-black dark:bg-neutral-800 dark:text-neutral-100">
     @if (User.Identity?.IsAuthenticated == true)
     {
-        <nav class="border-b border-black dark:border-neutral-100 print:hidden">
+        <nav class="relative border-b border-black dark:border-neutral-100 print:hidden">
             <div class="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
-                <a href="/" class="font-mono font-bold tracking-tight hover:underline">med-history</a>
-                <div class="flex items-center gap-4 text-sm">
+                <a href="/" class="font-mono font-bold tracking-tight hover:underline whitespace-nowrap">med-history</a>
+                <div class="hidden sm:flex items-center gap-4 text-sm">
                     <a href="/" class="hover:underline">Today</a>
                     <a href="/history" class="hover:underline">History</a>
                     <div class="group relative inline-block">
@@ -73,31 +73,52 @@
                        Only the script knows which that is, so the markup ships a placeholder
                        and the script below — inline, so it runs before the nav is painted —
                        writes the real word in. *@
-                    <button type="button" id="theme-toggle" class="hover:underline bg-transparent border-0 p-0">Auto</button>
-                    <script>
-                        (function () {
-                            var button = document.getElementById('theme-toggle');
-                            var next = { auto: 'dark', dark: 'light', light: 'auto' };
-
-                            function render() {
-                                var mode = window.medTheme.mode();
-                                button.textContent = mode.charAt(0).toUpperCase() + mode.slice(1);
-                                button.setAttribute('aria-label', 'Theme: ' + mode + '. Switch to ' + next[mode] + '.');
-                            }
-
-                            button.addEventListener('click', function () {
-                                window.medTheme.set(next[window.medTheme.mode()]);
-                                render();
-                            });
-
-                            render();
-                        })();
-                    </script>
+                    <button type="button" class="theme-toggle hover:underline bg-transparent border-0 p-0">Auto</button>
                     <form method="post" action="/logout" class="inline">
                         @Html.AntiForgeryToken()
                         <button type="submit" class="hover:underline bg-transparent border-0 p-0">Logout</button>
                     </form>
                 </div>
+                <details class="sm:hidden">
+                    <summary class="list-none [&::-webkit-details-marker]:hidden cursor-pointer hover:underline">&#9776;</summary>
+                    <div class="absolute left-0 right-0 z-10 flex flex-col border border-black bg-white text-black dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100">
+                        <a href="/" class="px-4 py-3 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">Today</a>
+                        <a href="/history" class="px-4 py-3 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">History</a>
+                        <a href="/report" class="px-4 py-3 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">Reports</a>
+                        <a href="/search" class="px-4 py-3 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">Search</a>
+                        <a href="/types" class="px-4 py-3 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">Types</a>
+                        <button type="button" class="theme-toggle px-4 py-3 text-left bg-transparent border-0 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">Auto</button>
+                        <form method="post" action="/logout">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="w-full px-4 py-3 text-left bg-transparent border-0 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">Logout</button>
+                        </form>
+                    </div>
+                </details>
+                <script>
+                    (function () {
+                        var buttons = document.querySelectorAll('.theme-toggle');
+                        var next = { auto: 'dark', dark: 'light', light: 'auto' };
+
+                        function render() {
+                            var mode = window.medTheme.mode();
+                            var label = mode.charAt(0).toUpperCase() + mode.slice(1);
+                            var aria = 'Theme: ' + mode + '. Switch to ' + next[mode] + '.';
+                            buttons.forEach(function (button) {
+                                button.textContent = label;
+                                button.setAttribute('aria-label', aria);
+                            });
+                        }
+
+                        buttons.forEach(function (button) {
+                            button.addEventListener('click', function () {
+                                window.medTheme.set(next[window.medTheme.mode()]);
+                                render();
+                            });
+                        });
+
+                        render();
+                    })();
+                </script>
             </div>
         </nav>
     }
