@@ -1,11 +1,16 @@
 namespace MedHistory.Models;
 
 /// <summary>
-/// How much of one medication is on hand. One row per medication name, and the name is the
-/// whole of the link to the doses that draw it down: a dose is a Pill <see cref="Entry"/>
-/// carrying a <see cref="Entry.PillName"/>, and nothing else ties the two together. That is
-/// deliberate — a dose typed in by hand is as real as one ticked off the checklist, and both
-/// have to count.
+/// How much of one medication is on hand. One row per medication, and a dose draws it down two
+/// ways, because there are two kinds of dose:
+/// <list type="bullet">
+/// <item>a dose ticked off the checklist carries this row's id — see
+/// <see cref="Entry.MedStockId"/> — and keeps counting here however the row is renamed;</item>
+/// <item>a dose typed in by hand carries only a <see cref="Entry.PillName"/> and is matched to
+/// this row by name, so it follows whatever the row is called now.</item>
+/// </list>
+/// A dose typed in by hand is as real as one ticked, and both have to count; the id exists so the
+/// first kind stops depending on a name that is only ever display.
 ///
 /// Only the total is stored. What has been consumed is summed from the entries every time a
 /// page renders, never written here, so deleting a logged dose puts its units back with no
@@ -21,7 +26,10 @@ public class MedStock
 
     public int Id { get; set; }
 
-    /// <summary>Stored trimmed, in the casing it was typed; unique case-insensitively.</summary>
+    /// <summary>
+    /// Stored trimmed, in the casing it was typed; unique case-insensitively. Editable: a rename
+    /// is safe by construction now that ticked doses hold this row's id rather than its name.
+    /// </summary>
     public string Name { get; set; } = string.Empty;
 
     /// <summary>

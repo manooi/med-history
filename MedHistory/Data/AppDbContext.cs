@@ -23,8 +23,10 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
     // ChecklistRules.
     public DbSet<MedAllocation> MedAllocations => Set<MedAllocation>();
 
-    // How much of each medication is on hand. One row per name, and the name is the only
-    // link to the doses that draw it down — see MedStock.
+    // How much of each medication is on hand. Ticked doses link to a row by id and hand-typed
+    // ones by name, which is what lets a row be renamed without losing its history — see
+    // MedStock. No foreign key points here either way; a removed row leaves links dangling and
+    // that is expected.
     public DbSet<MedStock> MedStocks => Set<MedStock>();
 
     public DbSet<Photo> Photos => Set<Photo>();
@@ -61,6 +63,11 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
             // Nullable and left that way for hand-made entries: null reads as one unit
             // wherever doses are totalled, so no backfill is needed or wanted.
             entry.Property(e => e.DoseQuantity).HasPrecision(5, 2);
+
+            // MedStockId needs no configuration: like ChecklistAllocationId it is a plain
+            // nullable integer with no foreign key — see the comment on Entry.MedStockId. It is
+            // deliberately not indexed; every read of it groups the whole Pill history at once,
+            // which no index on one column would help.
 
             entry.HasIndex(e => e.OccurredAt);
         });
@@ -110,6 +117,9 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
                 .HasConversion<string>()
                 .HasMaxLength(32)
                 .IsRequired();
+
+            // MedStockId, like Entry's, is a plain nullable integer with no foreign key — see
+            // the comment on MedAllocation.MedStockId.
 
             // Every read is "the allocations of one day".
             allocation.HasIndex(a => a.Day);

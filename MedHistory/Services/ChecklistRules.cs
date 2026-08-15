@@ -239,7 +239,10 @@ public static class ChecklistRules
     ///
     /// <paramref name="stock"/> is optional because the checklist works perfectly well with
     /// nothing stocked: a medication no stock row names simply shows no count, and passing
-    /// nothing at all is that case for every row.
+    /// nothing at all is that case for every row. Which stock a row reads is the allocation's own
+    /// link where it has one, falling back to its name where it does not — the same order the
+    /// doses beneath it are counted in, so the row never shows a count the meds page disagrees
+    /// with. See <see cref="MedStockRules.FindRemaining"/>.
     /// </summary>
     public static IReadOnlyList<ChecklistRow> DeriveRows(
         IEnumerable<MedAllocation> allocations,
@@ -255,7 +258,7 @@ public static class ChecklistRules
                 allocation.Name,
                 MedPlanRules.DescribeAllocation(allocation.MealRelation, allocation.Method),
                 allocation.DoseQuantity,
-                MedStockRules.FindRemaining(stocked, allocation.Name),
+                MedStockRules.FindRemaining(stocked, allocation.MedStockId, allocation.Name),
                 MedPlanRules.Each(allocation.Slots)
                     .Select(slot => new ChecklistSlotState(
                         slot,

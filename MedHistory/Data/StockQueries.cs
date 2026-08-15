@@ -26,11 +26,16 @@ public static class StockQueries
     }
 
     /// <summary>
-    /// What every medication name has had logged against it, summed in the database: one row
-    /// per distinct stored name, not one query per stock row.
+    /// What every dose has been logged against, summed in the database: one row per distinct
+    /// (stock link, medication name) pair, not one query per stock row.
     ///
-    /// Grouped by the name exactly as stored, so casing and stray spaces still produce separate
-    /// rows here; folding those together is <see cref="MedStockRules.DeriveRows"/>'s job, which
+    /// Both halves are the grouping key because both are how a dose finds its stock — the id a
+    /// tick stamped on it, or, failing that, the name it was written with. Grouping on the pair
+    /// rather than reading each route separately keeps this to one query and leaves
+    /// <see cref="MedStockRules.DeriveRows"/> to decide which half of each group applies.
+    ///
+    /// Names are grouped exactly as stored, so casing and stray spaces still produce separate rows
+    /// here; folding those together is <see cref="MedStockRules.DeriveRows"/>'s job too, which
     /// keeps name matching a single rule in the app rather than one that half depends on the
     /// database's idea of lower-casing.
     /// </summary>
@@ -38,15 +43,17 @@ public static class StockQueries
     {
         var rows = await db.Entries
             .AsNoTracking()
-            .Where(e => e.Type == BuiltInEntryTypes.Pill && e.PillName != null)
-            .GroupBy(e => e.PillName!)
+            // A dose with neither a link nor a name can draw down nothing, so it is not read.
+            .Where(e => e.Type == BuiltInEntryTypes.Pill && (e.MedStockId != null || e.PillName != null))
+            .GroupBy(e => new { e.MedStockId, e.PillName })
             .Select(g => new
             {
-                Name = g.Key,
+                g.Key.MedStockId,
+                g.Key.PillName,
                 Quantity = g.Sum(e => e.DoseQuantity ?? MedPlanRules.DefaultDoseQuantity)
             })
             .ToListAsync();
 
-        return rows.Select(r => new MedUsage(r.Name, r.Quantity)).ToList();
+        return rows.Select(r => new MedUsage(r.MedStockId, r.PillName, r.Quantity)).ToList();
     }
 }

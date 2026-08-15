@@ -13,14 +13,19 @@ namespace MedHistory.Controllers;
 /// logged dose.
 ///
 /// Editing changes the plan only. Entries a tick already created keep whatever
-/// <c>PillName</c>, <c>Note</c> and <c>DoseQuantity</c> they were logged with — a tick is a
-/// historical fact, and an edit reaches forward, never back. An edit may also be applied to
-/// every future allocation that shares the row's pre-edit name via <c>applyForward</c>,
-/// including a rename; see <see cref="ChecklistRules.AffectedAllocations"/>.
+/// <c>PillName</c>, <c>Note</c>, <c>DoseQuantity</c> and <c>MedStockId</c> they were logged
+/// with — a tick is a historical fact, and an edit reaches forward, never back. An edit may also
+/// be applied to every future allocation that shares the row's pre-edit name via
+/// <c>applyForward</c>, including a rename; see <see cref="ChecklistRules.AffectedAllocations"/>.
 ///
 /// The page's stock section is maintained here too. Stock belongs to no day — a row is one
 /// medication's count across the whole history — so its actions carry the page's date only to
 /// know where to land afterwards.
+///
+/// Both halves meet at <see cref="MedAllocation.MedStockId"/>: an allocation is resolved to a
+/// stock row by name when it is written, and every allocation is re-resolved whenever the stocked
+/// names change. Everything after that point works from the id, which is what lets either side be
+/// renamed without disconnecting the doses already logged.
 /// </summary>
 public class MedsController : Controller
 {
@@ -109,6 +114,11 @@ public class MedsController : Controller
         var existingByDay = await AllocationNamesByDay(rangeFrom, rangeTo);
         var targetDays = ChecklistRules.DaysToAllocate(candidateDays, normalizedName, existingByDay);
 
+        // Resolved once for the whole range: every day gets the same name, so it can only reach
+        // the same stock. Null when nothing stocks it, which is not an error — the plan simply
+        // draws on no counted supply.
+        var stockId = MedStockRules.ResolveStockId(await StockedMedications(), normalizedName);
+
         foreach (var target in targetDays)
         {
             _db.MedAllocations.Add(new MedAllocation
@@ -117,6 +127,7 @@ public class MedsController : Controller
                 Name = normalizedName,
                 Slots = chosen,
                 DoseQuantity = quantity,
+                MedStockId = stockId,
                 MealRelation = mealRelation,
                 Method = method
             });
@@ -149,6 +160,7 @@ public class MedsController : Controller
         var previous = day.AddDays(-1);
         var source = await _db.MedAllocations.AsNoTracking().Where(a => a.Day == previous).OrderBy(a => a.Id).ToListAsync();
         var copied = ChecklistRules.AllocationsToCopy(source, await AllocationNames(day));
+        var stocks = await StockedMedications();
 
         // The plan only, in full: the copies carry the same slots, dose, meal relation and
         // method, and start with nothing ticked however much of the previous day was.
@@ -160,6 +172,10 @@ public class MedsController : Controller
                 Name = allocation.Name,
                 Slots = allocation.Slots,
                 DoseQuantity = allocation.DoseQuantity,
+                // Resolved from the name rather than copied from the source row: the copy is a
+                // new plan and links to whatever stocks that medication today, which is right
+                // even if the source's own link has since gone stale.
+                MedStockId = MedStockRules.ResolveStockId(stocks, allocation.Name),
                 MealRelation = allocation.MealRelation,
                 Method = allocation.Method
             });
@@ -303,11 +319,18 @@ public class MedsController : Controller
 
         var rows = await _db.MedAllocations.Where(a => affectedIds.Contains(a.Id)).ToListAsync();
 
+        // Re-resolved from the name being saved, once for every affected row because they all end
+        // up named the same. A rename therefore re-points the plan at whatever stocks the new
+        // name, or at nothing — while the doses already ticked keep the id they were stamped
+        // with, which is what stops a rename disconnecting them.
+        var stockId = MedStockRules.ResolveStockId(await StockedMedications(), normalizedName);
+
         foreach (var row in rows)
         {
             row.Name = normalizedName;
             row.Slots = chosen;
             row.DoseQuantity = quantity;
+            row.MedStockId = stockId;
             row.MealRelation = mealRelation;
             row.Method = method;
         }
@@ -332,14 +355,14 @@ public class MedsController : Controller
         }
 
         var existingNames = await _db.MedStocks.AsNoTracking().Select(s => s.Name).ToListAsync();
-        var errors = MedStockRules.ValidateNewStock(name, total, existingNames, out var parsedTotal);
+        var errors = MedStockRules.ValidateStock(name, total, existingNames, out var parsedTotal);
 
         if (errors.Count > 0)
         {
             return View("Index", await BuildModel(day, stock: new StockEcho(errors, name, total)));
         }
 
-        // Non-null: ValidateNewStock rejects a name that normalises away.
+        // Non-null: ValidateStock rejects a name that normalises away.
         var normalizedName = MedStockRules.NormalizeName(name)!;
 
         _db.MedStocks.Add(new MedStock { Name = normalizedName, TotalCount = parsedTotal });
@@ -358,6 +381,10 @@ public class MedsController : Controller
                 [$"\"{normalizedName}\" is already stocked."], name, total)));
         }
 
+        // A new row may claim a name the plan was already using unlinked, so the links are
+        // re-resolved before anything reads them.
+        await RelinkAllocations();
+
         // Ids and counts only — a medication name is health data and stays out of the log.
         _logger.LogInformation("Stock row added");
 
@@ -366,7 +393,7 @@ public class MedsController : Controller
 
     [HttpPost("/day/{date}/meds/stock/{id:int}")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> UpdateStock(string date, int id, string? total)
+    public async Task<IActionResult> UpdateStock(string date, int id, string? name, string? total)
     {
         if (!AppTime.TryParseDay(date, out var day))
         {
@@ -380,21 +407,54 @@ public class MedsController : Controller
             return NotFound();
         }
 
-        // The total is the whole of what an edit changes: a refill is this number going up, and
-        // renaming a stock row would silently move it to a different set of doses, so the name
-        // is not editable — the row is removed and added again under the name that was meant.
-        var errors = MedStockRules.ValidateTotal(total, out var parsedTotal);
+        // Both halves are editable: a refill is the total going up, and a rename is now safe
+        // because the doses ticked against this row carry its id, not its name — they stay
+        // counted here whatever it is called. Hand-typed doses follow the name instead and move
+        // with it, which is the only thing a rename can change.
+        //
+        // The duplicate check excludes this row so leaving the name alone is not read as a
+        // collision with itself.
+        var otherNames = await _db.MedStocks
+            .AsNoTracking()
+            .Where(s => s.Id != id)
+            .Select(s => s.Name)
+            .ToListAsync();
+
+        var errors = MedStockRules.ValidateStock(name, total, otherNames, out var parsedTotal);
 
         if (errors.Count > 0)
         {
             return View("Index", await BuildModel(day, stock: new StockEcho(
-                errors, RejectedId: id, RejectedTotal: total)));
+                errors, RejectedId: id, RejectedName: name, RejectedTotal: total)));
         }
 
-        stock.TotalCount = parsedTotal;
-        await _db.SaveChangesAsync();
+        // Non-null: ValidateStock rejects a name that normalises away.
+        var normalizedName = MedStockRules.NormalizeName(name)!;
 
-        _logger.LogInformation("Stock {StockId} total updated", id);
+        stock.Name = normalizedName;
+        stock.TotalCount = parsedTotal;
+
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // Same guard AddStock has, for the same reason: the unique index on lower(Name) is
+            // the real one, and losing a race to it deserves a readable message, not a 500.
+            _db.ChangeTracker.Clear();
+
+            return View("Index", await BuildModel(day, stock: new StockEcho(
+                [$"\"{normalizedName}\" is already stocked."],
+                RejectedId: id, RejectedName: name, RejectedTotal: total)));
+        }
+
+        // A rename moves a name off this row and possibly onto it from elsewhere, so the plan's
+        // links are re-resolved before anything reads them. Entries are deliberately untouched —
+        // their stamped ids are what keeps the history attached across the rename.
+        await RelinkAllocations();
+
+        _logger.LogInformation("Stock {StockId} updated", id);
 
         return RedirectToDay(day);
     }
@@ -416,9 +476,16 @@ public class MedsController : Controller
         }
 
         // The row only. The doses counted against it are entries in their own right and stay
-        // exactly where they are; removing the row just stops the app counting them.
+        // exactly where they are; removing the row just stops the app counting them. Their
+        // stamped stock ids are left dangling on purpose — pointing at nothing is what "no
+        // longer tracked" means, and re-adding the row under the same name is not meant to
+        // silently reclaim a history the user stopped counting.
         _db.MedStocks.Remove(stock);
         await _db.SaveChangesAsync();
+
+        // The plan is a different matter: an allocation pointing at a row that is gone would
+        // show no count while still naming the medication, so its link is dropped to null here.
+        await RelinkAllocations();
 
         _logger.LogInformation("Stock {StockId} removed", id);
 
@@ -435,7 +502,56 @@ public class MedsController : Controller
         string? NewName = null,
         string? NewTotal = null,
         int? RejectedId = null,
+        string? RejectedName = null,
         string? RejectedTotal = null);
+
+    /// <summary>
+    /// Every stocked medication, for turning a name into a stock link. Read whole because that is
+    /// what <see cref="MedStockRules.ResolveStockId"/> matches against and the table holds one
+    /// person's medications — a query per name would be the expensive way round.
+    /// </summary>
+    private async Task<List<MedStock>> StockedMedications() =>
+        await _db.MedStocks.AsNoTracking().ToListAsync();
+
+    /// <summary>
+    /// Re-points every allocation at the stock its name now names, and saves. Run after any change
+    /// to the stocked names — an add, a rename or a removal — because all three can move a name
+    /// onto a row or off it, and an allocation left pointing at the wrong one would stamp that
+    /// wrong id onto the next dose ticked.
+    ///
+    /// Sweeping every allocation rather than the ones naming the changed row is deliberate: it is
+    /// one pass over one person's plan and it cannot miss a case. Only the rows whose link
+    /// actually changes are written.
+    /// </summary>
+    private async Task RelinkAllocations()
+    {
+        var stocks = await StockedMedications();
+
+        var links = await _db.MedAllocations
+            .AsNoTracking()
+            .Select(a => new StockLink(a.Id, a.Name, a.MedStockId))
+            .ToListAsync();
+
+        var changed = MedStockRules.Relink(links, stocks);
+
+        if (changed.Count == 0)
+        {
+            return;
+        }
+
+        var resolved = changed.ToDictionary(c => c.AllocationId, c => c.StockId);
+        var ids = resolved.Keys.ToList();
+        var rows = await _db.MedAllocations.Where(a => ids.Contains(a.Id)).ToListAsync();
+
+        foreach (var row in rows)
+        {
+            row.MedStockId = resolved[row.Id];
+        }
+
+        await _db.SaveChangesAsync();
+
+        _logger.LogInformation("{Count} allocation(s) re-linked to stock", rows.Count);
+    }
 
     private async Task<MedsViewModel> BuildModel(
         DateOnly day,
@@ -481,6 +597,7 @@ public class MedsController : Controller
             NewStockName = stock?.NewName,
             NewStockTotal = stock?.NewTotal,
             RejectedStockId = stock?.RejectedId,
+            RejectedStockName = stock?.RejectedName,
             RejectedStockTotal = stock?.RejectedTotal
         };
     }

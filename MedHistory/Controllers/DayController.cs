@@ -70,6 +70,11 @@ public class DayController : Controller
             // Stamped, not looked up: this is what the dose was, and a later edit to the plan
             // must not rewrite it — see Entry.DoseQuantity.
             DoseQuantity = allocation.DoseQuantity,
+            // Stamped for the same reason, and the one that makes renaming safe: the dose stays
+            // counted against the stock it actually came out of however that stock or this plan
+            // is renamed afterwards. Null when nothing stocks the medication, which leaves the
+            // dose counting by name like any hand-typed one — see Entry.MedStockId.
+            MedStockId = allocation.MedStockId,
             // The timeline shows the note as typed, so the slot, the dose and how it is taken
             // are written into it — otherwise a ticked dose reads as a bare medication name.
             Note = MedPlanRules.ComposeNote(

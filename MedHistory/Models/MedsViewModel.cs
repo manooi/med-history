@@ -58,12 +58,21 @@ public class MedsViewModel
     public string? NewStockTotal { get; init; }
 
     /// <summary>
-    /// The stock row whose total was rejected, if any, and what was typed into it — so the
-    /// complaint lands next to the input that caused it rather than on a row that saved fine.
+    /// The stock row whose edit was rejected, if any, and what was typed into it — so the
+    /// complaint lands next to the inputs that caused it rather than on a row that saved fine.
+    /// The name and total travel together because one Save posts both.
     /// </summary>
     public int? RejectedStockId { get; init; }
 
+    public string? RejectedStockName { get; init; }
+
     public string? RejectedStockTotal { get; init; }
+
+    /// <summary>What one stock row's name input shows: the rejected text, else the stored name.</summary>
+    public string StockNameInput(MedStockRow stock) =>
+        RejectedStockId == stock.Id && RejectedStockName is not null
+            ? RejectedStockName
+            : stock.Name;
 
     /// <summary>What one stock row's total input shows: the rejected text, else the stored total.</summary>
     public string StockTotalInput(MedStockRow stock) =>

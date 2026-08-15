@@ -72,6 +72,22 @@ public class MedAllocation
     /// </summary>
     public decimal DoseQuantity { get; set; } = Services.MedPlanRules.DefaultDoseQuantity;
 
+    /// <summary>
+    /// The <see cref="MedStock"/> row this medication draws down, or null when nothing stocks it —
+    /// an eyedrop the user never counts, say.
+    ///
+    /// Resolved from <see cref="Name"/> when the allocation is created or edited, and re-resolved
+    /// for every allocation whenever the stocked names change — see
+    /// <see cref="Services.MedStockRules.ResolveStockId"/> and
+    /// <see cref="Services.MedStockRules.Relink"/>. Past that point the link is an id and the name
+    /// is only display, which is what a tick copies onto <see cref="Entry.MedStockId"/> so a dose
+    /// stays attached to the stock it actually came out of however either is renamed afterwards.
+    ///
+    /// Not a foreign key, for the same reason nothing else here is one: a stock row may be removed
+    /// while the plans that named it stand, and a link to nothing resolves to nothing.
+    /// </summary>
+    public int? MedStockId { get; set; }
+
     public MealRelation MealRelation { get; set; }
 
     public MedMethod Method { get; set; }

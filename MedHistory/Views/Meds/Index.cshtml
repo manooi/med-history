@@ -21,7 +21,8 @@
 <section class="mt-6">
     <h2 class="text-sm font-semibold uppercase tracking-wide">Stock</h2>
     <p class="mt-1 text-xs text-neutral-500">
-        Counts every logged dose of a matching medication name, on any day. Raise a total to record a refill.
+        Counts every dose logged against a medication, on any day. Raise a total to record a refill;
+        renaming keeps the doses already ticked against it.
     </p>
 
     @if (Model.StockErrors.Count > 0)
@@ -47,39 +48,44 @@
         <ul class="mt-3 border-y border-neutral-300 divide-y divide-neutral-300">
             @foreach (var stock in Model.Stocks)
             {
-                <li class="flex flex-wrap items-center gap-x-3 gap-y-2 px-1 py-3">
-                    <span class="min-w-0 flex-1">
-                        <span class="block text-sm font-medium">@stock.Name</span>
-                        <span class="block text-xs text-neutral-500">
-                            @MedPlanRules.FormatQuantity(stock.Consumed) taken ·
-                            @MedPlanRules.FormatQuantity(stock.Remaining) left
-                        </span>
-                    </span>
+                <li class="px-1 py-3">
+                    <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+                        @* Name and total are one form and one Save — both are simply what the row
+                           says about itself. Renaming is safe: doses ticked against this row carry
+                           its id, so they stay counted here whatever it comes to be called. *@
+                        <form method="post" action="/day/@dayKey/meds/stock/@stock.Id" asp-antiforgery="true"
+                              class="flex min-w-0 flex-1 items-center gap-1">
+                            <input type="text" name="name" required autocomplete="off"
+                                   maxlength="@MedStockRules.NameMaxLength"
+                                   value="@Model.StockNameInput(stock)"
+                                   aria-label="Medication name"
+                                   class="min-w-0 flex-1 border border-black bg-white px-2 py-1 text-sm font-medium text-black" />
+                            <input type="number" name="total" required step="0.01" min="0"
+                                   max="@MedPlanRules.FormatQuantity(MedStockRules.MaxTotal)"
+                                   value="@Model.StockTotalInput(stock)"
+                                   aria-label="Total stocked of @stock.Name"
+                                   class="w-20 shrink-0 border border-black bg-white px-2 py-1 text-sm text-black" />
+                            <button type="submit"
+                                    class="shrink-0 border border-black bg-white px-2 py-1 text-xs text-black hover:bg-black hover:text-white">
+                                Save
+                            </button>
+                        </form>
 
-                    @* The total is the only editable field: renaming a row would silently move
-                       it onto a different set of doses. *@
-                    <form method="post" action="/day/@dayKey/meds/stock/@stock.Id" asp-antiforgery="true"
-                          class="flex shrink-0 items-center gap-1">
-                        <input type="number" name="total" required step="0.01" min="0"
-                               max="@MedPlanRules.FormatQuantity(MedStockRules.MaxTotal)"
-                               value="@Model.StockTotalInput(stock)"
-                               aria-label="Total stocked of @stock.Name"
-                               class="w-20 border border-black bg-white px-2 py-1 text-sm text-black" />
-                        <button type="submit"
-                                class="border border-black bg-white px-2 py-1 text-xs text-black hover:bg-black hover:text-white">
-                            Save
-                        </button>
-                    </form>
+                        @* Red is the carve-out from the monochrome rule: a destructive control must
+                           not read the same as the Save beside it. *@
+                        <form method="post" action="/day/@dayKey/meds/stock/@stock.Id/delete" asp-antiforgery="true" class="shrink-0">
+                            <button type="submit" onclick="return confirm('Stop tracking stock for this medication? Logged doses are kept.');"
+                                    aria-label="Stop tracking stock"
+                                    class="px-2 py-1 text-sm leading-none text-red-600 hover:text-red-800">
+                                &times;
+                            </button>
+                        </form>
+                    </div>
 
-                    @* Red is the carve-out from the monochrome rule: a destructive control must
-                       not read the same as the Save beside it. *@
-                    <form method="post" action="/day/@dayKey/meds/stock/@stock.Id/delete" asp-antiforgery="true" class="shrink-0">
-                        <button type="submit" onclick="return confirm('Stop tracking stock for this medication? Logged doses are kept.');"
-                                aria-label="Stop tracking stock"
-                                class="px-2 py-1 text-sm leading-none text-red-600 hover:text-red-800">
-                            &times;
-                        </button>
-                    </form>
+                    <p class="mt-1 text-xs text-neutral-500">
+                        @MedPlanRules.FormatQuantity(stock.Consumed) taken ·
+                        @MedPlanRules.FormatQuantity(stock.Remaining) left
+                    </p>
                 </li>
             }
         </ul>

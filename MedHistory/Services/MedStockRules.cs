@@ -3,11 +3,19 @@ using MedHistory.Models;
 namespace MedHistory.Services;
 
 /// <summary>
-/// Doses logged under one medication name — one contribution to a stock row's consumption.
-/// The name is whatever the entries carried; matching it to a stock row is
+/// Doses logged against one stock link — one contribution to a stock row's consumption. Both
+/// halves of the link are carried because a dose finds its stock either way: by
+/// <paramref name="StockId"/> when a tick stamped one onto it, and by
+/// <paramref name="Name"/> when nothing did. Which applies is
 /// <see cref="MedStockRules.DeriveRows"/>'s job, not the caller's.
 /// </summary>
-public readonly record struct MedUsage(string? Name, decimal Quantity);
+public readonly record struct MedUsage(int? StockId, string? Name, decimal Quantity);
+
+/// <summary>
+/// An allocation reduced to what re-resolving its stock link needs: which row it is, the
+/// medication it names, and the stock it points at now. See <see cref="MedStockRules.Relink"/>.
+/// </summary>
+public readonly record struct StockLink(int AllocationId, string? Name, int? StockId);
 
 /// <summary>
 /// One stock row as a page renders it: what was stocked, what has been taken against it, and
@@ -27,10 +35,13 @@ public readonly record struct MedStockRow(int Id, string Name, decimal Total, de
 /// Pure medication-stock rules — no clock, no database, no HTTP. The meds page and the day
 /// view make every stock decision through here so they can be unit tested without a database.
 ///
-/// A stock row is joined to the doses that draw it down by name alone, matched the way every
-/// other medication name in the app is matched: trimmed and case-insensitive, via
-/// <see cref="ChecklistRules.NamesMatch"/>. Consumption is derived on every render and never
-/// stored, so it cannot drift from the entries it is counted from.
+/// A stock row is joined to the doses that draw it down by id where there is one and by name
+/// where there is not. A ticked dose carries the id of the stock it came out of, so it keeps
+/// counting against that row however the row or the plan is renamed afterwards; a hand-typed
+/// dose has only a name, matched the way every other medication name in the app is matched —
+/// trimmed and case-insensitive, via <see cref="ChecklistRules.NamesMatch"/> — so it follows
+/// whatever the row is called now. Consumption is derived on every render and never stored, so
+/// it cannot drift from the entries it is counted from.
 ///
 /// Nothing here decides whether a dose may be taken. Remaining is allowed to go negative
 /// because a stock count that is behind reality must never be a reason the user cannot log
@@ -59,14 +70,20 @@ public static class MedStockRules
     public static bool NamesMatch(string? a, string? b) => ChecklistRules.NamesMatch(a, b);
 
     /// <summary>
-    /// Returns one message per broken rule; an empty list means the stock row may be added, and
-    /// <paramref name="total"/> then holds the parsed total. The duplicate check is the friendly
-    /// half of the unique index on lower(Name) that the database also enforces.
+    /// Returns one message per broken rule; an empty list means the stock row may be saved, and
+    /// <paramref name="total"/> then holds the parsed total. One set of rules judges an add and an
+    /// edit alike — a rename is the name half of an edit and a refill is the total half, and
+    /// neither is worth its own set.
+    ///
+    /// <paramref name="otherNames"/> is every stocked name belonging to some row other than the
+    /// one being judged: all of them on an add, all but the row's own on an edit, so a name left
+    /// unchanged is never flagged as a duplicate of itself. The check is the friendly half of the
+    /// unique index on lower(Name) that the database also enforces.
     /// </summary>
-    public static IReadOnlyList<string> ValidateNewStock(
+    public static IReadOnlyList<string> ValidateStock(
         string? rawName,
         string? rawTotal,
-        IEnumerable<string> existingNames,
+        IEnumerable<string> otherNames,
         out decimal total)
     {
         var errors = new List<string>();
@@ -83,7 +100,7 @@ public static class MedStockRules
                 errors.Add($"Medication name must be {NameMaxLength} characters or fewer.");
             }
 
-            if (existingNames.Any(existing => NamesMatch(existing, name)))
+            if (otherNames.Any(existing => NamesMatch(existing, name)))
             {
                 errors.Add($"\"{name}\" is already stocked.");
             }
@@ -132,13 +149,29 @@ public static class MedStockRules
 
     /// <summary>
     /// Builds one row per stock, in the order given, each carrying what has been consumed
-    /// against its name.
+    /// against it.
     ///
-    /// The usage is re-summed here rather than trusted as already grouped: it arrives grouped by
-    /// the database, which groups by the stored name, so two spellings of one medication reach
-    /// this as two entries and have to be folded together by the app's own name matching. Usage
-    /// naming nothing stocked contributes to no row and is simply dropped — an untracked
-    /// medication is not an error.
+    /// Doses reach a stock row by one of two routes, and which route applies is decided by
+    /// whether the dose carries a stock id at all:
+    /// <list type="bullet">
+    /// <item><b>By id.</b> A dose ticked off the checklist was stamped with the id of the stock it
+    /// came out of, and counts against that row whatever it or the plan that logged it is called
+    /// now. This is what survives a rename.</item>
+    /// <item><b>By name.</b> A dose with no id — typed in by hand, or ticked before doses were
+    /// linked — has only the medication name it was written with, so it counts against whichever
+    /// row carries that name today and moves with it if the row is renamed.</item>
+    /// </list>
+    /// The routes are split on the presence of the id, never tried in turn, so a dose is counted
+    /// exactly once: an id-carrying dose whose name also happens to match some other row is
+    /// counted against its id and nowhere else.
+    ///
+    /// Usage that names nothing stocked, or carries the id of a row since removed, contributes to
+    /// no row and is dropped — an untracked medication is not an error, and neither is a dangling
+    /// id.
+    ///
+    /// The name route is re-summed here rather than trusted as already grouped: it arrives grouped
+    /// by the database, which groups by the stored name, so two spellings of one medication reach
+    /// this as two entries and have to be folded together by the app's own name matching.
     /// </summary>
     public static IReadOnlyList<MedStockRow> DeriveRows(
         IEnumerable<MedStock> stocks,
@@ -151,8 +184,67 @@ public static class MedStockRules
                 stock.Id,
                 stock.Name,
                 stock.TotalCount,
-                logged.Where(u => NamesMatch(u.Name, stock.Name)).Sum(u => u.Quantity)))
+                logged.Where(u => DrawsOn(u, stock)).Sum(u => u.Quantity)))
             .ToList();
+    }
+
+    /// <summary>
+    /// Whether one group of logged doses draws down this stock row — the id where the doses carry
+    /// one, the name where they do not. See <see cref="DeriveRows"/> for why it is one or the
+    /// other and never both.
+    /// </summary>
+    private static bool DrawsOn(MedUsage usage, MedStock stock) =>
+        usage.StockId is { } linked ? linked == stock.Id : NamesMatch(usage.Name, stock.Name);
+
+    /// <summary>
+    /// The id of the stock row a medication name draws on, or null when nothing stocks that name.
+    ///
+    /// This is the one place a name becomes a stock link. An allocation resolves through here when
+    /// it is created or edited, and every allocation re-resolves through here whenever the stocked
+    /// names change; after that the link is an id and the name is only what the user reads.
+    /// </summary>
+    public static int? ResolveStockId(IEnumerable<MedStock> stocks, string? name)
+    {
+        foreach (var stock in stocks)
+        {
+            if (NamesMatch(stock.Name, name))
+            {
+                return stock.Id;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// The allocations whose stock link no longer agrees with the stocked names, each carrying the
+    /// link it should have — so a caller writes only the rows that actually change and leaves the
+    /// rest alone.
+    ///
+    /// Every allocation is re-resolved rather than only those naming whichever stock row changed:
+    /// one rename moves a name off one row and onto another in a single edit, an add can claim a
+    /// name plans were already using, and a removal orphans links that now name nothing. Sweeping
+    /// the lot is one pass over one person's medication plan — cheaper than being clever about it,
+    /// and it cannot miss a case.
+    /// </summary>
+    public static IReadOnlyList<StockLink> Relink(
+        IEnumerable<StockLink> allocations,
+        IEnumerable<MedStock> stocks)
+    {
+        var stocked = stocks.ToList();
+        var changed = new List<StockLink>();
+
+        foreach (var allocation in allocations)
+        {
+            var resolved = ResolveStockId(stocked, allocation.Name);
+
+            if (resolved != allocation.StockId)
+            {
+                changed.Add(allocation with { StockId = resolved });
+            }
+        }
+
+        return changed;
     }
 
     /// <summary>
@@ -163,17 +255,37 @@ public static class MedStockRules
         doseQuantity ?? MedPlanRules.DefaultDoseQuantity;
 
     /// <summary>
-    /// What is left of the stock a medication name draws on, or null when nothing stocks that
-    /// name — which is what tells a checklist row to say nothing at all rather than "0 left".
+    /// What is left of the stock a checklist row draws on, or null when nothing stocks it — which
+    /// is what tells the row to say nothing at all rather than "0 left".
+    ///
+    /// The link is tried first and the name only as a fallback, which is exactly how the doses
+    /// beneath it are counted: a row linked to a stock keeps reading that stock's count after
+    /// either has been renamed, and an unlinked one shows whatever is stocked under its name. A
+    /// link to a row since removed finds nothing and reads as unstocked, which it now is.
     /// </summary>
-    public static decimal? FindRemaining(IEnumerable<MedStockRow>? rows, string? name)
+    public static decimal? FindRemaining(IEnumerable<MedStockRow>? rows, int? stockId, string? name)
     {
         if (rows is null)
         {
             return null;
         }
 
-        foreach (var row in rows)
+        var stocked = rows as IReadOnlyCollection<MedStockRow> ?? rows.ToList();
+
+        if (stockId is { } linked)
+        {
+            foreach (var row in stocked)
+            {
+                if (row.Id == linked)
+                {
+                    return row.Remaining;
+                }
+            }
+
+            return null;
+        }
+
+        foreach (var row in stocked)
         {
             if (NamesMatch(row.Name, name))
             {

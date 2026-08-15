@@ -15,7 +15,8 @@ public class ChecklistRulesTests
         MedSlots slots = MedSlots.Morning,
         MealRelation mealRelation = MealRelation.None,
         MedMethod method = MedMethod.Eat,
-        decimal doseQuantity = 1m) =>
+        decimal doseQuantity = 1m,
+        int? medStockId = null) =>
         new()
         {
             Id = id,
@@ -23,6 +24,7 @@ public class ChecklistRulesTests
             Name = name,
             Slots = slots,
             DoseQuantity = doseQuantity,
+            MedStockId = medStockId,
             MealRelation = mealRelation,
             Method = method
         };
@@ -982,5 +984,41 @@ public class ChecklistRulesTests
         Assert.Equal(-2m, rows[0].StockRemaining);
         Assert.Equal("(-2 left)", rows[0].StockLabel);
         Assert.True(rows[0].Slots[0].IsTicked);
+    }
+
+    [Fact]
+    public void DeriveRows_ALinkedAllocation_ReadsItsStockThroughTheRename()
+    {
+        // The stock row has been renamed and the plan has not. Read by name the row would show
+        // no count at all; the link is what keeps it showing the same figure the meds page does.
+        var rows = ChecklistRules.DeriveRows(
+            [Allocation(1, "Pill A", medStockId: 5)],
+            [],
+            [new MedStockRow(5, "Pill A Extra", 30m, 12m)]);
+
+        Assert.Equal(18m, rows[0].StockRemaining);
+        Assert.Equal("(18 left)", rows[0].StockLabel);
+    }
+
+    [Fact]
+    public void DeriveRows_ALinkedAllocation_IgnoresARowMerelySharingItsName()
+    {
+        var rows = ChecklistRules.DeriveRows(
+            [Allocation(1, "Pill A", medStockId: 5)],
+            [],
+            [new MedStockRow(5, "Pill A Extra", 30m, 12m), new MedStockRow(6, "Pill A", 99m, 0m)]);
+
+        Assert.Equal(18m, rows[0].StockRemaining);
+    }
+
+    [Fact]
+    public void DeriveRows_ALinkToAStockSinceRemoved_ShowsNoCount()
+    {
+        var rows = ChecklistRules.DeriveRows(
+            [Allocation(1, "Pill A", medStockId: 5)],
+            [],
+            [new MedStockRow(6, "Pill A", 30m, 12m)]);
+
+        Assert.Null(rows[0].StockRemaining);
     }
 }

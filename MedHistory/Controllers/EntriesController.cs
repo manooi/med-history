@@ -189,6 +189,8 @@ public class EntriesController : Controller
 
     private static void CopyInto(Entry entry, EntryFormViewModel form)
     {
+        var previousPillName = entry.PillName;
+
         entry.OccurredAt = AppTime.FromLocal(form.OccurredAt);
         entry.Note = Trimmed(form.Note);
         entry.Severity = EntryRules.RequiresSeverity(entry.Type) ? form.Severity : null;
@@ -196,6 +198,16 @@ public class EntriesController : Controller
 
         // DoseQuantity is deliberately absent: only a checklist tick ever sets it, and what it
         // recorded is the dose actually taken. An entry without one counts as a single unit.
+
+        // MedStockId is the same kind of stamp, but naming the medication by hand contradicts it:
+        // a tick recorded which stock this dose came out of, and typing a different name says it
+        // came out of something else. Dropping the link puts the dose back on name matching,
+        // which is what every hand-made dose follows. An unchanged name keeps the link, so
+        // correcting a note or a time never disconnects a ticked dose from its stock.
+        if (!MedStockRules.NamesMatch(entry.PillName, previousPillName))
+        {
+            entry.MedStockId = null;
+        }
     }
 
     private void LogPhotosAttached(int entryId, List<IFormFile>? photos)

@@ -59,5 +59,23 @@ public class Entry
     /// </summary>
     public decimal? DoseQuantity { get; set; }
 
+    /// <summary>
+    /// The <see cref="MedStock"/> row this dose came out of, stamped from the allocation when the
+    /// slot was ticked — a historical fact alongside <see cref="PillName"/> and
+    /// <see cref="DoseQuantity"/>, not a reference to be re-read.
+    ///
+    /// This is what makes renaming safe. The name is display and the id is identity, so renaming
+    /// the stock row, or renaming the plan that feeds it, leaves every dose already counted
+    /// against that stock still counted. Joined by name alone, as it was, a rename silently
+    /// disconnected everything logged before it and the remaining count jumped.
+    ///
+    /// Null on every entry the user typed in by hand, and on every dose ticked before doses were
+    /// linked by id. Those are matched to a stock by <see cref="PillName"/> instead, so a manual
+    /// dose follows whatever the stock is called now. Deliberately not a foreign key, the same
+    /// stance <see cref="Type"/> and <see cref="ChecklistAllocationId"/> take: a dangling id — the
+    /// stock row having since been removed — is expected, not a fault, and counts toward nothing.
+    /// </summary>
+    public int? MedStockId { get; set; }
+
     public List<Photo> Photos { get; set; } = [];
 }
