@@ -42,4 +42,4 @@ single-user app).
 - [x] 9b1.3 EntriesController slim (PhotoStore + EntryRules moves)
 - [x] 9b1.4 DayController slim (DayQueries)
 - [x] 9b1.5 report-family controllers → Data/ queries (Report, AnxietyReport, TypeReport, Search, DoctorReport)
-- [ ] 9b1.6 write-side orchestration → Data/ stores (tick/untick, vote, login throttle reads/writes)
+- [x] 9b1.6 write-side orchestration → Data/ stores (tick/untick, vote, login throttle reads/writes)
