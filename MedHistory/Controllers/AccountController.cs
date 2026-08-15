@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace MedHistory.Controllers;
 
@@ -53,11 +52,7 @@ public class AccountController : Controller
 
         var now = DateTime.UtcNow;
 
-        var recentFailures = await _db.LoginAttempts
-            .AsNoTracking()
-            .Where(a => !a.Succeeded && a.AttemptedAtUtc >= LoginThrottleRules.CutoffUtc(now))
-            .Select(a => a.AttemptedAtUtc)
-            .ToListAsync();
+        var recentFailures = await _db.RecentFailureTimesAsync(now);
 
         var throttleDecision = LoginThrottleRules.Decide(recentFailures, now);
 
@@ -84,8 +79,7 @@ public class AccountController : Controller
             _logger.LogWarning("Login failed: incorrect password from {RemoteAddress}",
                 HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown");
 
-            _db.LoginAttempts.Add(new LoginAttempt { AttemptedAtUtc = now, Succeeded = false });
-            await _db.SaveChangesAsync();
+            await _db.RecordFailureAsync(now);
 
             // Fixed cost per wrong guess, locked out or not — see LoginThrottleRules.FailDelay.
             await Task.Delay(LoginThrottleRules.FailDelay);
@@ -96,7 +90,7 @@ public class AccountController : Controller
 
         // A successful login clears the failure streak outright rather than recording a success
         // row — see the comment on LoginAttempt.
-        await _db.LoginAttempts.ExecuteDeleteAsync();
+        await _db.ClearAsync();
 
         var identity = new ClaimsIdentity(
             new[] { new Claim(ClaimTypes.Name, "owner") },

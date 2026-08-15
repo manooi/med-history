@@ -60,29 +60,7 @@ public class DayController : Controller
         // Deliberately no active-type check: Med is built-in and cannot be deleted, and a
         // checklist the user is working through must keep working even if the Med type has
         // been deactivated on the /types page.
-        var entry = new Entry
-        {
-            Type = BuiltInEntryTypes.Med,
-            PillName = allocation.Name,
-            OccurredAt = AppTime.TickTime(allocation.Day, parsed),
-            ChecklistAllocationId = allocation.Id,
-            ChecklistSlot = MedPlanRules.SlotName(parsed),
-            // Stamped, not looked up: this is what the dose was, and a later edit to the plan
-            // must not rewrite it — see Entry.DoseQuantity.
-            DoseQuantity = allocation.DoseQuantity,
-            // Stamped for the same reason, and the one that makes renaming safe: the dose stays
-            // counted against the stock it actually came out of however that stock or this plan
-            // is renamed afterwards. Null when nothing stocks the medication, which leaves the
-            // dose counting by name like any hand-typed one — see Entry.MedStockId.
-            MedStockId = allocation.MedStockId,
-            // The timeline shows the note as typed, so the slot, the dose and how it is taken
-            // are written into it — otherwise a ticked dose reads as a bare medication name.
-            Note = MedPlanRules.ComposeNote(
-                parsed, allocation.MealRelation, allocation.Method, allocation.DoseQuantity)
-        };
-
-        _db.Entries.Add(entry);
-        await _db.SaveChangesAsync();
+        var entry = await _db.TickAsync(allocation, parsed);
 
         _logger.LogInformation(
             "Allocation {AllocationId} slot {Slot} ticked, entry {EntryId} created",
@@ -111,14 +89,10 @@ public class DayController : Controller
             return RedirectToDay(allocation.Day);
         }
 
-        var entry = await _db.Entries.FindAsync(tick.Value.EntryId);
+        var entry = await _db.UntickAsync(tick.Value.EntryId);
 
         if (entry is not null)
         {
-            // Photos go with it — the FK is ON DELETE CASCADE.
-            _db.Entries.Remove(entry);
-            await _db.SaveChangesAsync();
-
             _logger.LogInformation(
                 "Allocation {AllocationId} slot {Slot} unticked, entry {EntryId} deleted",
                 id, MedPlanRules.SlotName(parsed), entry.Id);
@@ -145,31 +119,8 @@ public class DayController : Controller
 
         // Voting the level already set clears the day — see AnxietyRules.DecideVote, which is
         // what turns a second tap of the same button into the day widget's only undo control.
-        if (AnxietyRules.DecideVote(existing?.Level, requested) == VoteAction.Clear)
-        {
-            _db.AnxietyVotes.Remove(existing!);
-        }
-        else if (existing is null)
-        {
-            _db.AnxietyVotes.Add(new AnxietyVote { Day = day, Level = requested });
-        }
-        else
-        {
-            existing.Level = requested;
-        }
-
-        try
-        {
-            await _db.SaveChangesAsync();
-        }
-        catch (DbUpdateException)
-        {
-            // The unique index on Day is the real guard; the check above only beats it if two
-            // votes for the same not-yet-voted day race, which is worth losing quietly rather
-            // than a 500 — the winning request already recorded the vote, and PRG makes the
-            // loser's redirect harmless. Same pattern as StocksController.AddStock.
-            return RedirectToDay(day);
-        }
+        var action = AnxietyRules.DecideVote(existing?.Level, requested);
+        await _db.ApplyVoteAsync(day, existing, requested, action);
 
         return RedirectToDay(day);
     }
