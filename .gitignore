@@ -17,3 +17,6 @@ appsettings.*.local.json
 
 # OS
 .DS_Store
+
+# nested bead worktrees (cwd-slip guard)
+med-history-wt/
