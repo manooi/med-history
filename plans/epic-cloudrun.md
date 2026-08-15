@@ -1,6 +1,6 @@
 # Epic: Containerize + Cloud Run deploy (`med-history-nvs`)
 
-Decisions (2026-08-15): Postgres stays on existing VPS · deploy via GitHub Actions CI · secrets in GCP Secret Manager.
+Decisions (2026-08-15): Postgres stays on existing VPS · deploy via GitHub Actions CI (SA-key auth `GCP_SA_KEY`, matches user's expense-tracker pipeline) · secrets in GCP Secret Manager (secret name == env var name: `ConnectionStrings__Default`, `Auth__Password`) · image tag = commit SHA.
 
 ## Why
 
@@ -9,7 +9,7 @@ Run med-history on Cloud Run instead of localhost so it's reachable anywhere; pe
 ## Architecture
 
 ```
-GitHub push(main) → Actions (WIF auth) → build image → Artifact Registry → Cloud Run (asia-southeast1)
+GitHub push(main) → Actions (SA key auth) → build image → Artifact Registry → Cloud Run (asia-southeast1)
                                                                       │ env from Secret Manager
                                                                       └→ VPS Postgres (TLS, sslmode=require)
 ```
@@ -22,8 +22,8 @@ GitHub push(main) → Actions (WIF auth) → build image → Artifact Registry �
 4. **VPS Postgres reachability:** Cloud Run egress IPs are dynamic — either open Postgres port to world with TLS + strong password + tight pg_hba (`hostssl` only), or pay for VPC connector + static NAT. Recommendation: TLS-only pg_hba + strong password (personal-scale risk). `postgresql-vps-agent` skill can do the TLS/pg_hba setup.
 5. **Connection string** gains `SSL Mode=Require` (+ `Trust Server Certificate=true` unless proper CA on VPS).
 6. **Migrations stay manual** — user runs `dotnet ef database update` from local against VPS. No auto-migrate on startup.
-7. **Secrets:** Secret Manager `medhistory-connstring` + `medhistory-auth-password` → exposed to service as env vars `ConnectionStrings__Default`, `Auth__Password`. DotNetEnv tolerates missing .env; env vars flow through IConfiguration unchanged.
-8. **CI:** GitHub Actions with Workload Identity Federation (no service-account JSON keys). Requires pushing this repo to GitHub (not yet done — explicit step).
+7. **Secrets:** Secret Manager secrets named exactly `ConnectionStrings__Default` + `Auth__Password`, mapped 1:1 to env vars (user convention). DotNetEnv tolerates missing .env; env vars flow through IConfiguration unchanged.
+8. **CI:** GitHub Actions with deploy-SA JSON key in repo secret `GCP_SA_KEY` (user's proven pattern; WIF rejected for setup overhead). Manual key rotation ~yearly. Requires pushing this repo to GitHub (not yet done — explicit step).
 9. **Service shape:** region asia-southeast1, min 0 / max 1 instance (single user; also removes multi-instance edge cases), 512 Mi, startup probe GET /login.
 
 ## Scope
@@ -33,7 +33,7 @@ GitHub push(main) → Actions (WIF auth) → build image → Artifact Registry �
 | `.1` | Dockerfile + .dockerignore, builds + runs locally | sonnet | — |
 | `.2` | DataProtection keys → DB (package, config, migration — NOT applied) | opus | — |
 | `.3` | ForwardedHeaders + container env handling (ports, no https-redirect) | sonnet | .1 |
-| `.4` | GCP setup runbook doc (project, Artifact Registry, Secret Manager, WIF, service) — docs/deploy-cloudrun.md | sonnet | — |
+| `.4` | GCP setup runbook doc (project, Artifact Registry, Secret Manager, deploy SA + key, service) — docs/deploy-cloudrun.md | sonnet | — |
 | `.5` | GitHub Actions workflow build+deploy | sonnet | .1 .4 |
 | `.6` | VPS Postgres hardening for public TLS access (via postgresql-vps-agent) | — | — |
 | `.7` | First deploy + e2e verify against Cloud Run URL | — | all |
