@@ -20,3 +20,10 @@
 **Root cause:** `AppTime` is built on `TimeZoneInfo.Local` / `DateTime.Now` ("v1 treats server-local time as the user's time zone" — `AppTime.cs` comment). Dev machine is Asia/Bangkok so everything looked right locally; Cloud Run containers run UTC, so `TimeZoneInfo.Local` = UTC in prod and every day grouping, time label, and form default rendered in UTC. Same pattern also live in `HistoryController.cs:27` and `EntriesController.cs:33`.
 **Fix (med-history-5eu):** `ENV TZ=Asia/Bangkok` in the Dockerfile final stage. Debian `aspnet:10.0` base ships tzdata, so the env var alone flips `TimeZoneInfo.Local`. Code-level pinning (`FindSystemTimeZoneById("Asia/Bangkok")` inside `AppTime`) was considered and deliberately deferred — chosen fix keeps v1's server-local design and moves the knob to the image.
 **Regression coverage:** none feasible — fix is a container env var, no app code changed; `TimeZoneInfo.Local`-dependent logic can't assert a zone the test host doesn't have. Guard is the Dockerfile comment: if the base image ever moves to chiseled/alpine (no tzdata), TZ silently stops working — revisit code-level pinning then.
+
+## 4. Lightbox dialog stuck top-left on mobile
+
+**Found:** 2026-08-15, user viewing photo lightbox (med-history-h3f) on iPhone 15 Pro Max — image not centered.
+**Root cause:** Tailwind v4 preflight emits `@layer base { *, :after, :before, ::backdrop { margin: 0; ... } }`. Native `<dialog>` centering comes from the UA stylesheet's `margin: auto` (with `position: fixed; inset: 0`); the preflight universal reset overrides it, so the modal renders at the viewport's top-left. Desktop masked it — image large enough to near-fill the viewport.
+**Fix (med-history-3c4):** `m-auto` added to the `<dialog>` class list in `_Lightbox.cshtml`, restoring auto-margin centering on both axes.
+**Regression coverage:** none — markup-only, one utility class, no extractable decision logic (same call as problem 1). Gotcha worth remembering: any future native `<dialog>` needs `m-auto` under Tailwind preflight.
