@@ -127,6 +127,53 @@ public class DayController : Controller
         return RedirectToDay(allocation.Day);
     }
 
+    [HttpPost("/day/{date}/anxiety/{level}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Vote(string date, string level)
+    {
+        if (!AppTime.TryParseDay(date, out var day))
+        {
+            return RedirectToAction(nameof(Index));
+        }
+
+        if (!AnxietyRules.TryParseLevel(level, out var requested))
+        {
+            return NotFound();
+        }
+
+        var existing = await _db.AnxietyVotes.SingleOrDefaultAsync(v => v.Day == day);
+
+        // Voting the level already set clears the day — see AnxietyRules.DecideVote, which is
+        // what turns a second tap of the same button into the day widget's only undo control.
+        if (AnxietyRules.DecideVote(existing?.Level, requested) == VoteAction.Clear)
+        {
+            _db.AnxietyVotes.Remove(existing!);
+        }
+        else if (existing is null)
+        {
+            _db.AnxietyVotes.Add(new AnxietyVote { Day = day, Level = requested });
+        }
+        else
+        {
+            existing.Level = requested;
+        }
+
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // The unique index on Day is the real guard; the check above only beats it if two
+            // votes for the same not-yet-voted day race, which is worth losing quietly rather
+            // than a 500 — the winning request already recorded the vote, and PRG makes the
+            // loser's redirect harmless. Same pattern as MedsController.AddStock.
+            return RedirectToDay(day);
+        }
+
+        return RedirectToDay(day);
+    }
+
     private async Task<IActionResult> ShowDay(DateOnly day)
     {
         var (start, end) = AppTime.DayRange(day);
@@ -164,6 +211,12 @@ public class DayController : Controller
             .OrderBy(a => a.Id)
             .ToListAsync();
 
+        var vote = await _db.AnxietyVotes
+            .AsNoTracking()
+            .Where(v => v.Day == day)
+            .Select(v => (AnxietyLevel?)v.Level)
+            .SingleOrDefaultAsync();
+
         // The day's entries are already loaded, so which slots are ticked is worked out in
         // memory rather than with a query per allocation.
         var ticks = rows
@@ -185,6 +238,7 @@ public class DayController : Controller
             IsToday = day == AppTime.Today(),
             NewEntryTypes = EntryTypeRules.SortForDisplay(activeTypes, name => name),
             Checklist = ChecklistRules.DeriveRows(allocations, ticks, stock),
+            AnxietyLevel = vote,
             Entries = ordered.Select(r => new DayEntryViewModel
             {
                 Id = r.Id,

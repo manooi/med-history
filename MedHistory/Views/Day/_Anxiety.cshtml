@@ -1,0 +1,33 @@
+@model DayViewModel
+@{
+    var dayKey = AppTime.Key(Model.Day);
+}
+
+@* One editable vote a day. Tapping the level already set clears it — see
+   AnxietyRules.DecideVote — so there is no separate clear control, only the five level
+   buttons themselves. *@
+<section class="mt-6 border border-black">
+    <div class="flex items-center justify-between gap-3 border-b border-black px-3 py-2">
+        <h2 class="text-sm font-semibold uppercase tracking-wide">Anxiety</h2>
+        <a href="/anxiety-report"
+           class="border border-black bg-white px-2 py-1 text-xs text-black hover:bg-black hover:text-white">
+            Report
+        </a>
+    </div>
+
+    <div class="flex flex-wrap gap-1 px-3 py-3">
+        @foreach (var level in AnxietyRules.Levels)
+        {
+            var isSelected = Model.AnxietyLevel == level;
+            var label = AnxietyRules.Label(level);
+            var title = isSelected ? $"Clear today's vote of {label}" : $"Vote {label} for today";
+
+            <form method="post" action="/day/@dayKey/anxiety/@level" asp-antiforgery="true">
+                <button type="submit" title="@title" aria-label="@title"
+                        class="border px-2 py-1 text-xs leading-none @(isSelected ? "border-black bg-black text-white hover:bg-white hover:text-black" : "border-neutral-400 bg-white text-neutral-600 hover:border-black hover:bg-black hover:text-white")">
+                    @label
+                </button>
+            </form>
+        }
+    </div>
+</section>

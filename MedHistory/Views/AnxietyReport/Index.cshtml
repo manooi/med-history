@@ -1,0 +1,83 @@
+@model AnxietyReportViewModel
+@{
+    ViewData["Title"] = $"Anxiety — {Model.Month.Label}";
+}
+
+<header class="flex items-center justify-between gap-4 border-b border-black pb-4">
+    <a href="/anxiety-report/@Model.Month.PreviousKey" title="Previous month"
+       class="border border-black px-3 py-1 text-sm hover:bg-black hover:text-white">&larr;</a>
+
+    <div class="text-center">
+        <h1 class="font-semibold">@Model.Month.Label</h1>
+        <p class="text-xs uppercase tracking-wide text-neutral-500">@Model.Month.ProgressLabel</p>
+    </div>
+
+    <a href="/anxiety-report/@Model.Month.NextKey" title="Next month"
+       class="border border-black px-3 py-1 text-sm hover:bg-black hover:text-white">&rarr;</a>
+</header>
+
+<div class="mt-4 flex items-center gap-4 text-sm">
+    @if (!Model.IsCurrentMonth)
+    {
+        <a href="/anxiety-report" class="underline hover:no-underline">This month</a>
+    }
+    <a href="/" class="ml-auto underline hover:no-underline">Back to today</a>
+</div>
+
+@* Weeks run Monday first, sharing the med report's column order — see
+   ReportRules.WeekdayLabels and ReportRules.LeadingBlanks. *@
+<div class="mt-6 grid grid-cols-7 gap-1 text-center text-xs uppercase tracking-wide text-neutral-500">
+    @foreach (var weekday in ReportRules.WeekdayLabels)
+    {
+        <div>@weekday</div>
+    }
+</div>
+
+@* A voted cell carries the day's number and the level's own number, 1 through 5, shaded darker
+   the worse the level reads — never by colour. Every real day of the month gets a cell, voted or
+   not; only days of the neighbouring month are left blank, same as the med report. *@
+<div class="mt-1 grid grid-cols-7 gap-1">
+    @foreach (var week in Model.Month.Weeks)
+    {
+        @foreach (var cell in week.Days)
+        {
+            @if (cell is null)
+            {
+                @* A day of the neighbouring month: the column is held, nothing is drawn in it. *@
+                <div></div>
+            }
+            else
+            {
+                var tally = cell.Value;
+                var date = tally.Day;
+
+                var state = tally.Level switch
+                {
+                    AnxietyLevel.Calm => "bg-white border-neutral-300 hover:bg-neutral-100",
+                    AnxietyLevel.Ok => "bg-neutral-200 border-neutral-300 hover:bg-neutral-300",
+                    AnxietyLevel.Tense => "bg-neutral-400 border-neutral-400 hover:bg-neutral-500",
+                    AnxietyLevel.Anxious => "bg-neutral-600 border-neutral-600 text-white hover:bg-neutral-700",
+                    AnxietyLevel.Panic => "bg-black border-black text-white hover:bg-neutral-800",
+                    _ => "border-transparent bg-white text-neutral-400 hover:bg-neutral-100"
+                };
+
+                var label = tally.Level is null
+                    ? $"{AppTime.DayLabel(date)} — no vote"
+                    : $"{AppTime.DayLabel(date)} — {AnxietyRules.Label(tally.Level.Value)}";
+
+                <a href="/day/@AppTime.Key(date)" title="@label" aria-label="@label"
+                   class="flex min-h-14 flex-col items-center justify-center gap-1 border p-1 leading-none @state">
+                    <span class="text-sm tabular-nums @(date == Model.Today ? "underline underline-offset-2" : "")">@date.Day</span>
+                    @if (tally.Level is not null)
+                    {
+                        <span class="text-xs tabular-nums">@AnxietyRules.Value(tally.Level.Value)</span>
+                    }
+                </a>
+            }
+        }
+    }
+</div>
+
+<div class="mt-4 text-xs text-neutral-500">
+    1 calm &middot; 2 ok &middot; 3 tense &middot; 4 anxious &middot; 5 panic
+</div>

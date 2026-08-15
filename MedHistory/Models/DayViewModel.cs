@@ -21,6 +21,9 @@ public class DayViewModel
     /// </summary>
     public required IReadOnlyList<ChecklistRow> Checklist { get; init; }
 
+    /// <summary>The day's anxiety vote, or null when nothing has been voted yet.</summary>
+    public required AnxietyLevel? AnxietyLevel { get; init; }
+
     public DateOnly PreviousDay => Day.AddDays(-1);
 
     public DateOnly NextDay => Day.AddDays(1);

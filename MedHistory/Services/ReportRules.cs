@@ -175,20 +175,39 @@ public static class ReportRules
     /// The month laid out as weeks of seven, Monday first, with the days before the first and
     /// after the last left blank. Days missing from <paramref name="days"/> are days with nothing
     /// planned; days given twice are a caller error, not something to reconcile here — see
-    /// <see cref="TallyDays"/>, which is where they come from.
+    /// <see cref="TallyDays"/>, which is where they come from. A thin wrapper over
+    /// <see cref="BuildWeeks{TCell}"/> — the grid shape is the same for every calendar report in
+    /// the app, only what goes in each cell differs.
     /// </summary>
     public static IReadOnlyList<ReportWeek> BuildWeeks(DateOnly month, IEnumerable<ReportDay> days)
     {
-        var first = FirstOfMonth(month);
         var planned = days.ToDictionary(day => day.Day);
-        var cells = new List<ReportDay?>();
 
-        cells.AddRange(Enumerable.Repeat<ReportDay?>(null, LeadingBlanks(first)));
+        return BuildWeeks<ReportDay>(
+                month, day => planned.TryGetValue(day, out var tally) ? tally : new ReportDay(day, 0, 0))
+            .Select(week => new ReportWeek(week))
+            .ToList();
+    }
+
+    /// <summary>
+    /// The generic shape every month-calendar report in the app shares: seven columns, Monday
+    /// first, the days before the first and after the last of the month left blank so the grid
+    /// stays rectangular. <paramref name="cellFor"/> is asked for one cell per real day of the
+    /// month, in order, and is never asked about a blank — it decides what a report shows for a
+    /// day, this only decides where that goes.
+    /// </summary>
+    public static IReadOnlyList<IReadOnlyList<TCell?>> BuildWeeks<TCell>(
+        DateOnly month, Func<DateOnly, TCell?> cellFor)
+        where TCell : struct
+    {
+        var first = FirstOfMonth(month);
+        var cells = new List<TCell?>();
+
+        cells.AddRange(Enumerable.Repeat<TCell?>(null, LeadingBlanks(first)));
 
         for (var dayNumber = 1; dayNumber <= DateTime.DaysInMonth(first.Year, first.Month); dayNumber++)
         {
-            var day = new DateOnly(first.Year, first.Month, dayNumber);
-            cells.Add(planned.TryGetValue(day, out var tally) ? tally : new ReportDay(day, 0, 0));
+            cells.Add(cellFor(new DateOnly(first.Year, first.Month, dayNumber)));
         }
 
         // Padded out so the last row is seven cells wide like every other — a short row would
@@ -199,7 +218,7 @@ public static class ReportRules
         }
 
         return Enumerable.Range(0, cells.Count / DaysPerWeek)
-            .Select(week => new ReportWeek(cells.GetRange(week * DaysPerWeek, DaysPerWeek)))
+            .Select(week => (IReadOnlyList<TCell?>)cells.GetRange(week * DaysPerWeek, DaysPerWeek))
             .ToList();
     }
 

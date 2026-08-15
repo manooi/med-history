@@ -29,6 +29,10 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
     // that is expected.
     public DbSet<MedStock> MedStocks => Set<MedStock>();
 
+    // One editable vote per day, at most — enforced by a unique index on Day. Voting again
+    // either changes the level or clears the row; see AnxietyRules.DecideVote.
+    public DbSet<AnxietyVote> AnxietyVotes => Set<AnxietyVote>();
+
     public DbSet<Photo> Photos => Set<Photo>();
 
     // Mapped so migrations own the schema; rows are inserted by DbLoggerProvider
@@ -136,6 +140,20 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
             // created in the AddDoseQuantityAndMedStock migration — the same arrangement
             // EntryTypes uses, and for the same reason: EF's model builder has no API for an
             // expression index, so it cannot live here.
+        });
+
+        modelBuilder.Entity<AnxietyVote>(vote =>
+        {
+            vote.ToTable("AnxietyVotes");
+
+            vote.Property(v => v.Level)
+                .HasConversion<string>()
+                .HasMaxLength(32)
+                .IsRequired();
+
+            // One vote per day — a second POST for the same day updates or deletes this row
+            // rather than adding another; see AnxietyRules.DecideVote.
+            vote.HasIndex(v => v.Day).IsUnique();
         });
 
         modelBuilder.Entity<Photo>(photo =>
