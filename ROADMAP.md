@@ -23,7 +23,7 @@ Epic: `med-history-4ei` — personal medical history web app. Plan: [`plans/epic
 - [x] 13. GCP runbook `docs/deploy-cloudrun.md` (`nvs.4`)
 - [x] 14. GitHub Actions build+deploy (`nvs.5`)
 - [ ] 15. VPS Postgres hardening (`nvs.6`)
-- [ ] 16. First deploy + e2e verify (`nvs.7`)
+- [x] 16. First deploy + e2e verify (`nvs.7`)
 
 ## Later ideas
 

@@ -48,4 +48,4 @@ Build order: (.1 .2 .4 parallel) → .3 → .5 → .6 → .7. User actions requi
 - [x] .4 GCP runbook
 - [x] .5 CI workflow
 - [ ] .6 VPS Postgres hardening
-- [ ] .7 first deploy + verify
+- [x] .7 first deploy + verify
