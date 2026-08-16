@@ -2,26 +2,161 @@
 @{
     ViewData["Title"] = "Login";
     Layout = "_Layout";
+
+    // RedisplayLogin drops the Password key, so anything left is a model-level message —
+    // "Incorrect password." or the lockout notice. Either one earns the shake.
+    var hasError = !ViewData.ModelState.IsValid;
 }
 
-<div class="min-h-screen flex items-center justify-center bg-white px-4 dark:bg-neutral-800">
-    <div class="w-full max-w-sm">
-        <h1 class="text-2xl font-semibold text-black mb-6 text-center dark:text-neutral-100">MedHistory</h1>
+<div class="flex min-h-[80vh] items-center justify-center bg-white px-4 dark:bg-neutral-800">
+    <div class="w-full max-w-xs">
+        <h1 class="mb-8 text-center text-2xl font-semibold text-black dark:text-neutral-100">MedHistory</h1>
 
-        <form asp-controller="Account" asp-action="Login" method="post" class="border border-neutral-300 rounded-lg p-6 space-y-4 dark:border-neutral-600">
+        @* The form carries no submit control on purpose: the script submits it the instant the
+           sixth digit lands. Password is a hidden field the reader never touches — nothing here
+           is focusable, so iOS never raises its keyboard over the keypad. *@
+        <form id="passcode-form" asp-controller="Account" asp-action="Login" method="post">
             <input type="hidden" asp-for="ReturnUrl" />
+            <input type="hidden" asp-for="Password" id="passcode-value" />
 
-            <div asp-validation-summary="ModelOnly" class="text-sm text-neutral-900 dark:text-neutral-100"></div>
+            <div id="passcode-live">
+                <p class="mb-6 text-center text-sm text-neutral-700 dark:text-neutral-300">Enter Passcode</p>
 
-            <div>
-                <label asp-for="Password" class="block text-sm font-medium text-neutral-700 mb-1 dark:text-neutral-300">Password</label>
-                <input asp-for="Password" type="password" autocomplete="current-password" autofocus
-                       class="w-full border border-neutral-400 rounded-md px-3 py-2 text-black focus:outline-none focus:ring-2 focus:ring-black dark:border-neutral-500 dark:bg-neutral-800 dark:text-neutral-100 dark:focus:ring-neutral-100" />
+                @* aria-hidden because the dots say nothing a screen reader can use — the live
+                   region below carries the count instead. *@
+                <div id="passcode-dots" aria-hidden="true"
+                     class="flex items-center justify-center gap-4 @(hasError ? "passcode-shake" : "")">
+                    @for (var slot = 0; slot < 6; slot++)
+                    {
+                        <span data-dot class="h-3.5 w-3.5 rounded-full border border-black dark:border-neutral-100"></span>
+                    }
+                </div>
+
+                <p id="passcode-status" role="status" aria-live="polite" class="sr-only">0 of 6 digits entered</p>
+
+                @* min-h reserves the line so the keypad does not jump when the message appears. *@
+                <div asp-validation-summary="ModelOnly"
+                     class="mt-4 min-h-5 text-center text-sm text-neutral-900 dark:text-neutral-100"></div>
+
+                @* Phone-only: at sm and up the reader just types on the physical keyboard. *@
+                <div id="passcode-keypad" class="mt-6 grid grid-cols-3 gap-3 select-none sm:hidden">
+                    @for (var digit = 1; digit <= 9; digit++)
+                    {
+                        <button type="button" data-key="@digit" aria-label="@digit"
+                                class="rounded-full border border-neutral-400 py-4 text-xl text-black hover:bg-black hover:text-white dark:border-neutral-500 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">@digit</button>
+                    }
+                    <span aria-hidden="true"></span>
+                    <button type="button" data-key="0" aria-label="0"
+                            class="rounded-full border border-neutral-400 py-4 text-xl text-black hover:bg-black hover:text-white dark:border-neutral-500 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">0</button>
+                    <button type="button" data-key="back" aria-label="Delete"
+                            class="rounded-full border border-neutral-400 py-4 text-xl text-black hover:bg-black hover:text-white dark:border-neutral-500 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">&#9003;</button>
+                </div>
             </div>
-
-            <button type="submit" class="w-full bg-black text-white rounded-md py-2 font-medium hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-950 dark:hover:bg-neutral-300">
-                Sign in
-            </button>
         </form>
+
+        @* Scripting off: the dots and the keypad are dead weight, so hide them and post the
+           passcode through an ordinary password box. It is a form of its own — a second
+           Password input inside the form above would post twice and bind as one comma-joined
+           value. With scripting on the whole block is inert markup and none of it exists. *@
+        <noscript>
+            <style>#passcode-live { display: none; }</style>
+            <form asp-controller="Account" asp-action="Login" method="post" class="space-y-4">
+                @* Explicit ids on both fields: with scripting off this markup is live alongside
+                   the form above, and the generated ones would collide with it. *@
+                <input type="hidden" asp-for="ReturnUrl" id="passcode-fallback-return" />
+
+                <div asp-validation-summary="ModelOnly" class="text-sm text-neutral-900 dark:text-neutral-100"></div>
+
+                <div>
+                    <label asp-for="Password" for="passcode-fallback" class="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-300">Passcode</label>
+                    <input asp-for="Password" id="passcode-fallback" type="password" inputmode="numeric" autocomplete="current-password"
+                           class="w-full rounded-md border border-neutral-400 px-3 py-2 text-black focus:outline-none focus:ring-2 focus:ring-black dark:border-neutral-500 dark:bg-neutral-800 dark:text-neutral-100 dark:focus:ring-neutral-100" />
+                </div>
+
+                <button type="submit" class="w-full rounded-md bg-black py-2 font-medium text-white hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-950 dark:hover:bg-neutral-300">
+                    Sign in
+                </button>
+            </form>
+        </noscript>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var form = document.getElementById('passcode-form');
+            var field = document.getElementById('passcode-value');
+            var status = document.getElementById('passcode-status');
+            var keypad = document.getElementById('passcode-keypad');
+            var dots = document.querySelectorAll('#passcode-dots [data-dot]');
+            var size = dots.length;
+
+            // The entry lives here and nowhere else; the hidden field only learns it at submit.
+            // A fresh render always starts empty, which is also what the server wants — it never
+            // echoes a password back.
+            var entry = '';
+            var submitting = false;
+
+            function render() {
+                for (var i = 0; i < size; i++) {
+                    var filled = i < entry.length;
+                    dots[i].classList.toggle('bg-black', filled);
+                    dots[i].classList.toggle('dark:bg-neutral-100', filled);
+                }
+                status.textContent = entry.length + ' of ' + size + ' digits entered';
+            }
+
+            function append(digit) {
+                if (submitting || entry.length >= size) {
+                    return;
+                }
+                entry += digit;
+                render();
+                if (entry.length === size) {
+                    submitting = true;
+                    field.value = entry;
+                    form.requestSubmit();
+                }
+            }
+
+            function backspace() {
+                if (submitting || entry.length === 0) {
+                    return;
+                }
+                entry = entry.slice(0, -1);
+                render();
+            }
+
+            // Document-level: there is no focusable field to hang this off, and the keypad
+            // buttons must not swallow typing once one of them has been tapped.
+            document.addEventListener('keydown', function (event) {
+                if (submitting || event.ctrlKey || event.metaKey || event.altKey) {
+                    return;
+                }
+                if (event.key.length === 1 && event.key >= '0' && event.key <= '9') {
+                    event.preventDefault();
+                    append(event.key);
+                } else if (event.key === 'Backspace' || event.key === 'Delete') {
+                    event.preventDefault();
+                    backspace();
+                }
+            });
+
+            if (keypad) {
+                keypad.addEventListener('click', function (event) {
+                    var button = event.target.closest('[data-key]');
+                    if (!button) {
+                        return;
+                    }
+                    if (button.dataset.key === 'back') {
+                        backspace();
+                    } else {
+                        append(button.dataset.key);
+                    }
+                });
+            }
+
+            render();
+        })();
+    </script>
+}

@@ -30,3 +30,24 @@
     color-scheme: dark;
   }
 }
+
+/* The login dots' answer to a wrong passcode: one nudge, iOS-style. Movement only — it carries
+   no colour of its own, so it reads the same in either theme. Reduced motion drops it entirely;
+   the message under the dots says what happened regardless. */
+@keyframes passcode-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+.passcode-shake {
+  animation: passcode-shake 0.4s ease-in-out 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .passcode-shake {
+    animation: none;
+  }
+}
