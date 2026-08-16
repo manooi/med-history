@@ -40,6 +40,10 @@ Epic: `med-history-4ei` — personal medical history web app. Plan: [`plans/epic
 
 - [x] 25. Measurements framework + weight recording — generic `Measurements` table (Kind/Value/OccurredAt), day-page card, `/weight-report` month grid (`4ei.15`)
 
+## v5 — hardening
+
+- [ ] 26. Per-IP rate limiting on `/login` — built-in ASP.NET limiter, fixed window 10/60s, 429 + Retry-After (`4ei.16`)
+
 ## Later ideas
 
 - Charts/trends per entry type
