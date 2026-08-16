@@ -25,14 +25,18 @@
             : "border border-black bg-white px-3 py-1 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950";
 
         @* Each chip is a checkbox: its href is this selection with that one type ticked the other
-           way, always back on page 1 — a different selection is a different set of days. Names are
-           user-supplied, so TypeReportRules.Href escapes every one of them into the query. *@
-        <a href="@TypeReportRules.Href(TypeReportRules.ToggleType(Model.SelectedTypes, type, Model.AllTypeNames))"
+           way, always back on page 1 — a different selection is a different set of days — and in
+           the order being read now. Names are user-supplied, so TypeReportRules.Href escapes every
+           one of them into the query. *@
+        <a href="@TypeReportRules.Href(TypeReportRules.ToggleType(Model.SelectedTypes, type, Model.AllTypeNames), 1, Model.Sort)"
            class="@classes">@(isSelected ? "☑" : "☐") @type</a>
     }
     @if (hasSelection)
     {
         <a href="/type-report" class="px-1 text-sm underline hover:no-underline">Clear</a>
+
+        @* Names the order it switches TO, and keeps the page: the same days, read the other way. *@
+        <a href="@Model.SortToggleHref" class="px-1 text-sm underline hover:no-underline">@Model.SortToggleLabel</a>
     }
 </div>
 
@@ -100,13 +104,13 @@
                 <div class="mt-6 flex items-center justify-center gap-4 text-sm">
                     @if (Model.HasNewerPage)
                     {
-                        <a href="@TypeReportRules.Href(Model.SelectedTypes, Model.Page - 1)"
+                        <a href="@TypeReportRules.Href(Model.SelectedTypes, Model.Page - 1, Model.Sort)"
                            class="underline hover:no-underline">&larr; Newer</a>
                     }
                     <span class="text-neutral-500 dark:text-neutral-400">Page @Model.Page of @Model.PageCount</span>
                     @if (Model.HasOlderPage)
                     {
-                        <a href="@TypeReportRules.Href(Model.SelectedTypes, Model.Page + 1)"
+                        <a href="@TypeReportRules.Href(Model.SelectedTypes, Model.Page + 1, Model.Sort)"
                            class="underline hover:no-underline">Older &rarr;</a>
                     }
                 </div>

@@ -26,7 +26,11 @@ public static class TypeReportQueries
     }
 
     public static async Task<TypeReportViewModel> PageAsync(
-        this AppDbContext db, IReadOnlyList<string> canonicalTypes, IReadOnlyList<string> allTypeNames, int page)
+        this AppDbContext db,
+        IReadOnlyList<string> canonicalTypes,
+        IReadOnlyList<string> allTypeNames,
+        int page,
+        TypeReportSort sort)
     {
         // Materialised as a List so EF translates the membership test to a plain SQL IN.
         var types = canonicalTypes.ToList();
@@ -58,7 +62,7 @@ public static class TypeReportQueries
         if (clampedPage == page)
         {
             var window = TypeReportRules.SelectDays(distinctDays, clampedPage);
-            days = window.Count == 0 ? [] : await LoadDaysAsync(db, types, window);
+            days = window.Count == 0 ? [] : await LoadDaysAsync(db, types, window, sort);
         }
 
         return new TypeReportViewModel
@@ -66,6 +70,7 @@ public static class TypeReportQueries
             AllTypeNames = allTypeNames,
             SelectedTypes = canonicalTypes,
             Days = days,
+            Sort = sort,
             Page = clampedPage,
             PageCount = pageCount
         };
@@ -77,9 +82,13 @@ public static class TypeReportQueries
     /// newest day's end holds exactly these days' entries of these types and nothing outside the
     /// window — any calendar day inside that range but outside the distinct-day set has no entry
     /// of any selected type to begin with, or it would already be in that set.
+    ///
+    /// The sort is applied to those fetched rows in memory, never in SQL: the query already has to
+    /// come back whole to be grouped by local day, so ordering it is free, and putting the order in
+    /// the query would move the decision out of the pure rules for nothing.
     /// </summary>
     private static async Task<IReadOnlyList<TypeReportDayViewModel>> LoadDaysAsync(
-        AppDbContext db, List<string> types, IReadOnlyList<DateOnly> window)
+        AppDbContext db, List<string> types, IReadOnlyList<DateOnly> window, TypeReportSort sort)
     {
         var newest = window[0];
         var oldest = window[^1];
@@ -104,7 +113,7 @@ public static class TypeReportQueries
             .ToListAsync();
 
         var groups = TypeReportRules.GroupByDayDescending(
-            rows, r => AppTime.DayOf(r.OccurredAt), r => r.OccurredAt, r => r.Type);
+            rows, r => AppTime.DayOf(r.OccurredAt), r => r.OccurredAt, r => r.Type, sort);
 
         return groups.Select(group => new TypeReportDayViewModel
         {

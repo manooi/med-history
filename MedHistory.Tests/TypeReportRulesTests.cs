@@ -160,6 +160,100 @@ public class TypeReportRulesTests
             requested, TypeReportRules.CanonicalizeTypes(requested, AllTypes)));
     }
 
+    [Fact]
+    public void NeedsCanonicalRedirect_NoSortAsked_IsFalse()
+    {
+        // The default order is spelled by leaving the parameter off — the address every link
+        // predating the toggle already uses.
+        Assert.False(TypeReportRules.NeedsCanonicalRedirect(["Cough"], ["Cough"], null));
+    }
+
+    [Fact]
+    public void NeedsCanonicalRedirect_NewestSort_IsFalse()
+    {
+        Assert.False(TypeReportRules.NeedsCanonicalRedirect(["Cough"], ["Cough"], "newest"));
+    }
+
+    [Fact]
+    public void NeedsCanonicalRedirect_OldestSort_IsTrue()
+    {
+        // Spelling the default out loud is a second address for one page.
+        Assert.True(TypeReportRules.NeedsCanonicalRedirect(["Cough"], ["Cough"], "oldest"));
+    }
+
+    [Fact]
+    public void NeedsCanonicalRedirect_UnrecognisedSort_IsTrue()
+    {
+        Assert.True(TypeReportRules.NeedsCanonicalRedirect(["Cough"], ["Cough"], "sideways"));
+        Assert.True(TypeReportRules.NeedsCanonicalRedirect(["Cough"], ["Cough"], ""));
+    }
+
+    [Fact]
+    public void NeedsCanonicalRedirect_WrongTypesAndWrongSort_IsOneAnswer()
+    {
+        // Both wrong is still one redirect: the answer is about the whole address, and Href
+        // rebuilds the whole address.
+        string[] requested = ["cough", "Symptom"];
+        var canonical = TypeReportRules.CanonicalizeTypes(requested, AllTypes);
+
+        Assert.True(TypeReportRules.NeedsCanonicalRedirect(requested, canonical, "oldest"));
+        Assert.Equal(
+            "/type-report?types=Symptom&types=Cough",
+            TypeReportRules.Href(canonical, 1, TypeReportRules.ParseSort("oldest").Sort));
+    }
+
+    // ---- ParseSort ----
+
+    [Fact]
+    public void ParseSort_Absent_IsTheDefaultOrderAndCanonical()
+    {
+        Assert.Equal((TypeReportSort.OldestFirst, true), TypeReportRules.ParseSort(null));
+    }
+
+    [Fact]
+    public void ParseSort_Newest_IsNewestFirstAndCanonical()
+    {
+        Assert.Equal((TypeReportSort.NewestFirst, true), TypeReportRules.ParseSort("newest"));
+    }
+
+    [Fact]
+    public void ParseSort_NewestInWrongCasing_IsUnderstoodButNotCanonical()
+    {
+        // Understood like a hand-typed type name is, then redirected to its one spelling —
+        // rather than thrown away, which would silently flip the reader back to the default.
+        Assert.Equal((TypeReportSort.NewestFirst, false), TypeReportRules.ParseSort("NEWEST"));
+    }
+
+    [Fact]
+    public void ParseSort_Oldest_IsTheDefaultOrderButNotCanonical()
+    {
+        Assert.Equal((TypeReportSort.OldestFirst, false), TypeReportRules.ParseSort("oldest"));
+    }
+
+    [Fact]
+    public void ParseSort_UnrecognisedValue_FallsBackWithoutThrowing()
+    {
+        Assert.Equal((TypeReportSort.OldestFirst, false), TypeReportRules.ParseSort("sideways"));
+        Assert.Equal((TypeReportSort.OldestFirst, false), TypeReportRules.ParseSort(""));
+        Assert.Equal((TypeReportSort.OldestFirst, false), TypeReportRules.ParseSort("3"));
+    }
+
+    // ---- Flip / SortLabel ----
+
+    [Fact]
+    public void Flip_GoesBothWays()
+    {
+        Assert.Equal(TypeReportSort.NewestFirst, TypeReportRules.Flip(TypeReportSort.OldestFirst));
+        Assert.Equal(TypeReportSort.OldestFirst, TypeReportRules.Flip(TypeReportSort.NewestFirst));
+    }
+
+    [Fact]
+    public void SortLabel_NamesTheOrder()
+    {
+        Assert.Equal("Newest first ↓", TypeReportRules.SortLabel(TypeReportSort.NewestFirst));
+        Assert.Equal("Oldest first ↑", TypeReportRules.SortLabel(TypeReportSort.OldestFirst));
+    }
+
     // ---- Href ----
 
     [Fact]
@@ -192,6 +286,36 @@ public class TypeReportRulesTests
     public void Href_LaterPage_CarriesEveryType()
     {
         Assert.Equal("/type-report?types=Meal&types=Note&page=4", TypeReportRules.Href(["Meal", "Note"], 4));
+    }
+
+    [Fact]
+    public void Href_DefaultSort_LeavesTheParamOff()
+    {
+        Assert.Equal("/type-report?types=Meal", TypeReportRules.Href(["Meal"], 1, TypeReportSort.OldestFirst));
+    }
+
+    [Fact]
+    public void Href_NewestSort_CarriesIt()
+    {
+        Assert.Equal(
+            "/type-report?types=Meal&sort=newest",
+            TypeReportRules.Href(["Meal"], 1, TypeReportSort.NewestFirst));
+    }
+
+    [Fact]
+    public void Href_NewestSortOnALaterPage_CarriesBoth()
+    {
+        Assert.Equal(
+            "/type-report?types=Meal&types=Note&page=4&sort=newest",
+            TypeReportRules.Href(["Meal", "Note"], 4, TypeReportSort.NewestFirst));
+    }
+
+    [Fact]
+    public void Href_NoSelection_IsTheBareSelectorPageWhateverTheSort()
+    {
+        // Nothing selected is nothing to order, same reason a page number never survives it.
+        Assert.Equal("/type-report", TypeReportRules.Href([], 1, TypeReportSort.NewestFirst));
+        Assert.Equal("/type-report", TypeReportRules.Href([], 3, TypeReportSort.NewestFirst));
     }
 
     [Fact]
@@ -419,6 +543,103 @@ public class TypeReportRulesTests
             TypeReportRules.GroupByDayDescending(rows, r => r.Day, r => r.OccurredAt, r => r.Type));
 
         Assert.Equal([3, 2, 1], group.Select(r => r.Id));
+    }
+
+    [Fact]
+    public void GroupByDayDescending_NewestFirst_IsTheExactReverseWithinEachDay()
+    {
+        var rows = new[]
+        {
+            new Row(1, new DateOnly(2026, 8, 1), At(2026, 8, 1, 18, 0)),
+            new Row(2, new DateOnly(2026, 8, 1), At(2026, 8, 1, 9, 0)),
+            new Row(3, new DateOnly(2026, 8, 1), At(2026, 8, 1, 12, 0))
+        };
+
+        var group = Assert.Single(TypeReportRules.GroupByDayDescending(
+            rows, r => r.Day, r => r.OccurredAt, r => r.Type, TypeReportSort.NewestFirst));
+
+        Assert.Equal([1, 3, 2], group.Select(r => r.Id));
+    }
+
+    [Fact]
+    public void GroupByDayDescending_NewestFirst_ReversesTheTieBreakToo()
+    {
+        // Newest-first is the one ordering rule read backwards, not a second nearly-equal one —
+        // so two entries sharing an instant come out in the opposite order as well.
+        var rows = new[]
+        {
+            new Row(1, new DateOnly(2026, 8, 1), At(2026, 8, 1, 9, 0), "Meal"),
+            new Row(2, new DateOnly(2026, 8, 1), At(2026, 8, 1, 9, 0), "Cough"),
+            new Row(3, new DateOnly(2026, 8, 1), At(2026, 8, 1, 9, 0), "Bleeding")
+        };
+
+        var oldestFirst = Assert.Single(
+            TypeReportRules.GroupByDayDescending(rows, r => r.Day, r => r.OccurredAt, r => r.Type));
+        var newestFirst = Assert.Single(TypeReportRules.GroupByDayDescending(
+            rows, r => r.Day, r => r.OccurredAt, r => r.Type, TypeReportSort.NewestFirst));
+
+        Assert.Equal([3, 2, 1], oldestFirst.Select(r => r.Id));
+        Assert.Equal([1, 2, 3], newestFirst.Select(r => r.Id));
+    }
+
+    [Fact]
+    public void GroupByDayDescending_NewestFirst_ReversesEveryDayIncludingItsTies()
+    {
+        // Several days at once, one of them holding a tie: each day comes out as its own exact
+        // reverse — the reversal is within the day, since the days themselves never move.
+        var rows = new[]
+        {
+            new Row(1, new DateOnly(2026, 8, 5), At(2026, 8, 5, 20, 0), "Meal"),
+            new Row(2, new DateOnly(2026, 8, 5), At(2026, 8, 5, 7, 0), "Cough"),
+            new Row(3, new DateOnly(2026, 8, 5), At(2026, 8, 5, 7, 0), "Bleeding"),
+            new Row(4, new DateOnly(2026, 8, 1), At(2026, 8, 1, 8, 0), "Note"),
+            new Row(5, new DateOnly(2026, 8, 1), At(2026, 8, 1, 22, 0), "Meal")
+        };
+
+        var oldestFirst = TypeReportRules.GroupByDayDescending(rows, r => r.Day, r => r.OccurredAt, r => r.Type);
+        var newestFirst = TypeReportRules.GroupByDayDescending(
+            rows, r => r.Day, r => r.OccurredAt, r => r.Type, TypeReportSort.NewestFirst);
+
+        Assert.Equal(
+            oldestFirst.Select(g => g.Select(r => r.Id).Reverse().ToList()),
+            newestFirst.Select(g => g.Select(r => r.Id).ToList()));
+        Assert.Equal([[1, 2, 3], [5, 4]], newestFirst.Select(g => g.Select(r => r.Id).ToList()));
+    }
+
+    [Fact]
+    public void GroupByDayDescending_DaysStayNewestFirstUnderBothSorts()
+    {
+        // Only the rows inside a day flip — which days a page holds must not depend on the sort.
+        var rows = new[]
+        {
+            new Row(1, new DateOnly(2026, 8, 1), At(2026, 8, 1, 9, 0)),
+            new Row(2, new DateOnly(2026, 8, 10), At(2026, 8, 10, 9, 0)),
+            new Row(3, new DateOnly(2026, 8, 5), At(2026, 8, 5, 9, 0))
+        };
+
+        DateOnly[] expected = [new(2026, 8, 10), new(2026, 8, 5), new(2026, 8, 1)];
+
+        Assert.Equal(expected, TypeReportRules
+            .GroupByDayDescending(rows, r => r.Day, r => r.OccurredAt, r => r.Type, TypeReportSort.OldestFirst)
+            .Select(g => g.Key));
+        Assert.Equal(expected, TypeReportRules
+            .GroupByDayDescending(rows, r => r.Day, r => r.OccurredAt, r => r.Type, TypeReportSort.NewestFirst)
+            .Select(g => g.Key));
+    }
+
+    [Fact]
+    public void GroupByDayDescending_SortDefaultsToOldestFirst()
+    {
+        // The default is what search's call site relies on — it has no toggle and never passes one.
+        var rows = new[]
+        {
+            new Row(1, new DateOnly(2026, 8, 1), At(2026, 8, 1, 18, 0)),
+            new Row(2, new DateOnly(2026, 8, 1), At(2026, 8, 1, 9, 0))
+        };
+
+        var group = Assert.Single(TypeReportRules.GroupByDayDescending(rows, r => r.Day, r => r.OccurredAt, r => r.Type));
+
+        Assert.Equal([2, 1], group.Select(r => r.Id));
     }
 
     [Fact]

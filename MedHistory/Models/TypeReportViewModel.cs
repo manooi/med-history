@@ -1,3 +1,5 @@
+using MedHistory.Services;
+
 namespace MedHistory.Models;
 
 /// <summary>
@@ -31,6 +33,22 @@ public class TypeReportViewModel
 
     public IReadOnlyList<TypeReportDayViewModel> Days { get; init; } = [];
 
+    /// <summary>
+    /// Which way this page's rows run inside each day. Absent from the URL means the default —
+    /// see <see cref="Services.TypeReportRules.ParseSort"/>.
+    /// </summary>
+    public TypeReportSort Sort { get; init; } = TypeReportSort.OldestFirst;
+
+    /// <summary>
+    /// Where the sort toggle points: this same selection on this same page, in the other order.
+    /// Carrying <see cref="Page"/> is the point — flipping the sort re-reads the days already on
+    /// screen, it does not navigate away from them.
+    /// </summary>
+    public string SortToggleHref => TypeReportRules.Href(SelectedTypes, Page, TypeReportRules.Flip(Sort));
+
+    /// <summary>The order the toggle would switch to — a link names its destination, not its origin.</summary>
+    public string SortToggleLabel => TypeReportRules.SortLabel(TypeReportRules.Flip(Sort));
+
     public int Page { get; init; } = 1;
 
     /// <summary>Zero when the selection has nothing logged — see <see cref="Services.TypeReportRules.PageCount"/>.</summary>
@@ -43,7 +61,8 @@ public class TypeReportViewModel
 
 /// <summary>
 /// One local day's worth of the selected types' entries, ascending by time within the day (ties
-/// broken by type name, since the day can hold more than one type).
+/// broken by type name, since the day can hold more than one type) — or that exact order reversed,
+/// when the report was asked for <see cref="Services.TypeReportSort.NewestFirst"/>.
 /// </summary>
 public class TypeReportDayViewModel
 {

@@ -13,6 +13,9 @@ namespace MedHistory.Controllers;
 ///
 /// The selection rides as a repeated <c>types</c> query parameter, never a joined path segment:
 /// type names are user free text, so there is no separator character a name could not contain.
+/// <c>sort=newest</c> rides alongside it and is the only sort value that ever appears — the
+/// default order is spelled by leaving the parameter off, so every address that predates the
+/// toggle still means what it did.
 ///
 /// The queries and view-model assembly live in <see cref="TypeReportQueries"/>; this controller
 /// keeps the two decisions that depend on what a query finds — a selection asked for in any
@@ -32,17 +35,20 @@ public class TypeReportController : Controller
     }
 
     [HttpGet("/type-report")]
-    public async Task<IActionResult> Index([FromQuery(Name = "types")] string[]? types, [FromQuery] int page = 1)
+    public async Task<IActionResult> Index(
+        [FromQuery(Name = "types")] string[]? types, [FromQuery] int page = 1, [FromQuery] string? sort = null)
     {
         var typeNames = await _db.AllTypeNamesAsync();
         var requested = types ?? [];
         var selected = TypeReportRules.CanonicalizeTypes(requested, typeNames);
+        var (sortOrder, _) = TypeReportRules.ParseSort(sort);
 
-        if (TypeReportRules.NeedsCanonicalRedirect(requested, selected))
+        if (TypeReportRules.NeedsCanonicalRedirect(requested, selected, sort))
         {
-            // Unknown names dropped, duplicates collapsed, casing and order normalised — sent
-            // before any entries are read, so the URL and the page always agree on the selection.
-            return Redirect(TypeReportRules.Href(selected, page));
+            // Unknown names dropped, duplicates collapsed, casing and order normalised, an
+            // unrecognised sort dropped back to the default — one redirect fixes the whole
+            // address, sent before any entries are read, so the URL and the page always agree.
+            return Redirect(TypeReportRules.Href(selected, page, sortOrder));
         }
 
         if (selected.Count == 0)
@@ -53,18 +59,20 @@ public class TypeReportController : Controller
                 AllTypeNames = typeNames,
                 SelectedTypes = selected,
                 Days = [],
+                Sort = sortOrder,
                 Page = 1,
                 PageCount = 0
             });
         }
 
-        var model = await _db.PageAsync(selected, typeNames, page);
+        var model = await _db.PageAsync(selected, typeNames, page, sortOrder);
 
         if (model.Page != page)
         {
             // A stale or hand-typed page number lands on the nearest real page instead of an
-            // error or a silently different page than the URL claims.
-            return Redirect(TypeReportRules.Href(selected, model.Page));
+            // error or a silently different page than the URL claims — carrying the sort, which
+            // was already canonical by here.
+            return Redirect(TypeReportRules.Href(selected, model.Page, sortOrder));
         }
 
         return View("Index", model);

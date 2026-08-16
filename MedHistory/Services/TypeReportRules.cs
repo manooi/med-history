@@ -1,6 +1,20 @@
 namespace MedHistory.Services;
 
 /// <summary>
+/// Which way entries run inside a day on the type report. Days themselves are always newest first
+/// — this only decides the reading order within one day, which is the one thing a report of many
+/// days can reasonably disagree with the day page about.
+/// </summary>
+public enum TypeReportSort
+{
+    /// <summary>The day page's own order — oldest entry of the day first. The default.</summary>
+    OldestFirst,
+
+    /// <summary>Newest first the whole way down, so the latest entry is the first row on the page.</summary>
+    NewestFirst
+}
+
+/// <summary>
 /// Pure type-report rules — no clock, no database, no HTTP. The type report is a chosen set of
 /// types' history across every day any of them was logged, newest day first, paged in blocks of
 /// whole days rather than whole entries: a day with five entries and a day with one both cost one
@@ -16,6 +30,48 @@ public static class TypeReportRules
 {
     /// <summary>Distinct entry-days per page, not entries per page — see the type header.</summary>
     public const int PerPage = 30;
+
+    /// <summary>The one sort value that ever appears in a URL — the default is spelled by leaving it off.</summary>
+    private const string NewestFirstValue = "newest";
+
+    /// <summary>
+    /// A <c>sort</c> query value read as an order, plus whether the URL spelled it the one way the
+    /// report is willing to render under. Absent is canonical and means the default, so the plain
+    /// address keeps meaning what it always did; <c>sort=newest</c> is canonical too. Everything
+    /// else — <c>sort=oldest</c>, a typo, a leftover value — is the default order under a spelling
+    /// that is not canonical, which is what makes <see cref="NeedsCanonicalRedirect"/> fire and
+    /// drop the parameter instead of quietly rendering a second address for the same page.
+    ///
+    /// Casing is forgiven the way type names are: a hand-typed <c>sort=NEWEST</c> is understood as
+    /// newest-first and then redirected to its canonical spelling, rather than being thrown away
+    /// as garbage and silently flipping the reader back to the default order.
+    /// </summary>
+    public static (TypeReportSort Sort, bool IsCanonical) ParseSort(string? requested)
+    {
+        if (requested is null)
+        {
+            return (TypeReportSort.OldestFirst, true);
+        }
+
+        var sort = string.Equals(requested, NewestFirstValue, StringComparison.OrdinalIgnoreCase)
+            ? TypeReportSort.NewestFirst
+            : TypeReportSort.OldestFirst;
+
+        return (sort, string.Equals(requested, NewestFirstValue, StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// The other order — what the toggle link switches to, and the only way the sort ever changes.
+    /// </summary>
+    public static TypeReportSort Flip(TypeReportSort sort) =>
+        sort == TypeReportSort.NewestFirst ? TypeReportSort.OldestFirst : TypeReportSort.NewestFirst;
+
+    /// <summary>
+    /// How an order reads on the toggle. The arrow says it twice, because "newest first" alone is
+    /// ambiguous on a page whose days already run newest first — the arrow is about the rows.
+    /// </summary>
+    public static string SortLabel(TypeReportSort sort) =>
+        sort == TypeReportSort.NewestFirst ? "Newest first ↓" : "Oldest first ↑";
 
     /// <summary>
     /// The requested type names resolved to the spelling stored in <c>EntryTypes</c>, unknown
@@ -76,9 +132,19 @@ public static class TypeReportRules
     /// The comparison is ordinal and order-sensitive on purpose — case and order are exactly two
     /// of the four things being normalised, so a comparison forgiving of either would let those
     /// URLs render as-is.
+    ///
+    /// The sort is folded in here rather than checked separately so a request that is wrong in
+    /// both its types and its sort costs one redirect, not two: the answer is about the whole
+    /// address, and <see cref="Href"/> rebuilds the whole address.
     /// </summary>
-    public static bool NeedsCanonicalRedirect(IEnumerable<string?> requested, IReadOnlyList<string> canonical)
+    public static bool NeedsCanonicalRedirect(
+        IEnumerable<string?> requested, IReadOnlyList<string> canonical, string? requestedSort = null)
     {
+        if (!ParseSort(requestedSort).IsCanonical)
+        {
+            return true;
+        }
+
         var asked = requested.ToList();
 
         if (asked.Count != canonical.Count)
@@ -108,8 +174,13 @@ public static class TypeReportRules
     /// type. <c>page=1</c> is left off so the first page has one address, and an empty selection
     /// drops the page entirely — the bare selector page has nothing to page through, so clearing
     /// the selection from page 3 must not leave a page number pointing at nothing.
+    ///
+    /// The default sort is left off for the same reason the first page is: it is the order the
+    /// report has always rendered in, so every address that predates the toggle still names it.
+    /// An empty selection drops the sort too — nothing is being ordered.
     /// </summary>
-    public static string Href(IReadOnlyList<string> types, int page = 1)
+    public static string Href(
+        IReadOnlyList<string> types, int page = 1, TypeReportSort sort = TypeReportSort.OldestFirst)
     {
         if (types.Count == 0)
         {
@@ -121,6 +192,11 @@ public static class TypeReportRules
         if (page > 1)
         {
             parts.Add($"page={page}");
+        }
+
+        if (sort == TypeReportSort.NewestFirst)
+        {
+            parts.Add($"sort={NewestFirstValue}");
         }
 
         return $"/type-report?{string.Join("&", parts)}";
@@ -164,14 +240,25 @@ public static class TypeReportRules
     /// the URL selected, so two entries at the same instant genuinely can be of different types;
     /// deferring to <see cref="EntryRules.OrderEntries{T}"/> is what keeps that answer identical
     /// to the day page's rather than a second, nearly-equal ordering rule.
+    ///
+    /// <see cref="TypeReportSort.NewestFirst"/> is that same ordering read backwards — literally
+    /// reversed, so the tie-break reverses with it and there is still only one rule deciding what
+    /// order entries go in. Only the rows inside a day flip; the days stay newest first either
+    /// way, which is what keeps a page holding the same days under both sorts. The sort defaults
+    /// so search, which has no toggle, keeps its one order without naming it.
     /// </summary>
     public static IReadOnlyList<IGrouping<DateOnly, T>> GroupByDayDescending<T>(
         IEnumerable<T> entries,
         Func<T, DateOnly> localDaySelector,
         Func<T, DateTimeOffset> occurredAtSelector,
-        Func<T, string> typeSelector) =>
-        EntryRules.OrderEntries(entries, occurredAtSelector, typeSelector)
+        Func<T, string> typeSelector,
+        TypeReportSort sort = TypeReportSort.OldestFirst)
+    {
+        var ordered = EntryRules.OrderEntries(entries, occurredAtSelector, typeSelector);
+
+        return (sort == TypeReportSort.NewestFirst ? ordered.Reverse() : ordered)
             .GroupBy(localDaySelector)
             .OrderByDescending(group => group.Key)
             .ToList();
+    }
 }
