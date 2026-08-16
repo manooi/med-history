@@ -461,6 +461,48 @@ public class ChecklistRulesTests
         Assert.Equal(0, rows.Single().RequiredCount);
     }
 
+    // ---- ProgressLabel ----
+
+    [Fact]
+    public void ProgressLabel_NoRows_ReadsNothingAllocated()
+    {
+        Assert.Equal("Nothing allocated", ChecklistRules.ProgressLabel([]));
+    }
+
+    [Fact]
+    public void ProgressLabel_EveryRowComplete_ReadsAllDone()
+    {
+        var rows = ChecklistRules.DeriveRows(
+            [Allocation(1, "Pill A", MedSlots.Morning), Allocation(2, "Pill B", MedSlots.Evening)],
+            [Tick(10, 1, "Morning"), Tick(11, 2, "Evening")]);
+
+        Assert.Equal("All done", ChecklistRules.ProgressLabel(rows));
+    }
+
+    [Fact]
+    public void ProgressLabel_SomeRowsComplete_CountsDoneOutOfTotal()
+    {
+        var rows = ChecklistRules.DeriveRows(
+            [
+                Allocation(1, "Pill A", MedSlots.Morning),
+                Allocation(2, "Pill B", MedSlots.Evening),
+                Allocation(3, "Pill C", MedSlots.Bedtime)
+            ],
+            [Tick(10, 1, "Morning")]);
+
+        Assert.Equal("1 of 3 meds done", ChecklistRules.ProgressLabel(rows));
+    }
+
+    [Fact]
+    public void ProgressLabel_ASlotlessRow_NeverCountsAsDoneOnItsOwn()
+    {
+        // A row with nothing to tick can never be complete, so a checklist made only of such
+        // rows must not read "All done" — see ChecklistRow.IsComplete.
+        var rows = ChecklistRules.DeriveRows([Allocation(1, "Pill A", MedSlots.None)], []);
+
+        Assert.Equal("0 of 1 meds done", ChecklistRules.ProgressLabel(rows));
+    }
+
     // ---- FindTick ----
 
     [Fact]

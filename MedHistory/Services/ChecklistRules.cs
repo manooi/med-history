@@ -270,6 +270,25 @@ public static class ChecklistRules
     }
 
     /// <summary>
+    /// The line the day view's Meds header reads when its accordion is collapsed — enough to
+    /// judge the day from the outside without opening it. A row with no slots can never be
+    /// <see cref="ChecklistRow.IsComplete"/>, so a checklist made only of such rows never reads
+    /// "All done" either; it stays "0 of N meds done", which is the honest state of a plan with
+    /// nothing to tick.
+    /// </summary>
+    public static string ProgressLabel(IReadOnlyList<ChecklistRow> rows)
+    {
+        if (rows.Count == 0)
+        {
+            return "Nothing allocated";
+        }
+
+        var done = rows.Count(row => row.IsComplete);
+
+        return done == rows.Count ? "All done" : $"{done} of {rows.Count} meds done";
+    }
+
+    /// <summary>
     /// The entry that ticked one slot of one allocation, or null when the slot is not ticked —
     /// which is both what draws the control and what an untick deletes.
     ///

@@ -44,6 +44,10 @@ Epic: `med-history-4ei` — personal medical history web app. Plan: [`plans/epic
 
 - [x] 26. Per-IP rate limiting on `/login` — built-in ASP.NET limiter, fixed window 10/60s, 429 + Retry-After (`4ei.16`)
 
+## v6 — UI polish
+
+- [x] 27. Day page: Meds checklist collapses into an accordion with per-day progress text (`4ei.17`)
+
 ## Later ideas
 
 - Charts/trends per entry type
