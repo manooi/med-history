@@ -55,4 +55,4 @@ Photo:  Id, EntryId FK cascade, Data bytea, ContentType, FileName, CreatedAt
 - [x] 4ei.7 history
 - [x] 4ei.8 tests
 - [x] 4ei.15 measurements + weight (day card, timestamped multi/day, month report; user-confirmed shape 2026-08-16)
-- [ ] 4ei.16 per-IP rate limiting on /login (user-approved 2026-08-16; complements LoginAttempts throttle)
+- [x] 4ei.16 per-IP rate limiting on /login (user-approved 2026-08-16; complements LoginAttempts throttle)

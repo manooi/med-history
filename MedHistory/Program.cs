@@ -1,10 +1,13 @@
+using System.Net;
 using MedHistory.Data;
 using MedHistory.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using System.Threading.RateLimiting;
 
 // .env (repo root or MedHistory/) feeds ConnectionStrings__Default and Auth__Password
 // into the process env before the config providers read it.
@@ -64,6 +67,37 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
+// Caps how many login attempts a single IP can make per window, ahead of (and independent of)
+// the password-based LoginThrottleRules lockout further down the stack.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        var retryAfter = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfterValue)
+            ? retryAfterValue
+            : (TimeSpan?)null;
+
+        context.HttpContext.Response.Headers.RetryAfter =
+            RateLimitRules.RetryAfterSeconds(retryAfter).ToString();
+        context.HttpContext.Response.ContentType = "text/plain";
+
+        await context.HttpContext.Response.WriteAsync(
+            "Too many requests. Try again shortly.", cancellationToken);
+    };
+
+    options.AddPolicy(RateLimitRules.PolicyName, httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            RateLimitRules.PartitionKey(httpContext.Connection.RemoteIpAddress),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = RateLimitRules.PermitLimit,
+                Window = TimeSpan.FromSeconds(RateLimitRules.WindowSeconds),
+                QueueLimit = 0,
+            }));
+});
+
 var app = builder.Build();
 
 dbLoggerProvider.HttpContextAccessor = app.Services.GetRequiredService<IHttpContextAccessor>();
@@ -100,6 +134,12 @@ if (!isRunningInContainer)
 }
 
 app.UseRouting();
+
+// Must run after UseRouting (endpoint-aware policy resolution needs the matched endpoint's
+// [EnableRateLimiting] metadata) and after UseForwardedHeaders above, so
+// Connection.RemoteIpAddress is already the real client IP behind Cloud Run's proxy, not the
+// proxy's own address.
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();

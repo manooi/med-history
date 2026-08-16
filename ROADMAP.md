@@ -42,7 +42,7 @@ Epic: `med-history-4ei` — personal medical history web app. Plan: [`plans/epic
 
 ## v5 — hardening
 
-- [ ] 26. Per-IP rate limiting on `/login` — built-in ASP.NET limiter, fixed window 10/60s, 429 + Retry-After (`4ei.16`)
+- [x] 26. Per-IP rate limiting on `/login` — built-in ASP.NET limiter, fixed window 10/60s, 429 + Retry-After (`4ei.16`)
 
 ## Later ideas
 

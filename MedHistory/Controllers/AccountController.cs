@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace MedHistory.Controllers;
 
@@ -25,6 +26,7 @@ public class AccountController : Controller
     }
 
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitRules.PolicyName)]
     [HttpGet("/login")]
     public IActionResult Login(string? returnUrl = null)
     {
@@ -32,6 +34,7 @@ public class AccountController : Controller
     }
 
     [AllowAnonymous]
+    [EnableRateLimiting(RateLimitRules.PolicyName)]
     [HttpPost("/login")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(LoginViewModel model)
