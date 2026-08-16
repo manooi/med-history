@@ -35,6 +35,10 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
 
     public DbSet<Photo> Photos => Set<Photo>();
 
+    // Readings of some tracked quantity — weight today, potentially more kinds later. See the
+    // comment on Measurement.Kind for why Kind is a plain string rather than an enum.
+    public DbSet<Measurement> Measurements => Set<Measurement>();
+
     // Failed login POSTs, kept only long enough to throttle and lock out repeated failures — see
     // LoginThrottleRules. A successful login clears the table outright rather than adding a row,
     // so in practice every row here has Succeeded false; the column exists for the schema to say
@@ -160,6 +164,19 @@ public class AppDbContext : DbContext, IDataProtectionKeyContext
             // One vote per day — a second POST for the same day updates or deletes this row
             // rather than adding another; see AnxietyRules.DecideVote.
             vote.HasIndex(v => v.Day).IsUnique();
+        });
+
+        modelBuilder.Entity<Measurement>(measurement =>
+        {
+            measurement.Property(m => m.Kind)
+                .HasMaxLength(MeasurementRules.KindMaxLength)
+                .IsRequired();
+
+            measurement.Property(m => m.Value).HasPrecision(5, 2);
+
+            // Every read is "one kind's readings over some range of time" — the month report and
+            // the day card both filter on both columns together.
+            measurement.HasIndex(m => new { m.Kind, m.OccurredAt });
         });
 
         modelBuilder.Entity<Photo>(photo =>

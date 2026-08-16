@@ -53,4 +53,4 @@ Photo:  Id, EntryId FK cascade, Data bytea, ContentType, FileName, CreatedAt
 - [x] 4ei.6 photos
 - [x] 4ei.7 history
 - [x] 4ei.8 tests
-- [ ] 4ei.15 measurements + weight (day card, timestamped multi/day, month report; user-confirmed shape 2026-08-16)
+- [x] 4ei.15 measurements + weight (day card, timestamped multi/day, month report; user-confirmed shape 2026-08-16)

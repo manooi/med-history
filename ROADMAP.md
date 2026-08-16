@@ -38,7 +38,7 @@ Epic: `med-history-4ei` — personal medical history web app. Plan: [`plans/epic
 
 ## v4 — measurements
 
-- [ ] 25. Measurements framework + weight recording — generic `Measurements` table (Kind/Value/OccurredAt), day-page card, `/weight-report` month grid (`4ei.15`)
+- [x] 25. Measurements framework + weight recording — generic `Measurements` table (Kind/Value/OccurredAt), day-page card, `/weight-report` month grid (`4ei.15`)
 
 ## Later ideas
 

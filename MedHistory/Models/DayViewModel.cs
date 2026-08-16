@@ -24,6 +24,9 @@ public class DayViewModel
     /// <summary>The day's anxiety vote, or null when nothing has been voted yet.</summary>
     public required AnxietyLevel? AnxietyLevel { get; init; }
 
+    /// <summary>The day's weight readings, ascending by time.</summary>
+    public required IReadOnlyList<WeightMeasurementViewModel> WeightMeasurements { get; init; }
+
     public DateOnly PreviousDay => Day.AddDays(-1);
 
     public DateOnly NextDay => Day.AddDays(1);
@@ -42,4 +45,15 @@ public class DayEntryViewModel
 
     /// <summary>Ids only — thumbnails are fetched by the browser via GET /photos/{id}.</summary>
     public required IReadOnlyList<int> PhotoIds { get; init; }
+}
+
+/// <summary>One weight reading on the day card.</summary>
+public class WeightMeasurementViewModel
+{
+    public required int Id { get; init; }
+
+    /// <summary>Already converted out of UTC — render as-is.</summary>
+    public required DateTimeOffset OccurredAtLocal { get; init; }
+
+    public required decimal Value { get; init; }
 }

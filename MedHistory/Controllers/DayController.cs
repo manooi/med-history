@@ -1,3 +1,4 @@
+using System.Globalization;
 using MedHistory.Data;
 using MedHistory.Models;
 using MedHistory.Services;
@@ -99,6 +100,41 @@ public class DayController : Controller
         }
 
         return RedirectToDay(allocation.Day);
+    }
+
+    [HttpPost("/day/{date}/weight")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddWeight(string date, string? time, string? value)
+    {
+        if (!AppTime.TryParseDay(date, out var day))
+        {
+            return RedirectToAction(nameof(Index));
+        }
+
+        if (!TimeOnly.TryParse(time, CultureInfo.InvariantCulture, out var timeOnly)
+            || !MeasurementRules.TryParseValue(value, out var parsed))
+        {
+            TempData["WeightError"] = "Enter a valid time and weight.";
+            return RedirectToDay(day);
+        }
+
+        await _db.AddWeightAsync(day, timeOnly, parsed);
+
+        return RedirectToDay(day);
+    }
+
+    [HttpPost("/day/{date}/weight/{id:int}/delete")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteWeight(string date, int id)
+    {
+        if (!AppTime.TryParseDay(date, out var day))
+        {
+            return RedirectToAction(nameof(Index));
+        }
+
+        await _db.DeleteWeightAsync(day, id);
+
+        return RedirectToDay(day);
     }
 
     [HttpPost("/day/{date}/anxiety/{level}")]

@@ -1,0 +1,88 @@
+@model WeightReportViewModel
+@{
+    ViewData["Title"] = $"Weight — {Model.Month.Label}";
+}
+
+<header class="flex items-center justify-between gap-4 border-b border-black pb-4 dark:border-neutral-100">
+    <a href="/weight-report/@Model.Month.PreviousKey" title="Previous month"
+       class="border border-black px-3 py-1 text-sm hover:bg-black hover:text-white dark:border-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">&larr;</a>
+
+    <div class="text-center">
+        <h1 class="font-semibold">@Model.Month.Label</h1>
+        <p class="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+            @(Model.Month.MeasuredCount == 0 ? "no readings" : $"{Model.Month.MeasuredCount} day(s) measured")
+        </p>
+    </div>
+
+    <a href="/weight-report/@Model.Month.NextKey" title="Next month"
+       class="border border-black px-3 py-1 text-sm hover:bg-black hover:text-white dark:border-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">&rarr;</a>
+</header>
+
+<div class="mt-4 flex items-center gap-4 text-sm">
+    @if (!Model.IsCurrentMonth)
+    {
+        <a href="/weight-report" class="underline hover:no-underline">This month</a>
+    }
+    <a href="/" class="ml-auto underline hover:no-underline">Back to today</a>
+</div>
+
+@if (Model.Month.MeasuredCount > 0)
+{
+    <div class="mt-4 grid grid-cols-3 gap-2 border border-neutral-300 px-4 py-3 text-center text-sm dark:border-neutral-600">
+        <div>
+            <span class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Min</span>
+            <span class="tabular-nums">@MeasurementRules.FormatValue(Model.Month.Min!.Value) kg</span>
+        </div>
+        <div>
+            <span class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Avg</span>
+            <span class="tabular-nums">@MeasurementRules.FormatValue(Model.Month.Average!.Value) kg</span>
+        </div>
+        <div>
+            <span class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Max</span>
+            <span class="tabular-nums">@MeasurementRules.FormatValue(Model.Month.Max!.Value) kg</span>
+        </div>
+    </div>
+}
+
+@* Weeks run Monday first, sharing the med report's column order — see
+   ReportRules.WeekdayLabels and ReportRules.LeadingBlanks. *@
+<div class="mt-6 grid grid-cols-7 gap-1 text-center text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+    @foreach (var weekday in ReportRules.WeekdayLabels)
+    {
+        <div>@weekday</div>
+    }
+</div>
+
+@* Every real day of the month gets a cell, measured or not; only days of the neighbouring
+   month are left blank, same as the other calendar reports. *@
+<div class="mt-1 grid grid-cols-7 gap-1">
+    @foreach (var week in Model.Month.Weeks)
+    {
+        @foreach (var cell in week.Days)
+        {
+            @if (cell is null)
+            {
+                @* A day of the neighbouring month: the column is held, nothing is drawn in it. *@
+                <div></div>
+            }
+            else
+            {
+                var tally = cell.Value;
+                var date = tally.Day;
+
+                var label = tally.Value is null
+                    ? $"{AppTime.DayLabel(date)} — no reading"
+                    : $"{AppTime.DayLabel(date)} — {MeasurementRules.FormatValue(tally.Value.Value)} kg";
+
+                <a href="/day/@AppTime.Key(date)" title="@label" aria-label="@label"
+                   class="flex min-h-14 flex-col items-center justify-center gap-1 border border-neutral-300 bg-white p-1 leading-none hover:bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800 dark:hover:bg-neutral-700">
+                    <span class="text-sm tabular-nums @(tally.Value is null ? "text-neutral-400 dark:text-neutral-500" : "") @(date == Model.Today ? "underline underline-offset-2" : "")">@date.Day</span>
+                    @if (tally.Value is not null)
+                    {
+                        <span class="text-sm tabular-nums">@MeasurementRules.FormatValue(tally.Value.Value)</span>
+                    }
+                </a>
+            }
+        }
+    }
+</div>

@@ -53,6 +53,13 @@ public static class DayQueries
             .Select(v => (AnxietyLevel?)v.Level)
             .SingleOrDefaultAsync();
 
+        var weightRows = await db.Measurements
+            .AsNoTracking()
+            .Where(m => m.Kind == MeasurementKinds.Weight && m.OccurredAt >= start && m.OccurredAt < end)
+            .OrderBy(m => m.OccurredAt)
+            .Select(m => new { m.Id, m.OccurredAt, m.Value })
+            .ToListAsync();
+
         // The day's entries are already loaded, so which slots are ticked is worked out in
         // memory rather than with a query per allocation.
         var ticks = rows
@@ -75,6 +82,12 @@ public static class DayQueries
             NewEntryTypes = EntryTypeRules.SortForDisplay(activeTypes, name => name),
             Checklist = ChecklistRules.DeriveRows(allocations, ticks, stock),
             AnxietyLevel = vote,
+            WeightMeasurements = weightRows.Select(r => new WeightMeasurementViewModel
+            {
+                Id = r.Id,
+                OccurredAtLocal = AppTime.ToLocal(r.OccurredAt),
+                Value = r.Value
+            }).ToList(),
             Entries = ordered.Select(r => new DayEntryViewModel
             {
                 Id = r.Id,

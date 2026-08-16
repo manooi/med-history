@@ -1,0 +1,58 @@
+@model DayViewModel
+@{
+    var dayKey = AppTime.Key(Model.Day);
+
+    // A reading just taken belongs at the current clock time; there is no "now" that means
+    // anything for a day other than today, so the field falls back to a plain morning default —
+    // the user can always type over it.
+    var defaultTime = Model.IsToday ? AppTime.TimeLabel(DateTimeOffset.Now) : "09:00";
+    var error = TempData["WeightError"] as string;
+}
+
+<section class="mt-6 border border-black dark:border-neutral-100">
+    <div class="flex items-center justify-between gap-3 border-b border-black px-3 py-2 dark:border-neutral-100">
+        <h2 class="text-sm font-semibold uppercase tracking-wide">Weight</h2>
+        <a href="/weight-report"
+           class="border border-black bg-white px-2 py-1 text-xs text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
+            Report
+        </a>
+    </div>
+
+    @if (Model.WeightMeasurements.Count > 0)
+    {
+        <ul class="divide-y divide-neutral-300 dark:divide-neutral-600">
+            @foreach (var reading in Model.WeightMeasurements)
+            {
+                <li class="flex items-center gap-2 px-3 py-2 text-sm">
+                    <span class="w-12 shrink-0 tabular-nums text-neutral-600 dark:text-neutral-400">
+                        @AppTime.TimeLabel(reading.OccurredAtLocal)
+                    </span>
+                    <span class="flex-1">@MeasurementRules.FormatValue(reading.Value) kg</span>
+                    <form method="post" action="/day/@dayKey/weight/@reading.Id/delete" asp-antiforgery="true">
+                        <button type="submit" onclick="return confirm('Delete this weight reading?');" aria-label="Delete reading"
+                                class="px-2 py-1 text-sm leading-none text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
+                            &times;
+                        </button>
+                    </form>
+                </li>
+            }
+        </ul>
+    }
+
+    @if (error is not null)
+    {
+        <p class="border-t border-neutral-300 px-3 py-2 text-xs text-red-600 dark:border-neutral-600 dark:text-red-400">@error</p>
+    }
+
+    <form method="post" action="/day/@dayKey/weight" asp-antiforgery="true"
+          class="flex flex-wrap items-center gap-2 border-t border-neutral-300 px-3 py-3 dark:border-neutral-600">
+        <input type="time" name="time" value="@defaultTime" required
+               class="border border-black bg-white px-2 py-1 text-sm dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100" />
+        <input type="text" inputmode="decimal" name="value" placeholder="kg" required
+               class="w-20 border border-black bg-white px-2 py-1 text-sm dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100" />
+        <button type="submit"
+                class="border border-black bg-white px-3 py-1 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
+            Add
+        </button>
+    </form>
+</section>
