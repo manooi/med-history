@@ -79,7 +79,7 @@
                        The icons stroke currentColor, so they take the ink of whichever theme is
                        live; with no visible text left, aria-label carries the whole meaning. *@
                     <button type="button" class="theme-toggle inline-flex items-center justify-center bg-transparent border-0 p-2 -m-2 hover:opacity-70">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" class="h-5 w-5" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><path d="M12 5.5a6.5 6.5 0 0 1 0 13z" fill="currentColor" stroke="none"/><path d="M2.6 12h1.5M5.2 5.2l1.2 1.2M5.2 18.8l1.2-1.2"/></svg>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" class="h-5 w-5" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><path d="M12 5.5a6.5 6.5 0 0 1 0 13z" fill="currentColor" stroke="none"/></svg>
                     </button>
                     <form method="post" action="/logout" class="inline">
                         @Html.AntiForgeryToken()
@@ -92,7 +92,7 @@
                    and spans the full bar, which a positioned wrapper would break. *@
                 <div class="flex items-center gap-4 sm:hidden">
                     <button type="button" class="theme-toggle inline-flex items-center justify-center bg-transparent border-0 p-2 -m-2 hover:opacity-70">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" class="h-5 w-5" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><path d="M12 5.5a6.5 6.5 0 0 1 0 13z" fill="currentColor" stroke="none"/><path d="M2.6 12h1.5M5.2 5.2l1.2 1.2M5.2 18.8l1.2-1.2"/></svg>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" class="h-5 w-5" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><path d="M12 5.5a6.5 6.5 0 0 1 0 13z" fill="currentColor" stroke="none"/></svg>
                     </button>
                     <details>
                         <summary class="list-none [&::-webkit-details-marker]:hidden cursor-pointer hover:underline">&#9776;</summary>
@@ -115,12 +115,12 @@
                         var next = { auto: 'dark', dark: 'light', light: 'auto' };
 
                         // Trusted constants, never user data — safe to hand to innerHTML. Auto is a
-                        // circle half filled by the moon side with a few sun rays on the other, so
-                        // the three states stay tellable apart at 20px.
+                        // plain half-filled circle, which reads as neither the solid moon nor the
+                        // rayed sun, so the three states stay tellable apart at 20px.
                         var icons = {
                             light: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" class="h-5 w-5" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.2v2.8M12 19v2.8M2.2 12h2.8M19 12h2.8M7 7L5 5M17 17l2 2M17 7l2-2M7 17l-2 2"/></svg>',
                             dark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
-                            auto: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" class="h-5 w-5" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><path d="M12 5.5a6.5 6.5 0 0 1 0 13z" fill="currentColor" stroke="none"/><path d="M2.6 12h1.5M5.2 5.2l1.2 1.2M5.2 18.8l1.2-1.2"/></svg>'
+                            auto: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" class="h-5 w-5" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/><path d="M12 5.5a6.5 6.5 0 0 1 0 13z" fill="currentColor" stroke="none"/></svg>'
                         };
 
                         function render() {
