@@ -157,6 +157,6 @@ Concept notes:
 
 ## 6. Remaining / optional
 
-- **VPS Postgres hardening** (`med-history-nvs.6`, open): TLS-only `pg_hba` (`hostssl`), strong password, firewall — Cloud Run egress IPs are dynamic, so the port is world-reachable; TLS + password is the personal-scale mitigation. The `postgresql-vps-agent` skill can drive this.
+- **VPS Postgres hardening** (`med-history-nvs.6`, closed won't-do): connections already run over TLS (`SSL Mode=Require` + the distro's self-signed server cert, `Trust Server Certificate=true`), so traffic is encrypted in transit. Not done, risk accepted at personal scale: `pg_hba` still permits non-TLS `host` lines, and the port stays world-reachable because Cloud Run egress IPs are dynamic. If ever wanted: flip `host` → `hostssl` (rejects plaintext), and/or add a VPC connector + Cloud NAT for a static egress IP to firewall-allowlist. The `postgresql-vps-agent` skill can drive this.
 - **Custom domain** (optional): Cloud Run's `*.run.app` URL works out of the box; `gcloud run domain-mappings create` if wanted.
 - Cost shape: min-instances 0 → scale-to-zero, ~$0 idle; cold start a few seconds on first request.

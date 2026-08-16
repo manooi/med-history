@@ -47,5 +47,5 @@ Build order: (.1 .2 .4 parallel) → .3 → .5 → .6 → .7. User actions requi
 - [x] .3 proxy/container env
 - [x] .4 GCP runbook
 - [x] .5 CI workflow
-- [ ] .6 VPS Postgres hardening
+- [~] .6 VPS Postgres hardening — **won't-do**, closed 2026-08-16 (TLS already in effect via server's self-signed cert; `hostssl`/firewall risk accepted at personal scale — see docs/SETUP.md §6)
 - [x] .7 first deploy + verify

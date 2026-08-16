@@ -22,7 +22,7 @@ Epic: `med-history-4ei` — personal medical history web app. Plan: [`plans/epic
 - [x] 12. ForwardedHeaders + container env (`nvs.3`)
 - [x] 13. GCP runbook (merged into `docs/SETUP.md`) (`nvs.4`)
 - [x] 14. GitHub Actions build+deploy (`nvs.5`)
-- [ ] 15. VPS Postgres hardening (`nvs.6`)
+- [~] 15. VPS Postgres hardening (`nvs.6`) — won't-do, TLS already in effect; risk accepted
 - [x] 16. First deploy + e2e verify (`nvs.7`)
 
 ## v3 — quality of life
