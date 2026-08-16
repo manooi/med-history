@@ -39,17 +39,23 @@
                      class="mt-4 min-h-5 text-center text-sm text-neutral-900 dark:text-neutral-100"></div>
 
                 @* Phone-only: at sm and up the reader just types on the physical keyboard. *@
-                <div id="passcode-keypad" class="mt-6 grid grid-cols-3 gap-3 select-none sm:hidden">
+                @* touch-manipulation (on the grid AND every button — Safari keys off the actual
+                   tap target, not an ancestor) disables the double-tap-to-zoom gesture so two
+                   fast taps on the same digit register as two taps instead of a page zoom. Do
+                   NOT "simplify" this by removing it from the buttons or by touching the viewport
+                   meta tag instead — that would kill pinch-zoom for the whole page, which is an
+                   accessibility regression, not a fix (med-history-p30). *@
+                <div id="passcode-keypad" class="mt-6 grid grid-cols-3 gap-3 select-none touch-manipulation sm:hidden">
                     @for (var digit = 1; digit <= 9; digit++)
                     {
                         <button type="button" data-key="@digit" aria-label="@digit"
-                                class="rounded-full border border-neutral-400 py-4 text-xl text-black hover:bg-black hover:text-white dark:border-neutral-500 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">@digit</button>
+                                class="touch-manipulation rounded-full border border-neutral-400 py-4 text-xl text-black hover:bg-black hover:text-white active:bg-black active:text-white dark:border-neutral-500 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950 dark:active:bg-neutral-100 dark:active:text-neutral-950">@digit</button>
                     }
                     <span aria-hidden="true"></span>
                     <button type="button" data-key="0" aria-label="0"
-                            class="rounded-full border border-neutral-400 py-4 text-xl text-black hover:bg-black hover:text-white dark:border-neutral-500 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">0</button>
+                            class="touch-manipulation rounded-full border border-neutral-400 py-4 text-xl text-black hover:bg-black hover:text-white active:bg-black active:text-white dark:border-neutral-500 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950 dark:active:bg-neutral-100 dark:active:text-neutral-950">0</button>
                     <button type="button" data-key="back" aria-label="Delete"
-                            class="rounded-full border border-neutral-400 py-4 text-xl text-black hover:bg-black hover:text-white dark:border-neutral-500 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">&#9003;</button>
+                            class="touch-manipulation rounded-full border border-neutral-400 py-4 text-xl text-black hover:bg-black hover:text-white active:bg-black active:text-white dark:border-neutral-500 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950 dark:active:bg-neutral-100 dark:active:text-neutral-950">&#9003;</button>
                 </div>
             </div>
         </form>

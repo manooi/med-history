@@ -6,3 +6,4 @@ _Index of resolved bugs. Details in PROBLEMS_DETAILS.md, same number._
 2. AddDataProtectionKeys migration recreated Logs table instead of DataProtectionKeys — snapshot mangled during cross-bead rebase; regenerated from known-good snapshot (med-history-nvs.8)
 3. Deployed app rendered all dates/times in UTC — AppTime reads TimeZoneInfo.Local and Cloud Run containers default to UTC → ENV TZ=Asia/Bangkok in Dockerfile final stage (med-history-5eu)
 4. Lightbox dialog stuck top-left on mobile — Tailwind v4 preflight `margin:0` on `*` overrides native `<dialog>` `margin:auto` centering → `m-auto` on the dialog (med-history-3c4)
+5. Fast double-tap on a login keypad digit zoomed the page instead of entering two digits — Safari's double-tap-to-zoom gesture fires on the tap target → `touch-action: manipulation` on the keypad container and every button (med-history-p30)
