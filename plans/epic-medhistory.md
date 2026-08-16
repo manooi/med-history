@@ -34,6 +34,7 @@ Photo:  Id, EntryId FK cascade, Data bytea, ContentType, FileName, CreatedAt
 | `4ei.6` | Photo upload/serving | sonnet | .5 |
 | `4ei.7` | History view | sonnet | .5 |
 | `4ei.8` | xUnit pure-logic tests | sonnet | .5 |
+| `4ei.15` | Measurements framework + weight recording | sonnet | .5 |
 
 ## Build order
 
@@ -52,3 +53,4 @@ Photo:  Id, EntryId FK cascade, Data bytea, ContentType, FileName, CreatedAt
 - [x] 4ei.6 photos
 - [x] 4ei.7 history
 - [x] 4ei.8 tests
+- [ ] 4ei.15 measurements + weight (day card, timestamped multi/day, month report; user-confirmed shape 2026-08-16)

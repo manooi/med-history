@@ -36,6 +36,11 @@ Epic: `med-history-4ei` — personal medical history web app. Plan: [`plans/epic
 - [x] 24. Mobile hamburger nav below sm (`med-history-0xq`)
 - [x] 23. Controller refactor epic — split Meds + Data query layer (`med-history-9b1`, plan: [`plans/epic-refactor-controllers.md`](./plans/epic-refactor-controllers.md))
 
+## v4 — measurements
+
+- [ ] 25. Measurements framework + weight recording — generic `Measurements` table (Kind/Value/OccurredAt), day-page card, `/weight-report` month grid (`4ei.15`)
+
 ## Later ideas
 
 - Charts/trends per entry type
+- More measurement kinds (blood pressure, temperature) on the Measurements table
