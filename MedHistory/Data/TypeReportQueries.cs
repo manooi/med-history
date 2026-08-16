@@ -5,12 +5,12 @@ using Microsoft.EntityFrameworkCore;
 namespace MedHistory.Data;
 
 /// <summary>
-/// The database side of the type report: the selector's type names, and one type's entries
-/// grouped by day, newest first, paged in blocks of whole days. Lives here so
-/// <see cref="MedHistory.Controllers.TypeReportController"/> keeps only route parsing and the
-/// redirect decisions that depend on what a query finds — an unrecognised type name (checked
-/// against <see cref="AllTypeNamesAsync"/>, itself cheap enough to run before deciding whether to
-/// query further) and an out-of-range page. <see cref="PageAsync"/> reports the second by paging
+/// The database side of the type report: the selector's type names, and the selected types'
+/// entries merged into one timeline grouped by day, newest first, paged in blocks of whole days.
+/// Lives here so <see cref="MedHistory.Controllers.TypeReportController"/> keeps only route
+/// parsing and the redirect decisions that depend on what a query finds — a non-canonical
+/// selection (resolved against <see cref="AllTypeNamesAsync"/>, itself cheap enough to run before
+/// deciding whether to query further) and an out-of-range page. <see cref="PageAsync"/> reports the second by paging
 /// exactly as before: it clamps and returns <c>Page</c> already corrected, and skips the entries
 /// query entirely when the caller's page will turn out to need a redirect — same two-query
 /// short-circuit the controller used to do inline, just relocated. The controller compares its
@@ -26,15 +26,18 @@ public static class TypeReportQueries
     }
 
     public static async Task<TypeReportViewModel> PageAsync(
-        this AppDbContext db, string canonicalType, IReadOnlyList<string> allTypeNames, int page)
+        this AppDbContext db, IReadOnlyList<string> canonicalTypes, IReadOnlyList<string> allTypeNames, int page)
     {
-        // Every instant this type was ever logged at. Deliberately just the timestamp: which
-        // local day each one falls on is all that decides the page layout, and reading the rest
-        // of the row for every entry the type has ever had — most of which will not even be on
-        // this page — would be the N+1 this design avoids.
+        // Materialised as a List so EF translates the membership test to a plain SQL IN.
+        var types = canonicalTypes.ToList();
+
+        // Every instant any of these types was ever logged at. Deliberately just the timestamp:
+        // which local day each one falls on is all that decides the page layout, and reading the
+        // rest of the row for every entry the selection has ever had — most of which will not even
+        // be on this page — would be the N+1 this design avoids.
         var instants = await db.Entries
             .AsNoTracking()
-            .Where(e => e.Type == canonicalType)
+            .Where(e => types.Contains(e.Type))
             .Select(e => e.OccurredAt)
             .ToListAsync();
 
@@ -55,13 +58,13 @@ public static class TypeReportQueries
         if (clampedPage == page)
         {
             var window = TypeReportRules.SelectDays(distinctDays, clampedPage);
-            days = window.Count == 0 ? [] : await LoadDaysAsync(db, canonicalType, window);
+            days = window.Count == 0 ? [] : await LoadDaysAsync(db, types, window);
         }
 
         return new TypeReportViewModel
         {
             AllTypeNames = allTypeNames,
-            CurrentType = canonicalType,
+            SelectedTypes = canonicalTypes,
             Days = days,
             Page = clampedPage,
             PageCount = pageCount
@@ -70,13 +73,13 @@ public static class TypeReportQueries
 
     /// <summary>
     /// The page's entries, grouped by day. One query: the window is a contiguous slice of the
-    /// type's own distinct days, so the instant range from the oldest day's start to the newest
-    /// day's end holds exactly these days' entries of this type and nothing outside the window —
-    /// any calendar day inside that range but outside the distinct-day set has no entry of this
-    /// type to begin with, or it would already be in that set.
+    /// selection's own distinct days, so the instant range from the oldest day's start to the
+    /// newest day's end holds exactly these days' entries of these types and nothing outside the
+    /// window — any calendar day inside that range but outside the distinct-day set has no entry
+    /// of any selected type to begin with, or it would already be in that set.
     /// </summary>
     private static async Task<IReadOnlyList<TypeReportDayViewModel>> LoadDaysAsync(
-        AppDbContext db, string type, IReadOnlyList<DateOnly> window)
+        AppDbContext db, List<string> types, IReadOnlyList<DateOnly> window)
     {
         var newest = window[0];
         var oldest = window[^1];
@@ -87,11 +90,12 @@ public static class TypeReportQueries
         // so the view can request thumbnails via GET /photos/{id} — same shape as the day page.
         var rows = await db.Entries
             .AsNoTracking()
-            .Where(e => e.Type == type && e.OccurredAt >= start && e.OccurredAt < end)
+            .Where(e => types.Contains(e.Type) && e.OccurredAt >= start && e.OccurredAt < end)
             .Select(e => new
             {
                 e.Id,
                 e.OccurredAt,
+                e.Type,
                 e.Severity,
                 e.PillName,
                 e.Note,
@@ -99,7 +103,8 @@ public static class TypeReportQueries
             })
             .ToListAsync();
 
-        var groups = TypeReportRules.GroupByDayDescending(rows, r => AppTime.DayOf(r.OccurredAt), r => r.OccurredAt);
+        var groups = TypeReportRules.GroupByDayDescending(
+            rows, r => AppTime.DayOf(r.OccurredAt), r => r.OccurredAt, r => r.Type);
 
         return groups.Select(group => new TypeReportDayViewModel
         {
@@ -108,8 +113,8 @@ public static class TypeReportQueries
             {
                 Id = r.Id,
                 OccurredAtLocal = AppTime.ToLocal(r.OccurredAt),
-                Type = type,
-                Detail = EntryRules.DetailLine(type, r.Severity, r.PillName, r.Note),
+                Type = r.Type,
+                Detail = EntryRules.DetailLine(r.Type, r.Severity, r.PillName, r.Note),
                 PhotoIds = r.PhotoIds
             }).ToList()
         }).ToList();

@@ -88,7 +88,8 @@ public static class SearchQueries
             })
             .ToListAsync();
 
-        var groups = TypeReportRules.GroupByDayDescending(rows, r => AppTime.DayOf(r.OccurredAt), r => r.OccurredAt);
+        var groups = TypeReportRules.GroupByDayDescending(
+            rows, r => AppTime.DayOf(r.OccurredAt), r => r.OccurredAt, r => r.Type);
 
         return groups.Select(group => new TypeReportDayViewModel
         {

@@ -1,41 +1,48 @@
 @model TypeReportViewModel
 @{
-    ViewData["Title"] = Model.CurrentType is null ? "Type report" : $"Type report — {Model.CurrentType}";
+    var hasSelection = Model.SelectedTypes.Count > 0;
+    ViewData["Title"] = hasSelection ? $"Type report — {Model.SelectedLabel}" : "Type report";
 }
 
 <header class="border-b border-black pb-4 dark:border-neutral-100">
     <h1 class="font-semibold">Type report</h1>
-    @if (Model.CurrentType is null)
+    @if (hasSelection)
     {
-        <p class="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Pick a type.</p>
+        <p class="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@Model.SelectedLabel</p>
     }
     else
     {
-        <p class="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@Model.CurrentType</p>
+        <p class="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Pick one or more types.</p>
     }
 </header>
 
-<div class="mt-6 flex flex-wrap gap-2">
+<div class="mt-6 flex flex-wrap items-center gap-2">
     @foreach (var type in Model.AllTypeNames)
     {
-        var isCurrent = Model.CurrentType is not null
-            && string.Equals(type, Model.CurrentType, StringComparison.OrdinalIgnoreCase);
-        var classes = isCurrent
+        var isSelected = Model.SelectedTypes.Any(name => EntryTypeRules.NamesMatch(name, type));
+        var classes = isSelected
             ? "border border-black bg-black px-3 py-1 text-sm text-white dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950"
             : "border border-black bg-white px-3 py-1 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950";
 
-        @* Names are user-supplied, so they are escaped into the path segment. *@
-        <a href="/type-report/@Uri.EscapeDataString(type)" class="@classes">@type</a>
+        @* Each chip is a checkbox: its href is this selection with that one type ticked the other
+           way, always back on page 1 — a different selection is a different set of days. Names are
+           user-supplied, so TypeReportRules.Href escapes every one of them into the query. *@
+        <a href="@TypeReportRules.Href(TypeReportRules.ToggleType(Model.SelectedTypes, type, Model.AllTypeNames))"
+           class="@classes">@(isSelected ? "☑" : "☐") @type</a>
+    }
+    @if (hasSelection)
+    {
+        <a href="/type-report" class="px-1 text-sm underline hover:no-underline">Clear</a>
     }
 </div>
 
-@if (Model.CurrentType is not null)
+@if (hasSelection)
 {
     <section class="mt-6">
         @if (Model.Days.Count == 0)
         {
             <p class="border border-dashed border-neutral-400 px-4 py-10 text-center text-sm text-neutral-500 dark:border-neutral-500 dark:text-neutral-400">
-                Nothing logged for this type.
+                @(Model.SelectedTypes.Count == 1 ? "Nothing logged for this type." : "Nothing logged for these types.")
             </p>
         }
         else
@@ -56,10 +63,19 @@
                                             @AppTime.TimeLabel(entry.OccurredAtLocal)
                                         </span>
                                         <span class="min-w-0 flex-1">
-                                            @if (entry.Detail is not null)
-                                            {
-                                                <span class="block text-sm text-neutral-600 dark:text-neutral-400">@entry.Detail</span>
-                                            }
+                                            <span class="flex flex-wrap items-baseline gap-2">
+                                                @if (Model.ShowTypeBadges)
+                                                {
+                                                    @* Only with two types or more; the header already names a lone type. *@
+                                                    <span class="shrink-0 border border-neutral-400 px-1 text-xs text-neutral-600 dark:border-neutral-500 dark:text-neutral-400">
+                                                        @entry.Type
+                                                    </span>
+                                                }
+                                                @if (entry.Detail is not null)
+                                                {
+                                                    <span class="min-w-0 text-sm text-neutral-600 dark:text-neutral-400">@entry.Detail</span>
+                                                }
+                                            </span>
                                             @if (entry.PhotoIds.Count > 0)
                                             {
                                                 <span class="mt-1 flex flex-wrap gap-1">
@@ -84,13 +100,13 @@
                 <div class="mt-6 flex items-center justify-center gap-4 text-sm">
                     @if (Model.HasNewerPage)
                     {
-                        <a href="/type-report/@Uri.EscapeDataString(Model.CurrentType)?page=@(Model.Page - 1)"
+                        <a href="@TypeReportRules.Href(Model.SelectedTypes, Model.Page - 1)"
                            class="underline hover:no-underline">&larr; Newer</a>
                     }
                     <span class="text-neutral-500 dark:text-neutral-400">Page @Model.Page of @Model.PageCount</span>
                     @if (Model.HasOlderPage)
                     {
-                        <a href="/type-report/@Uri.EscapeDataString(Model.CurrentType)?page=@(Model.Page + 1)"
+                        <a href="@TypeReportRules.Href(Model.SelectedTypes, Model.Page + 1)"
                            class="underline hover:no-underline">Older &rarr;</a>
                     }
                 </div>

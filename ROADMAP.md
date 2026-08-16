@@ -47,6 +47,7 @@ Epic: `med-history-4ei` — personal medical history web app. Plan: [`plans/epic
 ## v6 — UI polish
 
 - [x] 27. Day page: Meds checklist collapses into an accordion with per-day progress text (`4ei.17`)
+- [x] 28. Type report: multi-select types — checkbox toggles, merged day timeline (`4ei.18`)
 
 ## Later ideas
 
