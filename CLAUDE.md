@@ -2,47 +2,63 @@
 
 ## Project
 
-Personal medical history web app — single user. ASP.NET Core MVC (.NET 10) + PostgreSQL (EF Core/Npgsql) + Tailwind v4. Daily timestamped entries (symptom, bleeding, pill, cough, meal), photos stored in DB as bytea, single-password cookie auth.
+Personal medical history web app — single user. ASP.NET Core MVC (.NET 10) + PostgreSQL (EF Core/Npgsql) + Tailwind v4. Daily timestamped entries, photos stored in the DB as `bytea`, single-password cookie auth.
 
 ## Repo layout
 
-- `MedHistory/` — app source; dev commands: `cd MedHistory && dotnet build|run|watch`, css: `npm run css`
-- `MedHistory.Tests/` — xUnit tests; `dotnet test` from repo root
+- `MedHistory/` — app source; `cd MedHistory && dotnet build|run|watch`, css: `npm run css`
+- `MedHistory.Tests/` — xUnit; `dotnet test` from repo root
+- `docs/features/` — per-subsystem deep dives (read before touching that subsystem)
 - Repo root — `plans/`, `problems/`, `ROADMAP.md`, this file, `.beads/`, `.claude/`
 
 ## Working process
 
-Global playbook applies (~/CLAUDE.md gate): **no bead no code**, orchestrator never edits `MedHistory*/` source — all src via `builder` agent (`.claude/agents/builder.md`, model per bead: opus = design-heavy, sonnet = bounded). One bead = one worktree `../med-history-wt/<id>` = one branch `bead/<id>`; merges serial `--ff-only`.
+Global playbook applies (`~/CLAUDE.md` gate):
+
+- **No bead, no code.**
+- Orchestrator never edits `MedHistory*/` source — all src goes through the `builder` agent (`.claude/agents/builder.md`; opus for design-heavy beads, sonnet for bounded ones).
+- One bead = one worktree `../med-history-wt/<id>` = one branch `bead/<id>`. Merges are serial, `--ff-only`.
 
 ## Conventions
 
-- Theme: black/white/neutral grays — **one carve-out: destructive actions (delete/remove buttons) use red** (`text-red-600`, `hover:text-red-800`, bordered: `border-red-600 hover:bg-red-600 hover:text-white`); deactivate is NOT destructive (stays neutral). No other color classes ever; severity via label text + border weight
-- Dark mode: attribute variant `[data-theme=dark]` via `@custom-variant dark` in Styles/site.css, nested in `@media not print` — dark utilities are INERT on paper (doctor report always prints light); `color-scheme: dark` inside the same media block. Pre-stylesheet head script in _Layout sets `data-theme` (localStorage override 'dark'/'light', else prefers-color-scheme; listener tracks system only in Auto); navbar button cycles Auto→Dark→Light. Palette map (grey-lifted per user, bead bmp): ground `dark:bg-neutral-800`, ink neutral-100, hover-on-ground 700, raised panels 700, hover-back-to-ground 800, borders neutral-300/400 → dark 600/500, dividers 600; solid selected states invert light-on-dark (chip `dark:bg-neutral-100 dark:text-neutral-950` — the only remaining 950 tokens are chip TEXT), `hover:bg-black hover:text-white` ↔ `dark:hover:bg-neutral-100 dark:hover:text-neutral-950`, red rests at 400 dark (solid red-600 hover shared both themes — no dark red-500 or dark bg-950 anywhere). EVERY new light class in a view must carry its dark: counterpart on the same line
-- Enums stored as strings in Postgres
-- Secrets only in user-secrets: `ConnectionStrings:Default`, `Auth:Password` — never in appsettings
-- Login throttling: wrong password inserts `LoginAttempts` row + flat 2s delay; ≥5 failures in 15 min locks until oldest-of-newest-5 + 15 min (pure `LoginThrottleRules.Decide`); a locked POST neither checks the password nor records an attempt (expiry can't be pushed); success wipes the table (`Succeeded` column exists but is always false in practice)
-- Login screen: `/login` is an iOS-style 6-digit passcode pad — JS owns the entry and only stamps it onto the single hidden `Password` field (nothing focusable, so no OS keyboard); 6 dots fill as digits land, physical keyboard works at every width, on-screen 3-col keypad is `sm:hidden` (mobile only), and the 6th digit auto-submits via `requestSubmit()` (double-submit guarded). Wrong passcode → dot row runs the `.passcode-shake` keyframes in site.css (mono, disabled under `prefers-reduced-motion`). `<noscript>` holds its OWN fallback form (a second Password input in the main form would comma-join on post) and hides the dots/keypad. Server side is untouched — same POST contract, same throttle paths — so **`Auth:Password` must be exactly 6 digits**
-- Photos: bytea in DB, served via `/photos/{id}`, 10 MB/photo cap, image/* only; client JS downscales >1600px images to 1600px JPEG q0.85 before upload (Form.cshtml — decode failure e.g. HEIC falls back to original file, generation counter guards re-selection races)
-- Decision logic extracted as pure functions (testability rule)
+- **Theme:** black/white/neutral only, red reserved for destructive actions → [theming.md](./docs/features/theming.md)
+- **Enums** are stored as strings in Postgres
+- **Secrets** only in user-secrets (`ConnectionStrings:Default`, `Auth:Password`) — never in `appsettings`
+- **Decision logic is extracted as pure functions** and unit-tested. If logic is buried in a controller or view, pull it into a `Services/*Rules.cs` and test that.
 
-## Business rules
+## Feature docs
 
-- Entry types are data-driven (`EntryTypes` table, managed at `/types`): 6 seeded built-ins (Symptom, Bleeding, Med, Cough, Meal, Note — Med was "Pill" until the RenamePillTypeToMed data migration, C# identifiers still say Pill; Note seeded by AddNoteEntryType with lower(Name) guard, a pre-existing custom 'note' stays custom via ordinal match) keep special fields (`Severity` only Bleeding/Cough; `PillName` only Med; note text required only Symptom/Note); user-added types are name-only (note+photos+time). Deactivate hides a type from new-entry UI, never deletes. `Entry.Type` is a plain string (no FK — app-level validation in `EntryTypeRules`); type-name uniqueness via raw-SQL `lower(Name)` index that lives OUTSIDE the EF snapshot — later migrations won't see it
-- Multiple entries per day, timestamped `OccurredAt` (timestamptz), day view groups by local date
-- Med checklist: `MedAllocations` per-day rows — Name + `Slots` ([Flags] Morning/Noon/Evening/Bedtime, stored canonical CSV via explicit converter) + MealRelation + Method (enum-as-string) + `DoseQuantity` (numeric(5,2), default 1, 0.25 steps, posted as raw string + invariant-culture parsed — never decimal-bound). Ticks are PER SLOT: tick creates a Med entry linked via `Entry.ChecklistAllocationId`+`ChecklistSlot` (nullable, NO FK — a logged dose outlives its plan) and STAMPS the allocation's current DoseQuantity onto `Entry.DoseQuantity` (null = one unit, rule lives in `MedStockRules.UsageQuantity`) plus the allocation's `MedStockId` onto `Entry.MedStockId`; plan edits never rewrite logged entries. Hand-editing an entry's PillName clears its `MedStockId` (stale link) unless the name is NamesMatch-unchanged. Retro ticks (past day) stamp the slot's canonical local time — morning 09:00 / noon 12:00 / evening 18:00 / bedtime 22:00 (`MedPlanRules.SlotTime`, noon fallback); today's tick stamps now. Untick deletes exactly the linked entry (day-scoped). Slot state = linked entry exists; manual Med entries do NOT count toward slots but DO consume stock. Dangling allocation ids tolerated everywhere. Maintenance at `/day/{date}/meds` (`MedsController`, incl. range add + edit w/ apply-forward); tick/untick on `DayController`. Vocabulary in `MedPlanRules`, behavior in `ChecklistRules`
-- Med stock: `MedStocks` (Name unique via raw-SQL `lower(Name)` index — outside EF snapshot like EntryTypes; Name AND TotalCount editable, one form per row). Doses link to stock BY ID: `MedAllocation.MedStockId` + `Entry.MedStockId` (int?, no FK, dangling tolerated) — allocation ids resolved by name on every write and re-resolved for ALL allocations after any stock add/rename/remove (`MedStockRules.Relink`); tick stamps the id. Consumed = ONE grouped query over Med entries by (MedStockId, PillName) pair (`Data/StockQueries.StockRowsAsync`, shared by both pages); per stock = id-linked entries + NamesMatch fallback for id-NULL entries only (`DrawsOn` — id-linked NEVER double-counts via name). So ticked doses survive stock renames; manual doses follow the stock's current name. `AddStockLinks` migration backfilled ids for ALL pre-existing Med entries by name (froze then-visible counts — old manual doses are id-linked, post-migration manual doses are name-only; intentional asymmetry). Remaining may go negative, never blocks ticks. Stock section uses `StockErrors`, not ModelState (two forms on one page)
-- Reports hub: `/report` (`ReportsController`, static links) + navbar "Reports ▾" pure-CSS group-hover flyout — desktop hover opens menu, touch tap follows the link to the hub; no JS
-- Mobile nav: below `sm` the bar is brand + CSS-only `<details>` hamburger (panel: Today/History/Reports-hub/Search/Types + theme toggle + Logout; flyout is desktop-only); theme toggle exists TWICE, bound by class `.theme-toggle` via querySelectorAll with labels synced — never bind it by id
-- PWA: `wwwroot/manifest.webmanifest` (standalone, black theme) + `wwwroot/icons/` — icon.svg is the SOURCE (black tile, white mono "m"); PNGs (192/512/apple-touch 180) are rasterized from it via `qlmanage -t -s <size>` and committed (magick lacks SVG-text delegates here); manifest/touch-icon/theme-color linked in _Layout head; no service worker; .NET 10 static assets serve .webmanifest correctly without Program.cs changes
-- Doctor export: `/doctor-report?from=&to=` (`DoctorReportController` + pure `DoctorReportRules`) — printable range summary, day-grouped ASCENDING (only report that reads oldest-first), per-type totals + voted-anxiety-day count, photos as "(N photos)" never images; ResolveRange: any bad bound → whole range defaults to last 30 days (never mixed), from>to swaps, >366 days clamps From forward (To never moves); print via Tailwind `print:hidden` on controls + site nav (in built css the selector is escaped `print\:hidden` — grep -F needs the backslash); linked from Reports dropdown + hub
-- Search: `/search?q=&page=N` (`SearchController` + pure `SearchRules`) — case-insensitive ILIKE substring over Note + PillName, user's `% _ \` escaped literal (backslash first); reuses TypeReportRules distinct-day pagination wholesale (30 day-blocks, clamp-redirect, two-query shape with match re-filter on the day-window fetch); empty q = bare form; navbar link after Reports
-- Anxiety vote: one editable per day (`AnxietyVotes`, unique Day index, `AnxietyLevel` Calm/Ok/Tense/Anxious/Panic enum-as-string). Day-page card under meds checklist; POST `/day/{date}/anxiety/{level}` toggles — same level again clears (pure `AnxietyRules.DecideVote`); racing first-vote double-submit swallowed via DbUpdateException guard (AddStock pattern). `/anxiety-report[/{yyyy-MM}]` month grid, uniform plain cells with the level's emoji (😌🙂😟😰😱 via `AnxietyRules.Emoji`, text-lg) + emoji legend — no shading; grid built on generic `ReportRules.BuildWeeks<TCell>` (med report is a wrapper over it)
-- Type report: `/type-report[/{type}?page=N]` (`TypeReportController` + pure `TypeReportRules`) — selector button per EntryTypes row (incl. inactive, history stays viewable), entries grouped by local day newest-first (asc within day), severity/note/photo thumbs, day headers link to day page. Pagination = 30 distinct entry-days per page, clamp-redirect out-of-range; two queries per page (OccurredAt-only scan → day window fetch), no N+1
-- Med report: `/med-report[/{yyyy-MM}]` month calendar (`ReportController` + pure `ReportRules`, Monday-first grid), all meds combined — per day ticked/planned slot counts bucketed by allocation.Day (plan-day basis: link alone counts, entry hand-edited onto another date still counts here though the day page shows the slot unticked — documented on ReportRules). States: Full (ticked>=planned, solid black) / Partial / None / NoPlan. Slot semantics reuse ChecklistRules.FindTick + MedPlanRules — duplicate ticks collapse, dangling links ignored
+| Doc | Covers |
+|---|---|
+| [theming.md](./docs/features/theming.md) | palette, red carve-out, dark mode + palette map, print |
+| [auth.md](./docs/features/auth.md) | 6-digit passcode screen, login throttling, secrets |
+| [entries-and-types.md](./docs/features/entries-and-types.md) | entries, data-driven entry types, photos |
+| [med-checklist.md](./docs/features/med-checklist.md) | allocations, slots, ticks, retro-tick times |
+| [med-stock.md](./docs/features/med-stock.md) | stock rows, id-vs-name dose linking, consumption query |
+| [anxiety.md](./docs/features/anxiety.md) | day vote (toggle-to-clear), month emoji grid |
+| [reports.md](./docs/features/reports.md) | hub, type / med / weight / doctor reports, search |
+| [navigation.md](./docs/features/navigation.md) | desktop + mobile nav, theme toggle wiring, PWA |
+
+## Invariants
+
+The expensive-to-learn rules. Don't rederive them — full context in the linked doc.
+
+- Every new light class in a view carries its `dark:` counterpart **on the same line**; dark utilities are inert under print → [theming](./docs/features/theming.md)
+- The theme toggle exists **twice** — bind by class `.theme-toggle`, never by id → [navigation](./docs/features/navigation.md)
+- `Auth:Password` must be **exactly 6 digits** → [auth](./docs/features/auth.md)
+- A locked login POST neither checks the password nor records an attempt (expiry can't be pushed) → [auth](./docs/features/auth.md)
+- `lower(Name)` unique indexes (`EntryTypes`, `MedStocks`) are raw SQL **outside the EF snapshot** — later migrations won't see them → [entries-and-types](./docs/features/entries-and-types.md), [med-stock](./docs/features/med-stock.md)
+- `Entry.Type` is a plain string, **no FK** — validation is app-level in `EntryTypeRules` → [entries-and-types](./docs/features/entries-and-types.md)
+- Dose links (`ChecklistAllocationId`, `MedStockId`) are nullable with **no FK**; dangling ids are tolerated everywhere → [med-checklist](./docs/features/med-checklist.md)
+- A tick **stamps** the allocation's `DoseQuantity` + `MedStockId` onto the entry; plan edits never rewrite logged entries → [med-checklist](./docs/features/med-checklist.md)
+- Manual Med entries do **not** count toward slots, but **do** consume stock → [med-stock](./docs/features/med-stock.md)
+- `DoseQuantity` is posted as a raw string and parsed invariant-culture — never model-bound as `decimal` → [med-checklist](./docs/features/med-checklist.md)
+- The doctor report is the **only** report that reads oldest-first → [reports](./docs/features/reports.md)
+- Med report counts on a **plan-day basis**, so it can disagree with the day page for a hand-edited entry → [reports](./docs/features/reports.md)
 
 ## Problems log
 
-`problems/PROBLEMS.md` (one-line index) + `problems/PROBLEMS_DETAILS.md` (full write-ups). Every resolved bug → both files + regression test same commit.
+`problems/PROBLEMS.md` (one-line index) + `problems/PROBLEMS_DETAILS.md` (full write-ups). Every resolved bug → **both** files + a regression test, same commit.
 
 ## Roadmap / plans
 
@@ -50,4 +66,4 @@ Global playbook applies (~/CLAUDE.md gate): **no bead no code**, orchestrator ne
 
 ## Beads
 
-Epic `med-history-4ei`, children `.1`–`.8`. `bd ready` / `bd show <id>` / `bd update <id> --claim` / `bd close <id>`. `.beads/issues.jsonl` is passive export — never hand-merge.
+Epic `med-history-4ei`. `bd ready` / `bd show <id>` / `bd update <id> --claim` / `bd close <id>`. `.beads/issues.jsonl` is a passive export — never hand-merge.
