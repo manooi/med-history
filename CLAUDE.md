@@ -51,6 +51,7 @@ The expensive-to-learn rules. Don't rederive them — full context in the linked
 - `Entry.Type` is a plain string, **no FK** — validation is app-level in `EntryTypeRules` → [entries-and-types](./docs/features/entries-and-types.md)
 - Dose links (`ChecklistAllocationId`, `MedStockId`) are nullable with **no FK**; dangling ids are tolerated everywhere → [med-checklist](./docs/features/med-checklist.md)
 - A tick **stamps** the allocation's `DoseQuantity` + `MedStockId` onto the entry; plan edits never rewrite logged entries → [med-checklist](./docs/features/med-checklist.md)
+- Tick/untick posts are intercepted by fetch and swap two regions; **any** failure falls back to the real form post, so the plain POST contract and antiforgery must stay intact. Behaviour bound to day-page markup needs document-level delegation → [med-checklist](./docs/features/med-checklist.md)
 - Manual Med entries do **not** count toward slots, but **do** consume stock → [med-stock](./docs/features/med-stock.md)
 - `DoseQuantity` is posted as a raw string and parsed invariant-culture — never model-bound as `decimal` → [med-checklist](./docs/features/med-checklist.md)
 - The doctor report is the **only** report that reads oldest-first → [reports](./docs/features/reports.md)

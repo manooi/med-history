@@ -35,3 +35,18 @@ Deletes exactly the linked entry, scoped to the day.
 ### Slot state
 
 Slot is ticked **iff** a linked entry exists. Manual (hand-typed) Med entries do **not** count toward slots — but they **do** consume stock. See [med-stock.md](./med-stock.md).
+
+## Ticking without a reload
+
+The slot controls are ordinary `<form method="post">` posts. A script in `Day/Index.cshtml` intercepts them and refetches instead.
+
+- Client sends `X-Requested-With: XMLHttpRequest`. Server-side `LiveUpdateRules.IsFragmentRequest` (pure, tested) is the only thing that branches on it.
+- Every return point in `Tick`/`Untick` — the double-submit early returns included — goes through `DayController.ChecklistResultAsync`, which renders `_DayLive` for a fragment request and the same old redirect otherwise. `NotFound()` is left alone.
+- `_DayLive` is `#checklist-region` + `#entries-region`, the same two partials `Index` uses. The model is **re-read** so progress, stock label and the timeline cannot disagree. The timeline is in scope because a tick *is* an entry.
+- Client swaps both regions' `innerHTML`, restores the `<details>` open state and refocuses the button by `data-slot="{allocationId}:{slot}"`.
+
+> **Invariant:** anything unexpected — non-OK response, missing region, parse throw — calls `form.submit()` and lets the browser do the old full post. The reader never sees state the server didn't send. That fallback is also the no-JS path, so **never remove `[ValidateAntiForgeryToken]`** or change the form markup's POST contract.
+
+One page-wide in-flight flag, not per-form: two slots posting against the same render would let arrival order decide the day.
+
+Anything that binds behaviour to entries or checklist markup must use **document-level delegation** (as `_Lightbox` does) — per-element listeners die on the swap.
