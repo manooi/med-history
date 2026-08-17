@@ -1,0 +1,48 @@
+@model DayViewModel
+
+<section class="mt-6">
+    @if (Model.Entries.Count == 0)
+    {
+        <p class="border border-dashed border-neutral-400 px-4 py-10 text-center text-sm text-neutral-500 dark:border-neutral-500 dark:text-neutral-400">
+            Nothing logged for this day.
+        </p>
+    }
+    else
+    {
+        <ul class="border-y border-neutral-300 divide-y divide-neutral-300 dark:border-neutral-600 dark:divide-neutral-600">
+            @foreach (var entry in Model.Entries)
+            {
+                <li class="flex items-center gap-2 px-1 py-3 hover:bg-neutral-100 dark:hover:bg-neutral-700">
+                    <a href="/entries/@entry.Id/edit" class="flex min-w-0 flex-1 gap-4">
+                        <span class="w-12 shrink-0 text-sm tabular-nums text-neutral-600 dark:text-neutral-400">
+                            @AppTime.TimeLabel(entry.OccurredAtLocal)
+                        </span>
+                        <span class="min-w-0 flex-1">
+                            <span class="block text-sm font-medium">@entry.Type</span>
+                            @if (entry.Detail is not null)
+                            {
+                                <span class="block text-sm text-neutral-600 dark:text-neutral-400">@entry.Detail</span>
+                            }
+                            @if (entry.PhotoIds.Count > 0)
+                            {
+                                <span class="mt-1 flex flex-wrap gap-1">
+                                    @foreach (var photoId in entry.PhotoIds)
+                                    {
+                                        <img src="/photos/@photoId" loading="lazy" alt="" data-lightbox
+                                             class="h-12 w-12 border border-neutral-300 object-cover cursor-zoom-in dark:border-neutral-600" />
+                                    }
+                                </span>
+                            }
+                        </span>
+                    </a>
+                    <form method="post" action="/entries/@entry.Id/delete" asp-antiforgery="true" class="shrink-0">
+                        <button type="submit" onclick="return confirm('Delete this entry?');" aria-label="Delete entry"
+                                class="px-2 py-1 text-sm leading-none text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
+                            &times;
+                        </button>
+                    </form>
+                </li>
+            }
+        </ul>
+    }
+</section>

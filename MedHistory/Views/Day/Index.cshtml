@@ -30,7 +30,11 @@
     }
 </div>
 
-<partial name="_Checklist" model="Model" />
+@* Both regions a tick changes are wrapped and named here so the script below can replace them
+   in place — the same two wrappers _DayLive renders as the response to a tick. *@
+<div id="checklist-region">
+    <partial name="_Checklist" model="Model" />
+</div>
 
 <partial name="_Anxiety" model="Model" />
 
@@ -49,52 +53,9 @@
     }
 </div>
 
-<section class="mt-6">
-    @if (Model.Entries.Count == 0)
-    {
-        <p class="border border-dashed border-neutral-400 px-4 py-10 text-center text-sm text-neutral-500 dark:border-neutral-500 dark:text-neutral-400">
-            Nothing logged for this day.
-        </p>
-    }
-    else
-    {
-        <ul class="border-y border-neutral-300 divide-y divide-neutral-300 dark:border-neutral-600 dark:divide-neutral-600">
-            @foreach (var entry in Model.Entries)
-            {
-                <li class="flex items-center gap-2 px-1 py-3 hover:bg-neutral-100 dark:hover:bg-neutral-700">
-                    <a href="/entries/@entry.Id/edit" class="flex min-w-0 flex-1 gap-4">
-                        <span class="w-12 shrink-0 text-sm tabular-nums text-neutral-600 dark:text-neutral-400">
-                            @AppTime.TimeLabel(entry.OccurredAtLocal)
-                        </span>
-                        <span class="min-w-0 flex-1">
-                            <span class="block text-sm font-medium">@entry.Type</span>
-                            @if (entry.Detail is not null)
-                            {
-                                <span class="block text-sm text-neutral-600 dark:text-neutral-400">@entry.Detail</span>
-                            }
-                            @if (entry.PhotoIds.Count > 0)
-                            {
-                                <span class="mt-1 flex flex-wrap gap-1">
-                                    @foreach (var photoId in entry.PhotoIds)
-                                    {
-                                        <img src="/photos/@photoId" loading="lazy" alt="" data-lightbox
-                                             class="h-12 w-12 border border-neutral-300 object-cover cursor-zoom-in dark:border-neutral-600" />
-                                    }
-                                </span>
-                            }
-                        </span>
-                    </a>
-                    <form method="post" action="/entries/@entry.Id/delete" asp-antiforgery="true" class="shrink-0">
-                        <button type="submit" onclick="return confirm('Delete this entry?');" aria-label="Delete entry"
-                                class="px-2 py-1 text-sm leading-none text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
-                            &times;
-                        </button>
-                    </form>
-                </li>
-            }
-        </ul>
-    }
-</section>
+<div id="entries-region">
+    <partial name="_Entries" model="Model" />
+</div>
 
 @section Scripts {
     <script>
@@ -103,5 +64,99 @@
                 window.location.href = '/day/' + this.value;
             }
         });
+    </script>
+    <script>
+        (function () {
+            // Ticking a dose is the most-used control on the app, and a full post threw the
+            // page away to redraw the same page. The forms stay ordinary posts — this only
+            // intercepts them, and hands the submit straight back to the browser the moment
+            // anything is off, so what the reader sees is never state the server did not send.
+            var checklistPost = /^\/checklist\/\d+\/(tick|untick)\/[^\/]+$/;
+            var regionIds = ['checklist-region', 'entries-region'];
+
+            // One in-flight post at a time. Two taps on the same slot would be a tick and an
+            // untick racing, and the second would decide the day on arrival order alone.
+            var busy = false;
+
+            document.addEventListener('submit', function (e) {
+                var form = e.target;
+
+                if (!form.action || !checklistPost.test(new URL(form.action, window.location.href).pathname)) {
+                    return;
+                }
+
+                e.preventDefault();
+
+                if (busy) {
+                    return;
+                }
+                busy = true;
+
+                // Read before the swap: the panel is collapsed by default, so re-rendering it
+                // would shut it under the reader mid-checklist, and the tapped button is about
+                // to be replaced by its opposite — the slot key is what finds it again.
+                var body = new FormData(form);
+                var button = form.querySelector('button[type=submit]');
+                var slot = button ? button.getAttribute('data-slot') : null;
+                var panel = document.querySelector('#checklist-region details');
+                var wasOpen = panel ? panel.open : false;
+
+                if (button) {
+                    button.disabled = true;
+                }
+
+                function fallBack() {
+                    if (button) {
+                        button.disabled = false;
+                    }
+                    busy = false;
+                    form.submit();
+                }
+
+                fetch(form.action, {
+                    method: 'POST',
+                    body: body,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin'
+                }).then(function (response) {
+                    if (!response.ok) {
+                        fallBack();
+                        return;
+                    }
+
+                    return response.text().then(function (html) {
+                        var fresh = new DOMParser().parseFromString(html, 'text/html');
+                        var swapped = regionIds.every(function (id) {
+                            var next = fresh.getElementById(id);
+                            var here = document.getElementById(id);
+                            if (!next || !here) {
+                                return false;
+                            }
+                            here.innerHTML = next.innerHTML;
+                            return true;
+                        });
+
+                        if (!swapped) {
+                            fallBack();
+                            return;
+                        }
+
+                        var reopened = document.querySelector('#checklist-region details');
+                        if (reopened) {
+                            reopened.open = wasOpen;
+                        }
+
+                        if (slot) {
+                            var focused = document.querySelector('#checklist-region [data-slot="' + slot + '"]');
+                            if (focused) {
+                                focused.focus();
+                            }
+                        }
+
+                        busy = false;
+                    });
+                }).catch(fallBack);
+            });
+        })();
     </script>
 }

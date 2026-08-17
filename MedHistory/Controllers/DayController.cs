@@ -55,7 +55,7 @@ public class DayController : Controller
         // removed only one of them. A double submit therefore just lands back on the day.
         if (ChecklistRules.FindTick(await _db.TicksAsync(allocation.Day), id, parsed) is not null)
         {
-            return RedirectToDay(allocation.Day);
+            return await ChecklistResultAsync(allocation.Day);
         }
 
         // Deliberately no active-type check: Med is built-in and cannot be deleted, and a
@@ -67,7 +67,7 @@ public class DayController : Controller
             "Allocation {AllocationId} slot {Slot} ticked, entry {EntryId} created",
             id, entry.ChecklistSlot, entry.Id);
 
-        return RedirectToDay(allocation.Day);
+        return await ChecklistResultAsync(allocation.Day);
     }
 
     [HttpPost("/checklist/{id:int}/untick/{slot}")]
@@ -87,7 +87,7 @@ public class DayController : Controller
         {
             // Nothing ticked this slot — the untick control is only drawn when something did,
             // so this is a double submit. Land back on the day either way.
-            return RedirectToDay(allocation.Day);
+            return await ChecklistResultAsync(allocation.Day);
         }
 
         var entry = await _db.UntickAsync(tick.Value.EntryId);
@@ -99,7 +99,7 @@ public class DayController : Controller
                 id, MedPlanRules.SlotName(parsed), entry.Id);
         }
 
-        return RedirectToDay(allocation.Day);
+        return await ChecklistResultAsync(allocation.Day);
     }
 
     [HttpPost("/day/{date}/weight")]
@@ -163,6 +163,19 @@ public class DayController : Controller
 
     private async Task<IActionResult> ShowDay(DateOnly day) =>
         View("Index", await _db.DayPageAsync(day));
+
+    /// <summary>
+    /// How a checklist control answers. The browser gets the redirect it has always got; the
+    /// day page's fetch gets the two regions a tick moves — the checklist and the timeline the
+    /// tick's entry lives in — re-read from the database so progress, stock and the entry list
+    /// cannot disagree with each other. Every return point in <see cref="Tick"/> and
+    /// <see cref="Untick"/> comes through here, the double-submit ones included: their job is
+    /// to hand back the state that already holds, which is exactly what this renders.
+    /// </summary>
+    private async Task<IActionResult> ChecklistResultAsync(DateOnly day) =>
+        LiveUpdateRules.IsFragmentRequest(Request.Headers.XRequestedWith)
+            ? PartialView("_DayLive", await _db.DayPageAsync(day))
+            : RedirectToDay(day);
 
     private IActionResult RedirectToDay(DateOnly day) =>
         RedirectToAction(nameof(ByDate), new { date = AppTime.Key(day) });

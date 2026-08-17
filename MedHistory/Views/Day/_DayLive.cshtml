@@ -1,0 +1,12 @@
+@model DayViewModel
+
+@* The swap payload for a tick or untick: the two regions of the day page a dose changes, and
+   nothing else. Index renders these same two wrappers, far apart in the document — the ids are
+   the whole contract with the script, which lifts each one's innerHTML across by id. *@
+<div id="checklist-region">
+    <partial name="_Checklist" model="Model" />
+</div>
+
+<div id="entries-region">
+    <partial name="_Entries" model="Model" />
+</div>

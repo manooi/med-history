@@ -66,9 +66,12 @@
                             var label = slot.IsTicked
                                 ? $"Undo the {slot.Label} dose of {row.Name}"
                                 : $"Log the {slot.Label} dose of {row.Name}";
+                            var slotKey = $"{row.AllocationId}:{slot.Name}";
 
                             <form method="post" action="/checklist/@row.AllocationId/@action/@slot.Name" asp-antiforgery="true">
-                                <button type="submit" title="@label" aria-label="@label"
+                                @* Stable across a tick: the control swaps tick for untick, so this
+                                   is what puts keyboard focus back on the same slot afterwards. *@
+                                <button type="submit" title="@label" aria-label="@label" data-slot="@slotKey"
                                         class="border px-2 py-1 text-xs leading-none tabular-nums @(slot.IsTicked ? "border-black bg-black text-white hover:bg-white hover:text-black dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950 dark:hover:bg-neutral-800 dark:hover:text-neutral-100" : "border-neutral-400 bg-white text-neutral-600 hover:border-black hover:bg-black hover:text-white dark:border-neutral-500 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:border-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950")">
                                     @slot.Label @(slot.IsTicked ? "✓" : "□")
                                 </button>
