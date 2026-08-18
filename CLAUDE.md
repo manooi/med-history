@@ -6,7 +6,7 @@ Personal medical history web app — single user. ASP.NET Core MVC (.NET 10) + P
 
 ## Repo layout
 
-- `MedHistory/` — app source; `cd MedHistory && dotnet build|run|watch`, css: `npm run css`
+- `MedHistory/` — app source; `cd MedHistory && dotnet build|run|watch`, css: `pnpm run css`
 - `MedHistory.Tests/` — xUnit; `dotnet test` from repo root
 - `docs/features/` — per-subsystem deep dives (read before touching that subsystem)
 - Repo root — `plans/`, `problems/`, `ROADMAP.md`, this file, `.beads/`, `.claude/`

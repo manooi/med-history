@@ -25,7 +25,7 @@ cd MedHistory && dotnet ef database update && cd ..
 dotnet test med-history.sln    # 104 tests
 
 # tailwind watch mode during view work
-cd MedHistory && npm run css:watch
+cd MedHistory && pnpm run css:watch
 ```
 
 Config keys (env vars use `__` for `:`): `ConnectionStrings:Default`, `Auth:Password`. Sources in priority: real env vars > .env file > user-secrets.

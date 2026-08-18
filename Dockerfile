@@ -6,12 +6,15 @@
 FROM node:22-alpine AS css
 WORKDIR /src/MedHistory
 
-COPY MedHistory/package.json MedHistory/package-lock.json ./
-RUN npm ci
+# Pin pnpm via corepack instead of installing it separately.
+RUN corepack enable && corepack prepare pnpm@11.15.0 --activate
+
+COPY MedHistory/package.json MedHistory/pnpm-lock.yaml MedHistory/pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
 
 COPY MedHistory/Styles ./Styles
 COPY MedHistory/Views ./Views
-RUN npm run css
+RUN pnpm run css
 
 # ---- Stage: build -------------------------------------------------------
 # Restores and publishes the ASP.NET Core app. The test project is part of

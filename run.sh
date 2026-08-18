@@ -8,10 +8,10 @@ if [ ! -f .env ]; then
 fi
 
 if [ ! -d MedHistory/node_modules ]; then
-  npm ci --prefix MedHistory
+  pnpm install --frozen-lockfile --dir MedHistory
 fi
 
-(cd MedHistory && npm run css)
+pnpm --dir MedHistory run css
 
 cd MedHistory
 exec dotnet run
