@@ -49,6 +49,7 @@ The expensive-to-learn rules. Don't rederive them — full context in the linked
 - A locked login POST neither checks the password nor records an attempt (expiry can't be pushed) → [auth](./docs/features/auth.md)
 - `lower(Name)` unique indexes (`EntryTypes`, `MedStocks`) are raw SQL **outside the EF snapshot** — later migrations won't see them → [entries-and-types](./docs/features/entries-and-types.md), [med-stock](./docs/features/med-stock.md)
 - `Entry.Type` is a plain string, **no FK** — validation is app-level in `EntryTypeRules` → [entries-and-types](./docs/features/entries-and-types.md)
+- The canvas downscale **strips EXIF**, so a photo's capture date must be read in the browser from the original `File` before the swap — server-side parsing is not an option → [entries-and-types](./docs/features/entries-and-types.md)
 - Dose links (`ChecklistAllocationId`, `MedStockId`) are nullable with **no FK**; dangling ids are tolerated everywhere → [med-checklist](./docs/features/med-checklist.md)
 - A tick **stamps** the allocation's `DoseQuantity` + `MedStockId` onto the entry; plan edits never rewrite logged entries → [med-checklist](./docs/features/med-checklist.md)
 - Tick/untick posts are intercepted by fetch and swap two regions; **any** failure falls back to the real form post, so the plain POST contract and antiforgery must stay intact. Behaviour bound to day-page markup needs document-level delegation → [med-checklist](./docs/features/med-checklist.md)

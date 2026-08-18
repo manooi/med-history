@@ -49,6 +49,7 @@ Epic: `med-history-4ei` — personal medical history web app. Plan: [`plans/epic
 - [x] 27. Day page: Meds checklist collapses into an accordion with per-day progress text (`4ei.17`)
 - [x] 28. Type report: multi-select types — checkbox toggles, merged day timeline (`4ei.18`)
 - [x] 29. Type report: newest-first sort option, default unchanged (`4ei.21`)
+- [x] 30. Entry form: "Use photo date" button — EXIF capture time from the selected photo (`4ei.26`)
 
 ## Later ideas
 

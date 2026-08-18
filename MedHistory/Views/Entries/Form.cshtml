@@ -23,7 +23,7 @@
         <label for="OccurredAt" class="block text-sm font-medium">Time</label>
         <input type="datetime-local" id="OccurredAt" name="OccurredAt" required
                value="@AppTime.InputValue(Model.OccurredAt)" class="@fieldClass" />
-        <div class="mt-1 flex gap-2">
+        <div class="mt-1 flex flex-wrap gap-2">
             @foreach (var preset in new[] { "09:00", "12:00", "18:00" })
             {
                 <button type="button" data-time-preset="@preset"
@@ -31,6 +31,10 @@
                     @preset
                 </button>
             }
+            <button type="button" id="use-photo-date"
+                    class="hidden border border-black bg-white px-2 py-1 text-sm hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
+                Use photo date
+            </button>
         </div>
     </div>
 
@@ -149,13 +153,157 @@
             });
         }
 
+        // EXIF capture date. The downscale above re-encodes through a canvas, which strips
+        // EXIF, so the date has to be read here from the original File the user picked.
+        function exifIfdEntries(view, tiffStart, ifdOffset, little, limit) {
+            if (ifdOffset < tiffStart || ifdOffset + 2 > limit) return null;
+            var count = view.getUint16(ifdOffset, little);
+            var entries = {};
+            for (var i = 0; i < count; i++) {
+                var pos = ifdOffset + 2 + i * 12;
+                if (pos + 12 > limit) break;
+                entries[view.getUint16(pos, little)] = {
+                    type: view.getUint16(pos + 2, little),
+                    count: view.getUint32(pos + 4, little),
+                    valuePos: pos + 8
+                };
+            }
+            return entries;
+        }
+
+        function exifAscii(view, tiffStart, entry, little, limit) {
+            if (!entry || entry.type !== 2 || entry.count < 19) return null;
+            var start = entry.count <= 4 ? entry.valuePos : tiffStart + view.getUint32(entry.valuePos, little);
+            if (start < tiffStart || start + 19 > limit) return null;
+            var text = '';
+            for (var i = 0; i < 19; i++) {
+                var code = view.getUint8(start + i);
+                if (code === 0) break;
+                text += String.fromCharCode(code);
+            }
+            return text;
+        }
+
+        function exifDateToInputValue(text) {
+            if (!text) return null;
+            var m = /^(\d{4}):(\d{2}):(\d{2})[ T](\d{2}):(\d{2}):(\d{2})$/.exec(text);
+            if (!m) return null;
+            var month = +m[2], day = +m[3], hour = +m[4], minute = +m[5];
+            if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+            if (hour > 23 || minute > 59) return null;
+            return m[1] + '-' + m[2] + '-' + m[3] + 'T' + m[4] + ':' + m[5];
+        }
+
+        function exifDateFromTiff(view, tiffStart, limit) {
+            if (tiffStart + 8 > limit) return null;
+            var order = view.getUint16(tiffStart);
+            if (order !== 0x4949 && order !== 0x4D4D) return null;
+            var little = order === 0x4949;
+            if (view.getUint16(tiffStart + 2, little) !== 42) return null;
+
+            var ifd0 = exifIfdEntries(view, tiffStart, tiffStart + view.getUint32(tiffStart + 4, little), little, limit);
+            if (!ifd0) return null;
+
+            var pointer = ifd0[0x8769];
+            if (pointer && (pointer.type === 4 || pointer.type === 3) && pointer.valuePos + 4 <= limit) {
+                var sub = pointer.type === 4
+                    ? view.getUint32(pointer.valuePos, little)
+                    : view.getUint16(pointer.valuePos, little);
+                var exifIfd = exifIfdEntries(view, tiffStart, tiffStart + sub, little, limit);
+                if (exifIfd) {
+                    var taken = exifDateToInputValue(exifAscii(view, tiffStart, exifIfd[0x9003], little, limit))
+                        || exifDateToInputValue(exifAscii(view, tiffStart, exifIfd[0x9004], little, limit));
+                    if (taken) return taken;
+                }
+            }
+            return exifDateToInputValue(exifAscii(view, tiffStart, ifd0[0x0132], little, limit));
+        }
+
+        function parseExifDate(buffer) {
+            try {
+                var view = new DataView(buffer);
+                if (view.byteLength < 4 || view.getUint16(0) !== 0xFFD8) return null;
+                var offset = 2;
+                while (offset + 4 <= view.byteLength) {
+                    if (view.getUint8(offset) !== 0xFF) return null;
+                    var marker = view.getUint8(offset + 1);
+                    if (marker === 0x01 || (marker >= 0xD0 && marker <= 0xD9)) {
+                        offset += 2;
+                        continue;
+                    }
+                    if (marker === 0xDA) return null;
+                    var size = view.getUint16(offset + 2);
+                    if (size < 2) return null;
+                    if (marker === 0xE1 && offset + 10 <= view.byteLength
+                        && view.getUint32(offset + 4) === 0x45786966 && view.getUint16(offset + 8) === 0) {
+                        return exifDateFromTiff(view, offset + 10, Math.min(offset + 2 + size, view.byteLength));
+                    }
+                    offset += 2 + size;
+                }
+                return null;
+            } catch (err) {
+                return null;
+            }
+        }
+
+        function readPhotoExifDate(file) {
+            try {
+                var head = file.slice(0, 262144);
+                if (!head.arrayBuffer) return Promise.resolve(null);
+                return head.arrayBuffer().then(parseExifDate).catch(function () { return null; });
+            } catch (err) {
+                return Promise.resolve(null);
+            }
+        }
+
+        function firstPhotoExifDate(files) {
+            return Promise.all(files.map(readPhotoExifDate)).then(function (dates) {
+                for (var i = 0; i < dates.length; i++) {
+                    if (dates[i]) return dates[i];
+                }
+                return null;
+            }).catch(function () { return null; });
+        }
+
+        var photoDateButton = document.getElementById('use-photo-date');
+        var photoDateValue = null;
+
+        function setPhotoDate(value) {
+            photoDateValue = value;
+            if (!photoDateButton) return;
+            if (value) {
+                photoDateButton.title = 'Photo taken ' + value.replace('T', ' ');
+                photoDateButton.classList.remove('hidden');
+            } else {
+                photoDateButton.removeAttribute('title');
+                photoDateButton.classList.add('hidden');
+            }
+        }
+
+        if (photoDateButton) {
+            photoDateButton.addEventListener('click', function () {
+                if (!photoDateValue) return;
+                var input = document.getElementById('OccurredAt');
+                if (input) input.value = photoDateValue;
+            });
+        }
+
         var photosInput = document.getElementById('photos');
         if (photosInput) {
             photosInput.addEventListener('change', function () {
                 var files = Array.prototype.slice.call(photosInput.files);
+
+                // Bump before the early return: clearing the picker has to invalidate
+                // whatever is still in flight, or a stale result wins on both halves.
+                var generation = ++photosGeneration;
+
+                setPhotoDate(null);
                 if (files.length === 0) return;
 
-                var generation = ++photosGeneration;
+                firstPhotoExifDate(files).then(function (date) {
+                    if (generation !== photosGeneration) return;
+                    setPhotoDate(date);
+                });
 
                 Promise.all(files.map(function (file) {
                     if (!file.type || file.type.indexOf('image/') !== 0) {
