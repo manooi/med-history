@@ -74,8 +74,10 @@ public class EntriesController : Controller
         return RedirectToDay(AppTime.DayOf(entry.OccurredAt));
     }
 
+    // returnUrl names the list this edit was opened from — the day page, search, or the type
+    // report. It travels on into the form so save, delete and cancel can all go back there.
     [HttpGet("/entries/{id:int}/edit")]
-    public async Task<IActionResult> Edit(int id)
+    public async Task<IActionResult> Edit(int id, string? returnUrl)
     {
         var entry = await _db.Entries.FindAsync(id);
 
@@ -92,7 +94,8 @@ public class EntriesController : Controller
             Note = entry.Note,
             Severity = entry.Severity,
             PillName = entry.PillName,
-            ExistingPhotos = await _db.LoadPhotoSummariesAsync(id)
+            ExistingPhotos = await _db.LoadPhotoSummariesAsync(id),
+            ReturnUrl = returnUrl
         });
     }
 
@@ -128,12 +131,14 @@ public class EntriesController : Controller
         _logger.LogInformation("Entry {EntryId} updated, type {EntryType}", entry.Id, entry.Type);
         LogPhotosAttached(entry.Id, photos);
 
-        return RedirectToDay(AppTime.DayOf(entry.OccurredAt));
+        // The origin wins even when the edit moved the entry to another date: the reader asked
+        // to go back to a list, and that list is where the entry's new date will show up.
+        return RedirectToOrigin(form.ReturnUrl, AppTime.DayOf(entry.OccurredAt));
     }
 
     [HttpPost("/entries/{id:int}/delete")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(int id, string? returnUrl)
     {
         var entry = await _db.Entries.FindAsync(id);
 
@@ -150,7 +155,7 @@ public class EntriesController : Controller
 
         _logger.LogInformation("Entry {EntryId} deleted, type {EntryType}", id, type);
 
-        return RedirectToDay(day);
+        return RedirectToOrigin(returnUrl, day);
     }
 
     /// <summary>
@@ -206,6 +211,16 @@ public class EntriesController : Controller
         }
     }
 
-    private IActionResult RedirectToDay(DateOnly day) =>
-        RedirectToAction(nameof(DayController.ByDate), "Day", new { date = AppTime.Key(day) });
+    /// <summary>
+    /// Where an edited or deleted entry lands: the list the form was opened from when that
+    /// address is one of ours, else the day page every entry action has always fallen back to.
+    /// The locality check is what keeps a posted returnUrl from becoming an open redirect.
+    /// </summary>
+    private IActionResult RedirectToOrigin(string? returnUrl, DateOnly fallbackDay) =>
+        Redirect(RedirectRules.Resolve(returnUrl, Url.IsLocalUrl, DayUrl(fallbackDay)));
+
+    private IActionResult RedirectToDay(DateOnly day) => Redirect(DayUrl(day));
+
+    private string DayUrl(DateOnly day) =>
+        Url.Action(nameof(DayController.ByDate), "Day", new { date = AppTime.Key(day) }) ?? "/";
 }

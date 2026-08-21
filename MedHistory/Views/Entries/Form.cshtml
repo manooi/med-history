@@ -5,6 +5,11 @@
 
     var postUrl = isEdit ? $"/entries/{Model.Id}" : "/entries";
     var cancelDay = Model.OccurredAt == default ? AppTime.Today() : DateOnly.FromDateTime(Model.OccurredAt);
+
+    // The list this form was opened from, checked once — an off-site value is then neither
+    // rendered back into the three forms below nor offered as somewhere Cancel can go.
+    var returnUrl = RedirectRules.Sanitize(Model.ReturnUrl, Url.IsLocalUrl);
+    var cancelHref = returnUrl ?? $"/day/{AppTime.Key(cancelDay)}";
     var fieldClass = "mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100";
 }
 
@@ -15,6 +20,11 @@
     @if (isEdit)
     {
         <input type="hidden" name="Id" value="@Model.Id" />
+    }
+    @if (returnUrl is not null)
+    {
+        @* Also survives a validation failure: the re-render is this same view off the posted model. *@
+        <input type="hidden" name="ReturnUrl" value="@returnUrl" />
     }
 
     <div asp-validation-summary="All" class="text-sm text-neutral-700 dark:text-neutral-300"></div>
@@ -74,7 +84,7 @@
                 class="border border-black bg-white px-4 py-1 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
             Save
         </button>
-        <a href="/day/@AppTime.Key(cancelDay)" class="text-sm underline hover:no-underline">Cancel</a>
+        <a href="@cancelHref" class="text-sm underline hover:no-underline">Cancel</a>
     </div>
 </form>
 
@@ -89,6 +99,11 @@
                     <img src="/photos/@photo.Id" loading="lazy" alt="@photo.FileName" data-lightbox
                          class="h-20 w-20 max-h-20 border border-neutral-400 object-cover cursor-zoom-in dark:border-neutral-500" />
                     <form method="post" action="/photos/@photo.Id/delete" asp-antiforgery="true">
+                        @if (returnUrl is not null)
+                        {
+                            @* Removing a photo bounces back through this page — the origin has to come with it. *@
+                            <input type="hidden" name="returnUrl" value="@returnUrl" />
+                        }
                         <button type="submit" onclick="return confirm('Remove this photo?');"
                                 class="text-xs text-red-600 underline hover:no-underline dark:text-red-400">
                             Remove
@@ -104,6 +119,10 @@
 {
     <form method="post" action="/entries/@Model.Id/delete" asp-antiforgery="true"
           class="mt-10 border-t border-neutral-300 pt-4 dark:border-neutral-600">
+        @if (returnUrl is not null)
+        {
+            <input type="hidden" name="returnUrl" value="@returnUrl" />
+        }
         <button type="submit" onclick="return confirm('Delete this entry?');"
                 class="border border-red-600 bg-white px-4 py-1 text-sm text-red-600 hover:bg-red-600 hover:text-white dark:border-red-400 dark:bg-neutral-800 dark:text-red-400">
             Delete entry

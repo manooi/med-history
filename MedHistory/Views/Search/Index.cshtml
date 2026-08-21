@@ -1,6 +1,10 @@
 @model SearchViewModel
 @{
     ViewData["Title"] = Model.Query is null ? "Search" : $"Search — {Model.Query}";
+
+    // Query and page ride along on every edit link, so saving an entry from here comes back to
+    // this exact result page rather than to the day the entry happens to sit on.
+    var returnUrl = Context.Request.GetEncodedPathAndQuery();
 }
 
 <header class="border-b border-black pb-4 dark:border-neutral-100">
@@ -45,8 +49,10 @@
                         <ul class="mt-2 border-y border-neutral-300 divide-y divide-neutral-300 dark:border-neutral-600 dark:divide-neutral-600">
                             @foreach (var entry in day.Entries)
                             {
+                                var editHref = RedirectRules.WithReturnUrl($"/entries/{entry.Id}/edit", returnUrl);
+
                                 <li class="hover:bg-neutral-100 dark:hover:bg-neutral-700">
-                                    <a href="/entries/@entry.Id/edit" class="flex items-center gap-4 px-1 py-3">
+                                    <a href="@editHref" class="flex items-center gap-4 px-1 py-3">
                                         <span class="w-12 shrink-0 text-sm tabular-nums text-neutral-600 dark:text-neutral-400">
                                             @AppTime.TimeLabel(entry.OccurredAtLocal)
                                         </span>

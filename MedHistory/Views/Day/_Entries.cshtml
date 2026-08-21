@@ -1,4 +1,9 @@
 @model DayViewModel
+@{
+    // The day's own address, built from the model rather than read off the request: this partial
+    // is also the tick fragment's payload, and that request is a POST to a checklist route.
+    var returnUrl = $"/day/{AppTime.Key(Model.Day)}";
+}
 
 <section class="mt-6">
     @if (Model.Entries.Count == 0)
@@ -12,8 +17,10 @@
         <ul class="border-y border-neutral-300 divide-y divide-neutral-300 dark:border-neutral-600 dark:divide-neutral-600">
             @foreach (var entry in Model.Entries)
             {
+                var editHref = RedirectRules.WithReturnUrl($"/entries/{entry.Id}/edit", returnUrl);
+
                 <li class="flex items-center gap-2 px-1 py-3 hover:bg-neutral-100 dark:hover:bg-neutral-700">
-                    <a href="/entries/@entry.Id/edit" class="flex min-w-0 flex-1 gap-4">
+                    <a href="@editHref" class="flex min-w-0 flex-1 gap-4">
                         <span class="w-12 shrink-0 text-sm tabular-nums text-neutral-600 dark:text-neutral-400">
                             @AppTime.TimeLabel(entry.OccurredAtLocal)
                         </span>
