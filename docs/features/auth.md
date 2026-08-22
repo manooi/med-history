@@ -24,3 +24,7 @@ Wrong passcode → the dot row runs the `.passcode-shake` keyframes in `site.css
 `<noscript>` ships its **own** fallback form and hides the dots/keypad — a second `Password` input inside the main form would comma-join the two values on post.
 
 Server side is untouched by all of this: same POST contract, same throttle paths.
+
+## Cookie lifetime
+
+A successful login signs in with `AuthCookieRules.SignInProperties()` (`IsPersistent = true`), so the cookie survives a browser restart — without it, the browser treats it as a session cookie and drops it on close regardless of `ExpireTimeSpan`. The lifetime itself is owned by the cookie handler in `Program.cs`: 30-day `ExpireTimeSpan` with `SlidingExpiration = true`, so it renews on activity; `HttpOnly` so it's inaccessible to page script. Data-protection keys are persisted to Postgres (`AddDataProtection().PersistKeysToDbContext<AppDbContext>()`), so the cookie stays valid across app restarts and instances, not just within one process. The ticket carries exactly one claim, `ClaimTypes.Name = "owner"` — there's only one user.

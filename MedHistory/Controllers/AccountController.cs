@@ -99,7 +99,10 @@ public class AccountController : Controller
             new[] { new Claim(ClaimTypes.Name, "owner") },
             CookieAuthenticationDefaults.AuthenticationScheme);
 
-        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+        await HttpContext.SignInAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            new ClaimsPrincipal(identity),
+            AuthCookieRules.SignInProperties());
 
         _logger.LogInformation("Login succeeded");
 
