@@ -6,8 +6,10 @@
 
     The slot, meal and method words (morning, after meal, eyedrop …) are keyed on what
     MedPlanRules returns, so the English label a tick writes into an entry's stored note keeps
-    its own meaning while the screen reads Thai. Views/Meds/Edit.th.resx repeats them because a
-    per-view file inherits nothing.
+    its own meaning while the screen reads Thai. Slot words also label the day page's checklist,
+    so they live in SharedResource.th.resx instead of here. Meal and method words are Meds-only
+    and stay per-view; Views/Meds/Edit.th.resx repeats them because a per-view file inherits
+    nothing.
   -->
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
@@ -141,21 +143,10 @@
     <value>เพิ่มให้ทุกวันในช่วงที่กำหนด วันที่มียานี้อยู่แล้วจะถูกข้ามไป</value>
   </data>
 
-  <!-- Slots, in day order. The four words a Thai pharmacy label uses. -->
+  <!-- The four dose slot words (morning, noon, evening, bedtime) live in SharedResource.th.resx —
+       the day page's checklist labels them too. -->
   <data name="Times of day" xml:space="preserve">
     <value>ช่วงเวลาของวัน</value>
-  </data>
-  <data name="morning" xml:space="preserve">
-    <value>เช้า</value>
-  </data>
-  <data name="noon" xml:space="preserve">
-    <value>กลางวัน</value>
-  </data>
-  <data name="evening" xml:space="preserve">
-    <value>เย็น</value>
-  </data>
-  <data name="bedtime" xml:space="preserve">
-    <value>ก่อนนอน</value>
   </data>
 
   <!-- Meal relation -->

@@ -6,12 +6,14 @@
 
     // Slot, meal and method words come out of MedPlanRules in English — the very words a tick
     // writes into an entry's stored note — so they are translated here, where they are read,
-    // and never where they are written. A description arrives already joined, so it is split
-    // back on the separator MedPlanRules composes with and each part looked up on its own.
+    // and never where they are written. Slot words also label the day page's checklist, so
+    // they live in SharedResource (L); meal and method words are Meds-only and stay per-view
+    // (Localizer). A description arrives already joined, so it is split back on the separator
+    // MedPlanRules composes with and each part looked up on its own.
     const string partSeparator = " · ";
 
-    string Words(IEnumerable<string> parts) =>
-        string.Join(partSeparator, parts.Select(part => Localizer.GetString(part).Value));
+    string Words(IHtmlLocalizer localizer, IEnumerable<string> parts) =>
+        string.Join(partSeparator, parts.Select(part => localizer.GetString(part).Value));
 }
 
 <header class="flex items-center justify-between gap-4 border-b border-black pb-4 dark:border-neutral-100">
@@ -183,7 +185,7 @@
                     <input type="checkbox" name="slots" value="@slotName"
                            checked="@Model.NewMedSlots.HasFlag(slot)"
                            class="accent-black dark:accent-neutral-100" />
-                    @Localizer[MedPlanRules.SlotLabel(slot)]
+                    @L[MedPlanRules.SlotLabel(slot)]
                 </label>
             }
         </div>
@@ -253,11 +255,11 @@
                         </span>
                         <span class="block text-xs text-neutral-500 dark:text-neutral-400">
                             @* Slots are the plan: one slot is one dose, so this line is the whole requirement. *@
-                            @Words(item.SlotLabels)
+                            @Words(L, item.SlotLabels)
                         </span>
                         @if (item.Description.Length > 0)
                         {
-                            <span class="block text-xs text-neutral-500 dark:text-neutral-400">@Words(item.Description.Split(partSeparator))</span>
+                            <span class="block text-xs text-neutral-500 dark:text-neutral-400">@Words(Localizer, item.Description.Split(partSeparator))</span>
                         }
                     </span>
                     <a href="/checklist/@item.Id/edit"

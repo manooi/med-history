@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
   <!--
-    Thai for Views/Meds/Edit.cshtml — one allocation's plan. The slot, meal and method words
-    repeat Views/Meds/Index.th.resx on purpose: a per-view file inherits nothing, and both forms
-    key them on what MedPlanRules returns.
+    Thai for Views/Meds/Edit.cshtml — one allocation's plan. The meal and method words repeat
+    Views/Meds/Index.th.resx on purpose: a per-view file inherits nothing, and both forms key
+    them on what MedPlanRules returns. The four slot words (morning, noon, evening, bedtime) are
+    not repeated here — they live in SharedResource.th.resx, since the day page's checklist
+    labels them too.
   -->
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
@@ -78,21 +80,10 @@
     <value>จำนวนที่ใช้ในแต่ละช่วงเวลาของวัน ยาที่บันทึกไว้แล้วจะคงจำนวนตามที่ใช้ไปเดิม</value>
   </data>
 
-  <!-- Slots, in day order. The four words a Thai pharmacy label uses. -->
+  <!-- The four dose slot words (morning, noon, evening, bedtime) live in SharedResource.th.resx —
+       the day page's checklist labels them too. -->
   <data name="Times of day" xml:space="preserve">
     <value>ช่วงเวลาของวัน</value>
-  </data>
-  <data name="morning" xml:space="preserve">
-    <value>เช้า</value>
-  </data>
-  <data name="noon" xml:space="preserve">
-    <value>กลางวัน</value>
-  </data>
-  <data name="evening" xml:space="preserve">
-    <value>เย็น</value>
-  </data>
-  <data name="bedtime" xml:space="preserve">
-    <value>ก่อนนอน</value>
   </data>
 
   <!-- Meal relation -->

@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Resources;
+using System.Xml.Linq;
 using MedHistory;
 using MedHistory.Models;
 using MedHistory.Services;
@@ -150,13 +151,14 @@ public class ResourceLayoutTests
     [InlineData(MedsIndexBaseName, "Meds")]
     [InlineData(MedsIndexBaseName, "Stock")]
     [InlineData(MedsIndexBaseName, "This day's plan")]
-    // The slot, meal and method words are keyed on what MedPlanRules returns, so a rename there
-    // would leave the screen reading English with nothing else to notice.
-    [InlineData(MedsIndexBaseName, "morning")]
+    // The meal and method words are keyed on what MedPlanRules returns, so a rename there would
+    // leave the screen reading English with nothing else to notice. Slot words (morning, …) are
+    // shared with the day page's checklist and are covered by SharedVocabularyIsTranslated instead.
     [InlineData(MedsIndexBaseName, "after meal")]
     [InlineData(MedsIndexBaseName, "eyedrop")]
+    [InlineData(MedsIndexBaseName, "eat")]
     [InlineData(MedsEditBaseName, "Edit medication")]
-    [InlineData(MedsEditBaseName, "bedtime")]
+    [InlineData(MedsEditBaseName, "apply")]
     [InlineData(MedsEditBaseName, "any time")]
     [InlineData(TypesIndexBaseName, "New type")]
     [InlineData(TypesIndexBaseName, "Built-in")]
@@ -431,20 +433,87 @@ public class ResourceLayoutTests
         // would rewrite what goes into the database. So the key set is not a list anyone
         // maintains by hand: it is whatever the rules produce, which is what this walks. A word
         // renamed there goes silently untranslated on screen; here it fails.
-        var words = MedPlanRules.AllSlots.Select(MedPlanRules.SlotLabel)
-            .Concat(Enum.GetValues<MealRelation>().Select(MedPlanRules.MealRelationOption))
+        //
+        // Slot words are also read by the day page's checklist, so they live in the shared file
+        // rather than the meds screens' own; meal and method words are meds-only and stay per-view.
+        var missingSlots = MedPlanRules.AllSlots.Select(MedPlanRules.SlotLabel)
+            .Where(word => Read(SharedBaseName, word) is null or "")
+            .Select(word => $"{SharedBaseName}: '{word}'");
+
+        var perViewWords = Enum.GetValues<MealRelation>().Select(MedPlanRules.MealRelationOption)
             .Concat(Enum.GetValues<MedMethod>().Select(MedPlanRules.MethodOption))
             .Where(word => word.Length > 0);
 
-        var missing = words
+        var missingPerView = perViewWords
             .SelectMany(word => new[] { MedsIndexBaseName, MedsEditBaseName }
                 .Where(baseName => Read(baseName, word) is null or "")
-                .Select(baseName => $"{baseName}: '{word}'"))
-            .ToList();
+                .Select(baseName => $"{baseName}: '{word}'"));
+
+        var missing = missingSlots.Concat(missingPerView).ToList();
 
         Assert.True(missing.Count == 0,
-            "MedPlanRules words with no Thai on the meds screens:" + Environment.NewLine +
+            "MedPlanRules words with no Thai translation:" + Environment.NewLine +
             string.Join(Environment.NewLine, missing));
+    }
+
+    // The one deliberate exception: Error.th.resx keeps its own "Back to today" on purpose (see
+    // the comment beside the shared copy in SharedResource.th.resx) because the error page must
+    // render even when the localization pipeline that resolves a normal view's file has failed.
+    // Everything else in the shared file is meant to be looked up once.
+    private static readonly (string File, string Key)[] AllowedDuplicates =
+    [
+        ("Views/Shared/Error.th.resx", "Back to today"),
+    ];
+
+    [Fact]
+    public void NoKeyIsDefinedInBothTheSharedFileAndAPerViewFile()
+    {
+        // SharedResource.th.resx and a per-view file are edited independently — nothing stops
+        // the same key landing in both, the way morning/noon/evening/bedtime once did in both
+        // SharedResource.th.resx and the meds screens' own files. When that happens, a future
+        // wording change to one copy silently leaves the other stale. This walks every per-view
+        // .resx and fails if it redefines a key the shared file already owns, aside from the one
+        // documented exception above.
+        var resourcesDir = FindResourcesDirectory();
+        var sharedKeys = ReadKeys(Path.Combine(resourcesDir, "SharedResource.th.resx"));
+
+        var viewsDir = Path.Combine(resourcesDir, "Views");
+        var offenders = Directory.EnumerateFiles(viewsDir, "*.resx", SearchOption.AllDirectories)
+            .SelectMany(path =>
+            {
+                var relativePath = Path.GetRelativePath(resourcesDir, path).Replace('\\', '/');
+                return ReadKeys(path)
+                    .Where(sharedKeys.Contains)
+                    .Where(key => !AllowedDuplicates.Contains((relativePath, key)))
+                    .Select(key => $"{relativePath}: '{key}'");
+            })
+            .ToList();
+
+        Assert.True(offenders.Count == 0,
+            "Keys defined in both SharedResource.th.resx and a per-view file:" + Environment.NewLine +
+            string.Join(Environment.NewLine, offenders));
+    }
+
+    private static HashSet<string> ReadKeys(string resxPath) =>
+        XDocument.Load(resxPath).Root!.Elements("data")
+            .Select(data => data.Attribute("name")!.Value)
+            .ToHashSet();
+
+    private static string FindResourcesDirectory()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            var candidate = Path.Combine(dir.FullName, "MedHistory", "Resources");
+            if (Directory.Exists(candidate))
+            {
+                return candidate;
+            }
+            dir = dir.Parent;
+        }
+
+        throw new DirectoryNotFoundException(
+            $"Could not locate MedHistory/Resources by walking up from {AppContext.BaseDirectory}");
     }
 
     // Same call ResourceManagerStringLocalizer makes. Null means "not in the .th file", which the
