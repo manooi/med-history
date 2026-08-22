@@ -1,4 +1,5 @@
 @using System.Globalization
+@using System.Text.Json
 @{
     // The language toggle. Unlike the theme toggle — which is inherently client-side — this one is
     // a plain form post, so it keeps working with scripting off, and the server renders the chosen
@@ -7,8 +8,25 @@
     var uiCulture = CultureInfo.CurrentUICulture;
     var nextCulture = CultureRules.Toggle(uiCulture.Name);
     var nextCultureLabel = CultureRules.ShortLabel(nextCulture);
-    var nextCultureAria = $"Switch to {CultureRules.LanguageName(nextCulture)}";
+    // CultureRules stays pure and hands back a resource key, not copy; the lookup happens here.
+    var nextCultureAria = Localizer.GetString("Switch to {0}", Localizer.GetString(CultureRules.LanguageName(nextCulture)).Value);
     var cultureReturnUrl = Context.Request.GetEncodedPathAndQuery();
+
+    // The theme toggle's label is assembled in the browser — only the script knows which mode is
+    // live — so its copy has to be handed down from here rather than hardcoded in the script.
+    // Keyed by the same three mode strings the script's `next` map cycles through, so the cycle
+    // still has exactly one definition; JSON-serialized, which escapes the Thai and anything
+    // script-breaking on the way into the <script> block.
+    var themeStrings = JsonSerializer.Serialize(new
+    {
+        sentence = Localizer.GetString("Theme: {0}. Switch to {1}.").Value,
+        names = new Dictionary<string, string>
+        {
+            ["auto"] = Localizer.GetString("auto").Value,
+            ["dark"] = Localizer.GetString("dark").Value,
+            ["light"] = Localizer.GetString("light").Value,
+        },
+    });
 }
 <!DOCTYPE html>
 <html lang="@uiCulture.TwoLetterISOLanguageName">
@@ -69,21 +87,23 @@
         <nav class="relative border-b border-black dark:border-neutral-100 print:hidden">
             <div class="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
                 <a href="/" class="font-mono font-bold tracking-tight hover:underline whitespace-nowrap flex-1 sm:flex-none">med-history</a>
-                <div class="hidden sm:flex items-center gap-4 text-sm">
-                    <a href="/" class="hover:underline">Today</a>
-                    <a href="/history" class="hover:underline">History</a>
+                @* gap-3 below sm:gap-4 — the Thai links are longer than the English ones and the
+                   desktop bar is the tightest row in the app. *@
+                <div class="hidden sm:flex items-center gap-3 md:gap-4 text-sm">
+                    <a href="/" class="hover:underline whitespace-nowrap">@L["Today"]</a>
+                    <a href="/history" class="hover:underline whitespace-nowrap">@L["History"]</a>
                     <div class="group relative inline-block">
-                        <a href="/report" class="hover:underline">Reports ▾</a>
+                        <a href="/report" class="hover:underline whitespace-nowrap">@L["Reports"] ▾</a>
                         <div class="absolute left-0 z-10 hidden w-44 flex-col border border-black bg-white text-black group-hover:flex dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100">
-                            <a href="/type-report" class="px-3 py-2 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">By type</a>
-                            <a href="/med-report" class="px-3 py-2 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">Med</a>
-                            <a href="/anxiety-report" class="px-3 py-2 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">Anxiety</a>
-                            <a href="/weight-report" class="px-3 py-2 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">Weight</a>
-                            <a href="/doctor-report" class="px-3 py-2 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">Doctor</a>
+                            <a href="/type-report" class="px-3 py-2 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">@L["By type"]</a>
+                            <a href="/med-report" class="px-3 py-2 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">@L["Med"]</a>
+                            <a href="/anxiety-report" class="px-3 py-2 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">@L["Anxiety"]</a>
+                            <a href="/weight-report" class="px-3 py-2 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">@L["Weight"]</a>
+                            <a href="/doctor-report" class="px-3 py-2 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">@L["Doctor"]</a>
                         </div>
                     </div>
-                    <a href="/search" class="hover:underline">Search</a>
-                    <a href="/types" class="hover:underline">Types</a>
+                    <a href="/search" class="hover:underline whitespace-nowrap">@L["Search"]</a>
+                    <a href="/types" class="hover:underline whitespace-nowrap">@L["Types"]</a>
                     @* The button says the language a click moves to, not the one being read — two
                        letters is all that fits next to the nav links, so aria-label carries the
                        sentence. returnUrl brings the reader back to the page they switched on. *@
@@ -104,7 +124,7 @@
                     </button>
                     <form method="post" action="/logout" class="inline">
                         @Html.AntiForgeryToken()
-                        <button type="submit" class="hover:underline bg-transparent border-0 p-0">Logout</button>
+                        <button type="submit" class="hover:underline bg-transparent border-0 p-0 whitespace-nowrap">@L["Logout"]</button>
                     </form>
                 </div>
                 @* Mobile bar reads brand / menu / theme left-to-right. Brand and the theme wrapper
@@ -114,15 +134,15 @@
                    on purpose: the panel below is absolute against nav.relative and spans the full
                    bar, which a positioned ancestor would break. *@
                 <details class="group sm:hidden">
-                    <summary class="list-none [&::-webkit-details-marker]:hidden cursor-pointer inline-flex items-center justify-center p-2 -m-2 hover:opacity-70" aria-label="Menu">
+                    <summary class="list-none [&::-webkit-details-marker]:hidden cursor-pointer inline-flex items-center justify-center p-2 -m-2 hover:opacity-70" aria-label="@Localizer.GetString("Menu")">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 transition-transform group-open:rotate-180" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
                     </summary>
                     <div class="absolute left-0 right-0 z-10 flex flex-col border border-black bg-white text-black dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100">
-                        <a href="/" class="px-4 py-3 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">Today</a>
-                        <a href="/history" class="px-4 py-3 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">History</a>
-                        <a href="/report" class="px-4 py-3 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">Reports</a>
-                        <a href="/search" class="px-4 py-3 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">Search</a>
-                        <a href="/types" class="px-4 py-3 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">Types</a>
+                        <a href="/" class="px-4 py-3 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">@L["Today"]</a>
+                        <a href="/history" class="px-4 py-3 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">@L["History"]</a>
+                        <a href="/report" class="px-4 py-3 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">@L["Reports"]</a>
+                        <a href="/search" class="px-4 py-3 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">@L["Search"]</a>
+                        <a href="/types" class="px-4 py-3 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">@L["Types"]</a>
                         <form method="post" action="/culture">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="culture" value="@nextCulture" />
@@ -131,7 +151,7 @@
                         </form>
                         <form method="post" action="/logout">
                             @Html.AntiForgeryToken()
-                            <button type="submit" class="w-full px-4 py-3 text-left bg-transparent border-0 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">Logout</button>
+                            <button type="submit" class="w-full px-4 py-3 text-left bg-transparent border-0 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">@L["Logout"]</button>
                         </form>
                     </div>
                 </details>
@@ -145,6 +165,11 @@
                         var buttons = document.querySelectorAll('.theme-toggle');
                         var next = { auto: 'dark', dark: 'light', light: 'auto' };
 
+                        // Copy handed down from Razor — the script must not decide what the label
+                        // says in either language. Keyed by the same mode strings as `next`, so
+                        // the cycle above stays the only place that knows the order.
+                        var strings = @Html.Raw(themeStrings);
+
                         // Trusted constants, never user data — safe to hand to innerHTML. Auto is a
                         // plain half-filled circle, which reads as neither the solid moon nor the
                         // rayed sun, so the three states stay tellable apart at 20px.
@@ -156,7 +181,9 @@
 
                         function render() {
                             var mode = window.medTheme.mode();
-                            var aria = 'Theme: ' + mode + '. Switch to ' + next[mode] + '.';
+                            var aria = strings.sentence
+                                .replace('{0}', strings.names[mode])
+                                .replace('{1}', strings.names[next[mode]]);
                             buttons.forEach(function (button) {
                                 button.innerHTML = icons[mode];
                                 button.setAttribute('aria-label', aria);

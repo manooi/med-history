@@ -1,11 +1,19 @@
 @model LoginViewModel
+@using System.Text.Json
 @{
-    ViewData["Title"] = "Login";
+    ViewData["Title"] = Localizer.GetString("Login").Value;
     Layout = "_Layout";
 
     // RedisplayLogin drops the Password key, so anything left is a model-level message —
     // "Incorrect password." or the lockout notice. Either one earns the shake.
     var hasError = !ViewData.ModelState.IsValid;
+
+    // The live region is rewritten by the script on every keypress, so its sentence travels into
+    // the script rather than being spelled out there; the server's first paint uses the same
+    // template so the two can never drift.
+    const int passcodeLength = 6;
+    var statusTemplate = Localizer.GetString("{0} of {1} digits entered").Value;
+    var statusTemplateJson = JsonSerializer.Serialize(statusTemplate);
 }
 
 <div class="flex min-h-[80vh] items-center justify-center bg-white px-4 dark:bg-neutral-800">
@@ -20,19 +28,19 @@
             <input type="hidden" asp-for="Password" id="passcode-value" />
 
             <div id="passcode-live">
-                <p class="mb-6 text-center text-sm text-neutral-700 dark:text-neutral-300">Enter Passcode</p>
+                <p class="mb-6 text-center text-sm text-neutral-700 dark:text-neutral-300">@Localizer["Enter Passcode"]</p>
 
                 @* aria-hidden because the dots say nothing a screen reader can use — the live
                    region below carries the count instead. *@
                 <div id="passcode-dots" aria-hidden="true"
                      class="flex items-center justify-center gap-4 @(hasError ? "passcode-shake" : "")">
-                    @for (var slot = 0; slot < 6; slot++)
+                    @for (var slot = 0; slot < passcodeLength; slot++)
                     {
                         <span data-dot class="h-3.5 w-3.5 rounded-full border border-black dark:border-neutral-100"></span>
                     }
                 </div>
 
-                <p id="passcode-status" role="status" aria-live="polite" class="sr-only">0 of 6 digits entered</p>
+                <p id="passcode-status" role="status" aria-live="polite" class="sr-only">@string.Format(statusTemplate, 0, passcodeLength)</p>
 
                 @* min-h reserves the line so the keypad does not jump when the message appears. *@
                 <div asp-validation-summary="ModelOnly"
@@ -54,7 +62,7 @@
                     <span aria-hidden="true"></span>
                     <button type="button" data-key="0" aria-label="0"
                             class="touch-manipulation rounded-full border border-neutral-400 py-4 text-xl text-black hover:bg-black hover:text-white active:bg-black active:text-white dark:border-neutral-500 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950 dark:active:bg-neutral-100 dark:active:text-neutral-950">0</button>
-                    <button type="button" data-key="back" aria-label="Delete"
+                    <button type="button" data-key="back" aria-label="@L.GetString("Delete")"
                             class="touch-manipulation rounded-full border border-neutral-400 py-4 text-xl text-black hover:bg-black hover:text-white active:bg-black active:text-white dark:border-neutral-500 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950 dark:active:bg-neutral-100 dark:active:text-neutral-950">&#9003;</button>
                 </div>
             </div>
@@ -74,13 +82,13 @@
                 <div asp-validation-summary="ModelOnly" class="text-sm text-neutral-900 dark:text-neutral-100"></div>
 
                 <div>
-                    <label asp-for="Password" for="passcode-fallback" class="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-300">Passcode</label>
+                    <label asp-for="Password" for="passcode-fallback" class="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-300">@Localizer["Passcode"]</label>
                     <input asp-for="Password" id="passcode-fallback" type="password" inputmode="numeric" autocomplete="current-password"
                            class="w-full rounded-md border border-neutral-400 px-3 py-2 text-black focus:outline-none focus:ring-2 focus:ring-black dark:border-neutral-500 dark:bg-neutral-800 dark:text-neutral-100 dark:focus:ring-neutral-100" />
                 </div>
 
                 <button type="submit" class="w-full rounded-md bg-black py-2 font-medium text-white hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-950 dark:hover:bg-neutral-300">
-                    Sign in
+                    @Localizer["Sign in"]
                 </button>
             </form>
         </noscript>
@@ -97,6 +105,10 @@
             var dots = document.querySelectorAll('#passcode-dots [data-dot]');
             var size = dots.length;
 
+            // Same sentence the server rendered into the live region, handed down so the script
+            // never spells out copy in either language.
+            var statusTemplate = @Html.Raw(statusTemplateJson);
+
             // The entry lives here and nowhere else; the hidden field only learns it at submit.
             // A fresh render always starts empty, which is also what the server wants — it never
             // echoes a password back.
@@ -109,7 +121,9 @@
                     dots[i].classList.toggle('bg-black', filled);
                     dots[i].classList.toggle('dark:bg-neutral-100', filled);
                 }
-                status.textContent = entry.length + ' of ' + size + ' digits entered';
+                status.textContent = statusTemplate
+                    .replace('{0}', entry.length)
+                    .replace('{1}', size);
             }
 
             function append(digit) {

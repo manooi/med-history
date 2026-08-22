@@ -1,4 +1,4 @@
-﻿@using MedHistory
+@using MedHistory
 @using MedHistory.Models
 @using MedHistory.Services
 @* For Request.GetEncodedPathAndQuery() — how a list page names itself as an edit's origin. *@
@@ -6,4 +6,16 @@
 @* For CultureInfo.CurrentUICulture — request localization has already set it to the reader's
    language, and every date label is formatted against it explicitly. *@
 @using System.Globalization
+@using Microsoft.AspNetCore.Mvc.Localization
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@* Two localizers, injected once for every view so no view repeats the plumbing.
+
+   Localizer — this view's own copy, from Resources/Views/<Controller>/<View>.th.resx (the path
+   mirrors the view's path; a layout and a partial each get their own file).
+   L — the cross-area vocabulary in Resources/SharedResource.th.resx: Save, Delete, Today, …
+
+   Resource keys are the English source text, so there is no en-US resx anywhere — an unlocalised
+   lookup returns the key and reads correctly. Use the indexer for body text and GetString(...) in
+   attributes and script, where an IHtmlContent would slip past HTML encoding. *@
+@inject IViewLocalizer Localizer
+@inject IHtmlLocalizer<SharedResource> L

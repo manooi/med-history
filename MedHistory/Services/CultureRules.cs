@@ -52,10 +52,13 @@ public static class CultureRules
         string.Equals(name, Thai, StringComparison.OrdinalIgnoreCase) ? "TH" : "EN";
 
     /// <summary>
-    /// The language's name in English, for the toggle's <c>aria-label</c> — a two-letter code
-    /// spelled out letter by letter tells a screen reader nothing about what the button does.
-    /// English for now because this slice translates no copy; the label becomes a resource string
-    /// with the rest of the nav.
+    /// The language's name, for the toggle's <c>aria-label</c> — a two-letter code spelled out
+    /// letter by letter tells a screen reader nothing about what the button does.
+    ///
+    /// The returned value is a <em>resource key</em>, which under the app's convention is also the
+    /// English text: the layout looks it up in <c>_Layout.&lt;culture&gt;.resx</c> and gets
+    /// "ภาษาไทย" under Thai, or this string itself under English. Localizing here instead would
+    /// mean handing this class an <c>IStringLocalizer</c> and an ambient culture, and it stays pure.
     /// </summary>
     public static string LanguageName(string name) =>
         string.Equals(name, Thai, StringComparison.OrdinalIgnoreCase) ? "Thai" : "English";

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    Thai for Views/Shared/_Layout.cshtml. The path mirrors the view's own path, which is how
+    IViewLocalizer finds it: /Views/Shared/_Layout.cshtml -> MedHistory.Resources.Views.Shared._Layout.
+
+    The nav links themselves are not here — they are shared vocabulary and live in
+    Resources/SharedResource.th.resx. What is here is copy only the chrome says.
+  -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <data name="Menu" xml:space="preserve">
+    <value>เมนู</value>
+    <comment>aria-label on the mobile chevron; the button has no visible text.</comment>
+  </data>
+
+  <!-- Language toggle. CultureRules.LanguageName returns the key, not the copy. -->
+  <data name="Switch to {0}" xml:space="preserve">
+    <value>เปลี่ยนเป็น{0}</value>
+    <comment>{0} is a language name below. No space before it — Thai does not put one there.</comment>
+  </data>
+  <data name="English" xml:space="preserve">
+    <value>ภาษาอังกฤษ</value>
+  </data>
+  <data name="Thai" xml:space="preserve">
+    <value>ภาษาไทย</value>
+  </data>
+
+  <!-- Theme toggle. Assembled in the browser, so these reach the script as JSON. -->
+  <data name="Theme: {0}. Switch to {1}." xml:space="preserve">
+    <value>ธีม{0} เปลี่ยนเป็นธีม{1}</value>
+    <comment>{0} is the live mode, {1} the one a click moves to — both from the three below.</comment>
+  </data>
+  <data name="auto" xml:space="preserve">
+    <value>อัตโนมัติ</value>
+  </data>
+  <data name="dark" xml:space="preserve">
+    <value>มืด</value>
+  </data>
+  <data name="light" xml:space="preserve">
+    <value>สว่าง</value>
+  </data>
+</root>

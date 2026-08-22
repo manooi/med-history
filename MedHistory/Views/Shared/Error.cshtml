@@ -1,21 +1,21 @@
 @model ErrorViewModel
 @{
-    ViewData["Title"] = "Error";
+    ViewData["Title"] = Localizer.GetString("Error").Value;
 }
 
-<h1 class="border-b border-black pb-4 font-semibold dark:border-neutral-100">Something went wrong</h1>
+<h1 class="border-b border-black pb-4 font-semibold dark:border-neutral-100">@Localizer["Something went wrong"]</h1>
 
-<p class="mt-6 text-sm text-neutral-700 dark:text-neutral-300">An error occurred while processing your request.</p>
+<p class="mt-6 text-sm text-neutral-700 dark:text-neutral-300">@Localizer["An error occurred while processing your request."]</p>
 
 @if (Model.ShowRequestId)
 {
     <p class="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
-        Request ID: <code class="font-mono">@Model.RequestId</code>
+        @Localizer["Request ID"]: <code class="font-mono">@Model.RequestId</code>
     </p>
 }
 
 <p class="mt-6">
     <a href="/" class="border border-black bg-white px-4 py-1 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
-        Back to today
+        @Localizer["Back to today"]
     </a>
 </p>
