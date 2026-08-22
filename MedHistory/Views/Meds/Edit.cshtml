@@ -2,16 +2,16 @@
 @{
     var dayKey = AppTime.Key(Model.Day);
     var dayLabel = AppTime.DayLabel(Model.Day, CultureInfo.CurrentUICulture);
-    ViewData["Title"] = $"Edit medication — {dayLabel}";
+    ViewData["Title"] = $"{Localizer.GetString("Edit medication").Value} — {dayLabel}";
 }
 
 <header class="flex items-center justify-between gap-4 border-b border-black pb-4 dark:border-neutral-100">
     <div>
-        <h1 class="font-semibold">Edit medication</h1>
+        <h1 class="font-semibold">@Localizer["Edit medication"]</h1>
         <p class="text-sm text-neutral-500 dark:text-neutral-400">@dayLabel</p>
     </div>
     <a href="/day/@dayKey/meds" class="border border-black px-3 py-1 text-sm hover:bg-black hover:text-white dark:border-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
-        Cancel
+        @L["Cancel"]
     </a>
 </header>
 
@@ -19,7 +19,7 @@
     <div asp-validation-summary="All" class="mb-2 text-sm text-neutral-700 dark:text-neutral-300"></div>
 
     <div>
-        <label for="med-name" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Medication</label>
+        <label for="med-name" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@Localizer["Medication"]</label>
         <input type="text" id="med-name" name="name" required autocomplete="off" list="stock-names"
                maxlength="@ChecklistRules.NameMaxLength" value="@Model.Name"
                class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100" />
@@ -34,7 +34,7 @@
     </div>
 
     <div class="mt-4 w-28">
-        <label for="med-dose" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Dose</label>
+        <label for="med-dose" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@Localizer["Dose"]</label>
         <input type="number" id="med-dose" name="doseQuantity" required
                step="@MedPlanRules.FormatQuantity(MedPlanRules.DoseQuantityStep)"
                min="@MedPlanRules.FormatQuantity(MedPlanRules.MinDoseQuantity)"
@@ -43,11 +43,11 @@
                class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100" />
     </div>
     <p class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-        Units taken at each time of day. Doses already logged keep the amount they were taken as.
+        @Localizer["Units taken at each time of day. Doses already logged keep the amount they were taken as."]
     </p>
 
     <fieldset class="mt-4">
-        <legend class="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Times of day</legend>
+        <legend class="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@Localizer["Times of day"]</legend>
         <div class="mt-1 flex flex-wrap gap-2">
             @foreach (var slot in MedPlanRules.AllSlots)
             {
@@ -57,7 +57,7 @@
                     <input type="checkbox" name="slots" value="@slotName"
                            checked="@Model.Slots.HasFlag(slot)"
                            class="accent-black dark:accent-neutral-100" />
-                    @MedPlanRules.SlotLabel(slot)
+                    @Localizer[MedPlanRules.SlotLabel(slot)]
                 </label>
             }
         </div>
@@ -65,26 +65,26 @@
 
     <div class="mt-4 flex flex-wrap items-end gap-2">
         <div class="min-w-0 flex-1">
-            <label for="med-meal" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Meal</label>
+            <label for="med-meal" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@Localizer["Meal"]</label>
             <select id="med-meal" name="mealRelation"
                     class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100">
                 @foreach (var relation in Enum.GetValues<MealRelation>())
                 {
                     <option value="@relation" selected="@(relation == Model.MealRelation)">
-                        @MedPlanRules.MealRelationOption(relation)
+                        @Localizer[MedPlanRules.MealRelationOption(relation)]
                     </option>
                 }
             </select>
         </div>
 
         <div class="min-w-0 flex-1">
-            <label for="med-method" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Method</label>
+            <label for="med-method" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@Localizer["Method"]</label>
             <select id="med-method" name="method"
                     class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100">
                 @foreach (var method in Enum.GetValues<MedMethod>())
                 {
                     <option value="@method" selected="@(method == Model.Method)">
-                        @MedPlanRules.MethodOption(method)
+                        @Localizer[MedPlanRules.MethodOption(method)]
                     </option>
                 }
             </select>
@@ -93,17 +93,18 @@
 
     <label class="mt-4 flex items-start gap-2 text-sm">
         <input type="checkbox" name="applyForward" value="true" checked="@Model.ApplyForward" class="accent-black mt-0.5 dark:accent-neutral-100" />
-        <span>Apply to all future days with this name</span>
+        <span>@Localizer["Apply to all future days with this name"]</span>
     </label>
+    @* The day is a placeholder, not a fragment either side of it: Thai puts the date somewhere
+       English does not, and a split sentence could not follow. *@
     <p class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-        Only allocations dated on or after @dayLabel that still carry this medication's current name are changed.
-        Days before this one, and doses already logged, are never touched.
+        @Localizer["Only allocations dated on or after {0} that still carry this medication's current name are changed. Days before this one, and doses already logged, are never touched.", dayLabel]
     </p>
 
     <div class="mt-4">
         <button type="submit"
                 class="border border-black bg-white px-3 py-1 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
-            Save
+            @L["Save"]
         </button>
     </div>
 </form>

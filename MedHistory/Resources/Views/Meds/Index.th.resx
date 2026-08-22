@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    Thai for Views/Meds/Index.cshtml — the stock section, the add-medication form and the day's
+    plan. Medication names are user data and never appear here.
+
+    The slot, meal and method words (morning, after meal, eyedrop …) are keyed on what
+    MedPlanRules returns, so the English label a tick writes into an entry's stored note keeps
+    its own meaning while the screen reads Thai. Views/Meds/Edit.th.resx repeats them because a
+    per-view file inherits nothing.
+  -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <!-- Page -->
+  <data name="Meds" xml:space="preserve">
+    <value>ยา</value>
+  </data>
+  <data name="Back to day" xml:space="preserve">
+    <value>กลับไปหน้าวัน</value>
+  </data>
+
+  <!-- Stock section -->
+  <data name="Stock" xml:space="preserve">
+    <value>คลังยา</value>
+    <comment>A medication's running count over the whole history — an inventory, not a day's plan.</comment>
+  </data>
+  <data name="Counts every dose logged against a medication, on any day. Raise a total to record a refill; renaming keeps the doses already ticked against it." xml:space="preserve">
+    <value>นับรวมทุกครั้งที่บันทึกการใช้ยานั้น ไม่ว่าจะเป็นวันใด เพิ่มยอดรวมเพื่อบันทึกการเติมยา การเปลี่ยนชื่อจะไม่กระทบรายการยาที่ติ๊กไว้แล้ว</value>
+  </data>
+  <data name="Nothing stocked yet." xml:space="preserve">
+    <value>ยังไม่มียาในคลัง</value>
+  </data>
+  <data name="Medication name" xml:space="preserve">
+    <value>ชื่อยา</value>
+  </data>
+  <data name="Total stocked of {0}" xml:space="preserve">
+    <value>จำนวนทั้งหมดในคลังของ {0}</value>
+    <comment>{0} is the medication's name, as the reader typed it.</comment>
+  </data>
+  <data name="Track" xml:space="preserve">
+    <value>เริ่มติดตาม</value>
+    <comment>Starts counting stock for a medication. Paired with "Stop tracking".</comment>
+  </data>
+  <data name="Stop tracking" xml:space="preserve">
+    <value>เลิกติดตาม</value>
+  </data>
+  <data name="Stop tracking stock" xml:space="preserve">
+    <value>เลิกติดตามคลังยา</value>
+  </data>
+  <data name="Stop tracking stock for this medication? Logged doses are kept." xml:space="preserve">
+    <value>เลิกติดตามคลังยาของยานี้หรือไม่ ยาที่บันทึกไว้แล้วจะยังคงอยู่</value>
+  </data>
+  <data name="{0} taken" xml:space="preserve">
+    <value>ใช้ไปแล้ว {0}</value>
+    <comment>Thai puts the number after the verb, which is why this is not "taken" on its own.</comment>
+  </data>
+  <data name="{0} left" xml:space="preserve">
+    <value>เหลือ {0}</value>
+  </data>
+  <data name="Medication" xml:space="preserve">
+    <value>ยา</value>
+  </data>
+  <data name="Total" xml:space="preserve">
+    <value>จำนวนทั้งหมด</value>
+  </data>
+
+  <!-- Add-medication form -->
+  <data name="Add medication" xml:space="preserve">
+    <value>เพิ่มยา</value>
+  </data>
+  <data name="Dose" xml:space="preserve">
+    <value>ขนาดยา</value>
+  </data>
+  <data name="Units taken at each time of day — tablets, drops, whatever this is measured in." xml:space="preserve">
+    <value>จำนวนที่ใช้ในแต่ละช่วงเวลาของวัน จะเป็นเม็ด หยด หรือหน่วยใดก็ตามที่ใช้วัดยานี้</value>
+  </data>
+  <data name="From" xml:space="preserve">
+    <value>ตั้งแต่</value>
+  </data>
+  <data name="To" xml:space="preserve">
+    <value>ถึง</value>
+  </data>
+  <data name="Adds to every day in range; days that already have this medication are skipped." xml:space="preserve">
+    <value>เพิ่มให้ทุกวันในช่วงที่กำหนด วันที่มียานี้อยู่แล้วจะถูกข้ามไป</value>
+  </data>
+
+  <!-- Slots, in day order. The four words a Thai pharmacy label uses. -->
+  <data name="Times of day" xml:space="preserve">
+    <value>ช่วงเวลาของวัน</value>
+  </data>
+  <data name="morning" xml:space="preserve">
+    <value>เช้า</value>
+  </data>
+  <data name="noon" xml:space="preserve">
+    <value>กลางวัน</value>
+  </data>
+  <data name="evening" xml:space="preserve">
+    <value>เย็น</value>
+  </data>
+  <data name="bedtime" xml:space="preserve">
+    <value>ก่อนนอน</value>
+  </data>
+
+  <!-- Meal relation -->
+  <data name="Meal" xml:space="preserve">
+    <value>มื้ออาหาร</value>
+  </data>
+  <data name="any time" xml:space="preserve">
+    <value>เวลาใดก็ได้</value>
+  </data>
+  <data name="before meal" xml:space="preserve">
+    <value>ก่อนอาหาร</value>
+  </data>
+  <data name="after meal" xml:space="preserve">
+    <value>หลังอาหาร</value>
+  </data>
+  <data name="with meal" xml:space="preserve">
+    <value>พร้อมอาหาร</value>
+  </data>
+
+  <!-- Method -->
+  <data name="Method" xml:space="preserve">
+    <value>วิธีใช้</value>
+  </data>
+  <data name="other" xml:space="preserve">
+    <value>อื่น ๆ</value>
+  </data>
+  <data name="eat" xml:space="preserve">
+    <value>รับประทาน</value>
+  </data>
+  <data name="apply" xml:space="preserve">
+    <value>ทา</value>
+  </data>
+  <data name="eyedrop" xml:space="preserve">
+    <value>หยอดตา</value>
+  </data>
+  <data name="inject" xml:space="preserve">
+    <value>ฉีด</value>
+  </data>
+
+  <!-- The day's plan -->
+  <data name="This day's plan" xml:space="preserve">
+    <value>แผนยาของวันที่เลือก</value>
+    <comment>The page's day, which is often not today — hence "วันที่เลือก" rather than "วันนี้".</comment>
+  </data>
+  <data name="Nothing allocated for this day." xml:space="preserve">
+    <value>ยังไม่มียาสำหรับวันที่เลือก</value>
+  </data>
+  <data name="Remove this medication from the checklist? Logged doses are kept." xml:space="preserve">
+    <value>นำยานี้ออกจากรายการยาประจำวันหรือไม่ ยาที่บันทึกไว้แล้วจะยังคงอยู่</value>
+  </data>
+  <data name="Remove from checklist" xml:space="preserve">
+    <value>นำออกจากรายการยาประจำวัน</value>
+  </data>
+  <data name="Copy previous day" xml:space="preserve">
+    <value>คัดลอกจากวันก่อนหน้า</value>
+  </data>
+</root>

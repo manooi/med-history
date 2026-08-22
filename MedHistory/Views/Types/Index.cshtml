@@ -1,28 +1,28 @@
 @model TypesViewModel
 @{
-    ViewData["Title"] = "Types";
+    ViewData["Title"] = L.GetString("Types").Value;
 }
 
 <header class="border-b border-black pb-4 dark:border-neutral-100">
-    <h1 class="font-semibold">Types</h1>
+    <h1 class="font-semibold">@L["Types"]</h1>
 </header>
 
 <form method="post" action="/types" asp-antiforgery="true" class="mt-6 space-y-3">
     <div asp-validation-summary="All" class="text-sm text-neutral-700 dark:text-neutral-300"></div>
 
     <div>
-        <label for="name" class="block text-sm font-medium">New type</label>
+        <label for="name" class="block text-sm font-medium">@Localizer["New type"]</label>
         <input type="text" id="name" name="name" required autocomplete="off"
                maxlength="@EntryTypeRules.NameMaxLength" value="@Model.NewName"
                class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100" />
         <p class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-            Added types record a note, photos and a time — no extra fields.
+            @Localizer["Added types record a note, photos and a time — no extra fields."]
         </p>
     </div>
 
     <button type="submit"
             class="border border-black bg-white px-4 py-1 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
-        Add type
+        @Localizer["Add type"]
     </button>
 </form>
 
@@ -37,11 +37,11 @@
                     </span>
                     @if (type.IsBuiltIn)
                     {
-                        <span class="border border-neutral-400 px-1 text-xs text-neutral-600 dark:border-neutral-500 dark:text-neutral-400">Built-in</span>
+                        <span class="border border-neutral-400 px-1 text-xs text-neutral-600 dark:border-neutral-500 dark:text-neutral-400">@Localizer["Built-in"]</span>
                     }
                     @if (!type.IsActive)
                     {
-                        <span class="border border-neutral-400 px-1 text-xs text-neutral-600 dark:border-neutral-500 dark:text-neutral-400">Inactive</span>
+                        <span class="border border-neutral-400 px-1 text-xs text-neutral-600 dark:border-neutral-500 dark:text-neutral-400">@Localizer["Inactive"]</span>
                     }
                 </span>
 
@@ -49,7 +49,7 @@
                       asp-antiforgery="true" class="shrink-0">
                     <button type="submit"
                             class="border border-black bg-white px-3 py-1 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
-                        @(type.IsActive ? "Deactivate" : "Activate")
+                        @Localizer[type.IsActive ? "Deactivate" : "Activate"]
                     </button>
                 </form>
             </li>
@@ -57,6 +57,6 @@
     </ul>
 
     <p class="mt-3 text-xs text-neutral-500 dark:text-neutral-400">
-        Deactivating hides a type from the day view. Entries already logged under it are kept.
+        @Localizer["Deactivating hides a type from the day view. Entries already logged under it are kept."]
     </p>
 </section>

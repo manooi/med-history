@@ -2,16 +2,25 @@
 @{
     var dayKey = AppTime.Key(Model.Day);
     var dayLabel = AppTime.DayLabel(Model.Day, CultureInfo.CurrentUICulture);
-    ViewData["Title"] = $"Meds — {dayLabel}";
+    ViewData["Title"] = $"{Localizer.GetString("Meds").Value} — {dayLabel}";
+
+    // Slot, meal and method words come out of MedPlanRules in English — the very words a tick
+    // writes into an entry's stored note — so they are translated here, where they are read,
+    // and never where they are written. A description arrives already joined, so it is split
+    // back on the separator MedPlanRules composes with and each part looked up on its own.
+    const string partSeparator = " · ";
+
+    string Words(IEnumerable<string> parts) =>
+        string.Join(partSeparator, parts.Select(part => Localizer.GetString(part).Value));
 }
 
 <header class="flex items-center justify-between gap-4 border-b border-black pb-4 dark:border-neutral-100">
     <div>
-        <h1 class="font-semibold">Meds</h1>
+        <h1 class="font-semibold">@Localizer["Meds"]</h1>
         <p class="text-sm text-neutral-500 dark:text-neutral-400">@dayLabel</p>
     </div>
     <a href="/day/@dayKey" class="border border-black px-3 py-1 text-sm hover:bg-black hover:text-white dark:border-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
-        Back to day
+        @Localizer["Back to day"]
     </a>
 </header>
 
@@ -19,11 +28,10 @@
    day the page happens to be showing. It leads the page because the flow is stock-first —
    register what is on hand, then plan doses against it. *@
 <section class="mt-6 border border-black dark:border-neutral-100">
-    <h2 class="border-b border-black bg-neutral-100 px-4 py-2 text-sm font-semibold uppercase tracking-wide dark:border-neutral-100 dark:bg-neutral-700">Stock</h2>
+    <h2 class="border-b border-black bg-neutral-100 px-4 py-2 text-sm font-semibold uppercase tracking-wide dark:border-neutral-100 dark:bg-neutral-700">@Localizer["Stock"]</h2>
     <div class="p-4">
     <p class="text-xs text-neutral-500 dark:text-neutral-400">
-        Counts every dose logged against a medication, on any day. Raise a total to record a refill;
-        renaming keeps the doses already ticked against it.
+        @Localizer["Counts every dose logged against a medication, on any day. Raise a total to record a refill; renaming keeps the doses already ticked against it."]
     </p>
 
     @if (Model.StockErrors.Count > 0)
@@ -41,7 +49,7 @@
     @if (Model.Stocks.Count == 0)
     {
         <p class="px-1 py-6 text-center text-sm text-neutral-500 dark:text-neutral-400">
-            Nothing stocked yet.
+            @Localizer["Nothing stocked yet."]
         </p>
     }
     else
@@ -59,33 +67,35 @@
                             <input type="text" name="name" required autocomplete="off"
                                    maxlength="@MedStockRules.NameMaxLength"
                                    value="@Model.StockNameInput(stock)"
-                                   aria-label="Medication name"
+                                   aria-label="@Localizer.GetString("Medication name")"
                                    class="min-w-0 flex-1 border border-black bg-white px-2 py-1 text-sm font-medium text-black dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100" />
                             <input type="number" name="total" required step="0.01" min="0"
                                    max="@MedPlanRules.FormatQuantity(MedStockRules.MaxTotal)"
                                    value="@Model.StockTotalInput(stock)"
-                                   aria-label="Total stocked of @stock.Name"
+                                   aria-label="@Localizer.GetString("Total stocked of {0}", stock.Name)"
                                    class="w-20 shrink-0 border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100" />
                             <button type="submit"
                                     class="shrink-0 border border-black bg-white px-2 py-1 text-xs text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
-                                Save
+                                @L["Save"]
                             </button>
                         </form>
 
                         @* Red is the carve-out from the monochrome rule: a destructive control must
                            not read the same as the Save beside it. *@
                         <form method="post" action="/day/@dayKey/meds/stock/@stock.Id/delete" asp-antiforgery="true" class="shrink-0">
-                            <button type="submit" data-confirm="Stop tracking stock for this medication? Logged doses are kept."
-                                    aria-label="Stop tracking stock"
+                            <button type="submit" data-confirm="@Localizer.GetString("Stop tracking stock for this medication? Logged doses are kept.")"
+                                    aria-label="@Localizer.GetString("Stop tracking stock")"
                                     class="px-2 py-1 text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
-                                Stop tracking
+                                @Localizer["Stop tracking"]
                             </button>
                         </form>
                     </div>
 
+                    @* Two fragments rather than one sentence so Thai can put the verb first
+                       ("ใช้ไปแล้ว 5") without the numbers moving. *@
                     <p class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                        @MedPlanRules.FormatQuantity(stock.Consumed) taken ·
-                        @MedPlanRules.FormatQuantity(stock.Remaining) left
+                        @Localizer["{0} taken", MedPlanRules.FormatQuantity(stock.Consumed)] ·
+                        @Localizer["{0} left", MedPlanRules.FormatQuantity(stock.Remaining)]
                     </p>
                 </li>
             }
@@ -95,14 +105,14 @@
     <form method="post" action="/day/@dayKey/meds/stock" asp-antiforgery="true"
           class="mt-4 flex flex-wrap items-end gap-2">
         <div class="min-w-0 flex-1">
-            <label for="stock-name" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Medication</label>
+            <label for="stock-name" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@Localizer["Medication"]</label>
             <input type="text" id="stock-name" name="name" required autocomplete="off"
                    maxlength="@MedStockRules.NameMaxLength" value="@Model.NewStockName"
                    class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100" />
         </div>
 
         <div class="w-28">
-            <label for="stock-total" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Total</label>
+            <label for="stock-total" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@Localizer["Total"]</label>
             <input type="number" id="stock-total" name="total" required step="0.01" min="0"
                    max="@MedPlanRules.FormatQuantity(MedStockRules.MaxTotal)" value="@Model.NewStockTotal"
                    class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100" />
@@ -110,19 +120,19 @@
 
         <button type="submit"
                 class="shrink-0 border border-black bg-white px-3 py-1 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
-            Track
+            @Localizer["Track"]
         </button>
     </form>
     </div>
 </section>
 
 <section class="mt-6 border border-black dark:border-neutral-100">
-    <h2 class="border-b border-black bg-neutral-100 px-4 py-2 text-sm font-semibold uppercase tracking-wide dark:border-neutral-100 dark:bg-neutral-700">Add medication</h2>
+    <h2 class="border-b border-black bg-neutral-100 px-4 py-2 text-sm font-semibold uppercase tracking-wide dark:border-neutral-100 dark:bg-neutral-700">@Localizer["Add medication"]</h2>
     <form method="post" action="/day/@dayKey/meds" asp-antiforgery="true" class="p-4">
     <div asp-validation-summary="All" class="mb-2 mt-2 text-sm text-neutral-700 dark:text-neutral-300"></div>
 
     <div class="mt-4">
-        <label for="med-name" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Medication</label>
+        <label for="med-name" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@Localizer["Medication"]</label>
         <input type="text" id="med-name" name="name" required autocomplete="off" list="stock-names"
                maxlength="@ChecklistRules.NameMaxLength" value="@Model.NewMedName"
                class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100" />
@@ -137,7 +147,7 @@
     </div>
 
     <div class="mt-4 w-28">
-        <label for="med-dose" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Dose</label>
+        <label for="med-dose" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@Localizer["Dose"]</label>
         <input type="number" id="med-dose" name="doseQuantity" required
                step="@MedPlanRules.FormatQuantity(MedPlanRules.DoseQuantityStep)"
                min="@MedPlanRules.FormatQuantity(MedPlanRules.MinDoseQuantity)"
@@ -145,25 +155,25 @@
                value="@Model.NewMedDoseQuantity"
                class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100" />
     </div>
-    <p class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">Units taken at each time of day — tablets, drops, whatever this is measured in.</p>
+    <p class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">@Localizer["Units taken at each time of day — tablets, drops, whatever this is measured in."]</p>
 
     <div class="mt-4 flex flex-wrap gap-2">
         <div class="min-w-0 flex-1">
-            <label for="med-from" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">From</label>
+            <label for="med-from" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@Localizer["From"]</label>
             <input type="date" id="med-from" name="from" value="@AppTime.Key(Model.NewMedFrom)"
                    class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100" />
         </div>
         <div class="min-w-0 flex-1">
-            <label for="med-to" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">To</label>
+            <label for="med-to" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@Localizer["To"]</label>
             <input type="date" id="med-to" name="to" value="@AppTime.Key(Model.NewMedTo)"
                    class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100" />
         </div>
     </div>
     @* Same day in both fields (the default) is a single-day add — this is not a separate form. *@
-    <p class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">Adds to every day in range; days that already have this medication are skipped.</p>
+    <p class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">@Localizer["Adds to every day in range; days that already have this medication are skipped."]</p>
 
     <fieldset class="mt-4">
-        <legend class="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Times of day</legend>
+        <legend class="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@Localizer["Times of day"]</legend>
         <div class="mt-1 flex flex-wrap gap-2">
             @foreach (var slot in MedPlanRules.AllSlots)
             {
@@ -173,7 +183,7 @@
                     <input type="checkbox" name="slots" value="@slotName"
                            checked="@Model.NewMedSlots.HasFlag(slot)"
                            class="accent-black dark:accent-neutral-100" />
-                    @MedPlanRules.SlotLabel(slot)
+                    @Localizer[MedPlanRules.SlotLabel(slot)]
                 </label>
             }
         </div>
@@ -181,26 +191,26 @@
 
     <div class="mt-4 flex flex-wrap items-end gap-2">
         <div class="min-w-0 flex-1">
-            <label for="med-meal" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Meal</label>
+            <label for="med-meal" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@Localizer["Meal"]</label>
             <select id="med-meal" name="mealRelation"
                     class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100">
                 @foreach (var relation in Enum.GetValues<MealRelation>())
                 {
                     <option value="@relation" selected="@(relation == Model.NewMedMealRelation)">
-                        @MedPlanRules.MealRelationOption(relation)
+                        @Localizer[MedPlanRules.MealRelationOption(relation)]
                     </option>
                 }
             </select>
         </div>
 
         <div class="min-w-0 flex-1">
-            <label for="med-method" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Method</label>
+            <label for="med-method" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@Localizer["Method"]</label>
             <select id="med-method" name="method"
                     class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100">
                 @foreach (var method in Enum.GetValues<MedMethod>())
                 {
                     <option value="@method" selected="@(method == Model.NewMedMethod)">
-                        @MedPlanRules.MethodOption(method)
+                        @Localizer[MedPlanRules.MethodOption(method)]
                     </option>
                 }
             </select>
@@ -208,20 +218,20 @@
 
         <button type="submit"
                 class="shrink-0 border border-black bg-white px-3 py-1 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
-            Add
+            @L["Add"]
         </button>
     </div>
     </form>
 </section>
 
 <section class="mt-6 border border-black dark:border-neutral-100">
-    <h2 class="border-b border-black bg-neutral-100 px-4 py-2 text-sm font-semibold uppercase tracking-wide dark:border-neutral-100 dark:bg-neutral-700">This day's plan</h2>
+    <h2 class="border-b border-black bg-neutral-100 px-4 py-2 text-sm font-semibold uppercase tracking-wide dark:border-neutral-100 dark:bg-neutral-700">@Localizer["This day's plan"]</h2>
     <div class="p-4">
 
     @if (Model.Allocations.Count == 0)
     {
         <p class="px-1 py-6 text-center text-sm text-neutral-500 dark:text-neutral-400">
-            Nothing allocated for this day.
+            @Localizer["Nothing allocated for this day."]
         </p>
     }
     else
@@ -243,22 +253,22 @@
                         </span>
                         <span class="block text-xs text-neutral-500 dark:text-neutral-400">
                             @* Slots are the plan: one slot is one dose, so this line is the whole requirement. *@
-                            @string.Join(" · ", item.SlotLabels)
+                            @Words(item.SlotLabels)
                         </span>
                         @if (item.Description.Length > 0)
                         {
-                            <span class="block text-xs text-neutral-500 dark:text-neutral-400">@item.Description</span>
+                            <span class="block text-xs text-neutral-500 dark:text-neutral-400">@Words(item.Description.Split(partSeparator))</span>
                         }
                     </span>
                     <a href="/checklist/@item.Id/edit"
                        class="shrink-0 self-center px-2 py-1 text-xs text-neutral-500 hover:text-black dark:text-neutral-400 dark:hover:text-neutral-100">
-                        Edit
+                        @L["Edit"]
                     </a>
                     <form method="post" action="/checklist/@item.Id/delete" asp-antiforgery="true" class="shrink-0">
-                        <button type="submit" data-confirm="Remove this medication from the checklist? Logged doses are kept."
-                                aria-label="Remove from checklist"
+                        <button type="submit" data-confirm="@Localizer.GetString("Remove this medication from the checklist? Logged doses are kept.")"
+                                aria-label="@Localizer.GetString("Remove from checklist")"
                                 class="px-2 py-1 text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
-                            Remove
+                            @L["Remove"]
                         </button>
                     </form>
                 </li>
@@ -271,7 +281,7 @@
         <form method="post" action="/day/@dayKey/meds/copy-previous" asp-antiforgery="true" class="mt-3">
             <button type="submit"
                     class="border border-black bg-white px-2 py-1 text-xs text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
-                Copy previous day
+                @Localizer["Copy previous day"]
             </button>
         </form>
     }

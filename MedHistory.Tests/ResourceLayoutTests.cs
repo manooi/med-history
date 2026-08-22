@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Resources;
 using MedHistory;
+using MedHistory.Models;
 using MedHistory.Services;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -27,6 +28,9 @@ public class ResourceLayoutTests
     private const string LayoutBaseName = "MedHistory.Resources.Views.Shared._Layout";
     private const string LoginBaseName = "MedHistory.Resources.Views.Account.Login";
     private const string ErrorBaseName = "MedHistory.Resources.Views.Shared.Error";
+    private const string MedsIndexBaseName = "MedHistory.Resources.Views.Meds.Index";
+    private const string MedsEditBaseName = "MedHistory.Resources.Views.Meds.Edit";
+    private const string TypesIndexBaseName = "MedHistory.Resources.Views.Types.Index";
 
     [Fact]
     public void TheRealFactoryResolvesTheSharedFileFromTheMarkerType()
@@ -106,6 +110,20 @@ public class ResourceLayoutTests
     [InlineData(ErrorBaseName, "An error occurred while processing your request.")]
     [InlineData(ErrorBaseName, "Request ID")]
     [InlineData(ErrorBaseName, "Back to today")]
+    [InlineData(MedsIndexBaseName, "Meds")]
+    [InlineData(MedsIndexBaseName, "Stock")]
+    [InlineData(MedsIndexBaseName, "This day's plan")]
+    // The slot, meal and method words are keyed on what MedPlanRules returns, so a rename there
+    // would leave the screen reading English with nothing else to notice.
+    [InlineData(MedsIndexBaseName, "morning")]
+    [InlineData(MedsIndexBaseName, "after meal")]
+    [InlineData(MedsIndexBaseName, "eyedrop")]
+    [InlineData(MedsEditBaseName, "Edit medication")]
+    [InlineData(MedsEditBaseName, "bedtime")]
+    [InlineData(MedsEditBaseName, "any time")]
+    [InlineData(TypesIndexBaseName, "New type")]
+    [InlineData(TypesIndexBaseName, "Built-in")]
+    [InlineData(TypesIndexBaseName, "Deactivate")]
     public void PerViewKeyResolvesToThai(string baseName, string key)
     {
         var value = Read(baseName, key);
@@ -128,6 +146,15 @@ public class ResourceLayoutTests
         var digits = Read(LoginBaseName, "{0} of {1} digits entered");
         Assert.Contains("{0}", digits);
         Assert.Contains("{1}", digits);
+
+        // The meds screens carry the count, the stock's medication name and the page's day the
+        // same way — Thai moves each of them, so a dropped hole loses the value outright.
+        Assert.Contains("{0}", Read(MedsIndexBaseName, "{0} taken"));
+        Assert.Contains("{0}", Read(MedsIndexBaseName, "{0} left"));
+        Assert.Contains("{0}", Read(MedsIndexBaseName, "Total stocked of {0}"));
+        Assert.Contains("{0}", Read(MedsEditBaseName,
+            "Only allocations dated on or after {0} that still carry this medication's current name are changed. " +
+            "Days before this one, and doses already logged, are never touched."));
     }
 
     [Fact]
@@ -148,6 +175,30 @@ public class ResourceLayoutTests
         // toggle's aria-label.
         Assert.Equal("ภาษาไทย", Read(LayoutBaseName, CultureRules.LanguageName(CultureRules.Thai)));
         Assert.Equal("ภาษาอังกฤษ", Read(LayoutBaseName, CultureRules.LanguageName(CultureRules.Default)));
+    }
+
+    [Fact]
+    public void EveryWordTheMedScreensTakeFromMedPlanRulesIsTranslated()
+    {
+        // The med screens look these up by the English label MedPlanRules returns, because that
+        // same label is what a tick writes into an entry's stored note — translating the source
+        // would rewrite what goes into the database. So the key set is not a list anyone
+        // maintains by hand: it is whatever the rules produce, which is what this walks. A word
+        // renamed there goes silently untranslated on screen; here it fails.
+        var words = MedPlanRules.AllSlots.Select(MedPlanRules.SlotLabel)
+            .Concat(Enum.GetValues<MealRelation>().Select(MedPlanRules.MealRelationOption))
+            .Concat(Enum.GetValues<MedMethod>().Select(MedPlanRules.MethodOption))
+            .Where(word => word.Length > 0);
+
+        var missing = words
+            .SelectMany(word => new[] { MedsIndexBaseName, MedsEditBaseName }
+                .Where(baseName => Read(baseName, word) is null or "")
+                .Select(baseName => $"{baseName}: '{word}'"))
+            .ToList();
+
+        Assert.True(missing.Count == 0,
+            "MedPlanRules words with no Thai on the meds screens:" + Environment.NewLine +
+            string.Join(Environment.NewLine, missing));
     }
 
     // Same call ResourceManagerStringLocalizer makes. Null means "not in the .th file", which the

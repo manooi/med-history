@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    Thai for Views/Meds/Edit.cshtml — one allocation's plan. The slot, meal and method words
+    repeat Views/Meds/Index.th.resx on purpose: a per-view file inherits nothing, and both forms
+    key them on what MedPlanRules returns.
+  -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <!-- Page -->
+  <data name="Edit medication" xml:space="preserve">
+    <value>แก้ไขยา</value>
+  </data>
+  <data name="Medication" xml:space="preserve">
+    <value>ยา</value>
+  </data>
+  <data name="Dose" xml:space="preserve">
+    <value>ขนาดยา</value>
+  </data>
+  <data name="Units taken at each time of day. Doses already logged keep the amount they were taken as." xml:space="preserve">
+    <value>จำนวนที่ใช้ในแต่ละช่วงเวลาของวัน ยาที่บันทึกไว้แล้วจะคงจำนวนตามที่ใช้ไปเดิม</value>
+  </data>
+
+  <!-- Slots, in day order. The four words a Thai pharmacy label uses. -->
+  <data name="Times of day" xml:space="preserve">
+    <value>ช่วงเวลาของวัน</value>
+  </data>
+  <data name="morning" xml:space="preserve">
+    <value>เช้า</value>
+  </data>
+  <data name="noon" xml:space="preserve">
+    <value>กลางวัน</value>
+  </data>
+  <data name="evening" xml:space="preserve">
+    <value>เย็น</value>
+  </data>
+  <data name="bedtime" xml:space="preserve">
+    <value>ก่อนนอน</value>
+  </data>
+
+  <!-- Meal relation -->
+  <data name="Meal" xml:space="preserve">
+    <value>มื้ออาหาร</value>
+  </data>
+  <data name="any time" xml:space="preserve">
+    <value>เวลาใดก็ได้</value>
+  </data>
+  <data name="before meal" xml:space="preserve">
+    <value>ก่อนอาหาร</value>
+  </data>
+  <data name="after meal" xml:space="preserve">
+    <value>หลังอาหาร</value>
+  </data>
+  <data name="with meal" xml:space="preserve">
+    <value>พร้อมอาหาร</value>
+  </data>
+
+  <!-- Method -->
+  <data name="Method" xml:space="preserve">
+    <value>วิธีใช้</value>
+  </data>
+  <data name="other" xml:space="preserve">
+    <value>อื่น ๆ</value>
+  </data>
+  <data name="eat" xml:space="preserve">
+    <value>รับประทาน</value>
+  </data>
+  <data name="apply" xml:space="preserve">
+    <value>ทา</value>
+  </data>
+  <data name="eyedrop" xml:space="preserve">
+    <value>หยอดตา</value>
+  </data>
+  <data name="inject" xml:space="preserve">
+    <value>ฉีด</value>
+  </data>
+
+  <!-- Applying an edit forward -->
+  <data name="Apply to all future days with this name" xml:space="preserve">
+    <value>ใช้กับทุกวันในอนาคตที่ใช้ชื่อยานี้</value>
+  </data>
+  <data name="Only allocations dated on or after {0} that still carry this medication's current name are changed. Days before this one, and doses already logged, are never touched." xml:space="preserve">
+    <value>จะเปลี่ยนเฉพาะรายการของวันที่ {0} เป็นต้นไป ที่ยังใช้ชื่อยาปัจจุบันนี้ ส่วนวันก่อนหน้านั้นและยาที่บันทึกไว้แล้วจะไม่ถูกแก้ไข</value>
+    <comment>{0} is the page's day, already formatted for the reader's culture.</comment>
+  </data>
+</root>

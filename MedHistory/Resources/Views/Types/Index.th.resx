@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    Thai for Views/Types/Index.cshtml. Type names are user data — including the built-in ones,
+    which are rows like any other — so the list itself is never translated, only the chrome
+    around it. The page heading is the shared "Types".
+  -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <!-- Add form -->
+  <data name="New type" xml:space="preserve">
+    <value>ประเภทใหม่</value>
+  </data>
+  <data name="Added types record a note, photos and a time — no extra fields." xml:space="preserve">
+    <value>ประเภทที่เพิ่มเองจะบันทึกได้เฉพาะข้อความ รูปภาพ และเวลา ไม่มีช่องข้อมูลเพิ่มเติม</value>
+  </data>
+  <data name="Add type" xml:space="preserve">
+    <value>เพิ่มประเภท</value>
+  </data>
+
+  <!-- The list -->
+  <data name="Built-in" xml:space="preserve">
+    <value>ของระบบ</value>
+    <comment>Badge on a type that shipped with the app rather than one the reader added.</comment>
+  </data>
+  <data name="Inactive" xml:space="preserve">
+    <value>ไม่ได้ใช้งาน</value>
+    <comment>A state, deliberately not the same words as the Deactivate button beside it.</comment>
+  </data>
+  <data name="Deactivate" xml:space="preserve">
+    <value>ปิดใช้งาน</value>
+  </data>
+  <data name="Activate" xml:space="preserve">
+    <value>เปิดใช้งาน</value>
+  </data>
+  <data name="Deactivating hides a type from the day view. Entries already logged under it are kept." xml:space="preserve">
+    <value>การปิดใช้งานจะซ่อนประเภทนั้นจากหน้าวัน รายการที่บันทึกไว้ภายใต้ประเภทนั้นจะยังคงอยู่</value>
+  </data>
+</root>
