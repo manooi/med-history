@@ -67,7 +67,9 @@ public sealed record ReportMonth(
 {
     public string Key => ReportRules.MonthKey(FirstDay);
 
-    public string Label => ReportRules.MonthLabel(FirstDay);
+    /// <summary>A method rather than a property because it needs the reader's culture — see
+    /// <see cref="ReportRules.MonthLabel"/>.</summary>
+    public string Label(CultureInfo culture) => ReportRules.MonthLabel(FirstDay, culture);
 
     public string PreviousKey => ReportRules.MonthKey(FirstDay.AddMonths(-1));
 
@@ -100,19 +102,33 @@ public static class ReportRules
     /// <summary>The URL segment form of a month, e.g. <c>/med-report/2026-08</c>.</summary>
     public const string MonthFormat = "yyyy-MM";
 
-    /// <summary>Column headings, in the grid's own order. Monday first, as the weeks are built.</summary>
-    public static readonly IReadOnlyList<string> WeekdayLabels =
-        ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    /// <summary>
+    /// Column headings, in the grid's own order. Monday first, as the weeks are built, and in the
+    /// reader's language — the headings name the same days the cells under them do, so they are
+    /// taken from the culture rather than spelled out here.
+    /// </summary>
+    public static IReadOnlyList<string> WeekdayLabels(CultureInfo culture) =>
+        Enumerable.Range(0, DaysPerWeek)
+            .Select(column =>
+                culture.DateTimeFormat.AbbreviatedDayNames[((int)DayOfWeek.Monday + column) % DaysPerWeek])
+            .ToList();
 
     /// <summary>The first of the month a day falls in — the canonical way a month is held.</summary>
     public static DateOnly FirstOfMonth(DateOnly day) => new(day.Year, day.Month, 1);
 
+    /// <summary>
+    /// The identifier form of a month — a URL segment and an <c>&lt;input type="month"&gt;</c>
+    /// value, so invariant like every other identifier: <see cref="TryParseMonth"/> reads back
+    /// what this wrote as a Gregorian year, and a Buddhist-era "2569-08" would come back as the
+    /// month five centuries out rather than as an error. See <see cref="AppTime"/>.
+    /// </summary>
     public static string MonthKey(DateOnly month) =>
         month.ToString(MonthFormat, CultureInfo.InvariantCulture);
 
-    /// <summary>How a month reads on screen, e.g. "August 2026".</summary>
-    public static string MonthLabel(DateOnly month) =>
-        month.ToString("MMMM yyyy", CultureInfo.InvariantCulture);
+    /// <summary>How a month reads on screen, e.g. "August 2026" — "สิงหาคม 2569" under th-TH.
+    /// The culture is passed in for the reason <see cref="AppTime.DayLabel"/> gives.</summary>
+    public static string MonthLabel(DateOnly month, CultureInfo culture) =>
+        month.ToString("MMMM yyyy", culture);
 
     /// <summary>
     /// Reads a month out of a URL segment, as the first of that month. Strict: exactly

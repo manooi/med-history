@@ -1,3 +1,4 @@
+using System.Globalization;
 using MedHistory.Models;
 using MedHistory.Services;
 
@@ -8,6 +9,10 @@ public class ReportRulesTests
     private static readonly DateOnly August = new(2026, 8, 1);
 
     private static readonly DateOnly Day = new(2026, 8, 14);
+
+    private static readonly CultureInfo English = CultureInfo.GetCultureInfo("en-US");
+
+    private static readonly CultureInfo Thai = CultureInfo.GetCultureInfo("th-TH");
 
     private static ReportAllocation Allocation(int id, MedSlots slots, DateOnly? day = null) =>
         new(id, day ?? Day, slots);
@@ -491,9 +496,70 @@ public class ReportRulesTests
     }
 
     [Fact]
-    public void MonthLabel_NamesTheMonth()
+    public void MonthKey_UnderThaiAmbientCulture_StaysGregorian()
     {
-        Assert.Equal("August 2026", ReportRules.MonthLabel(August));
+        // The month key is a URL segment and an <input type="month"> value. A Buddhist-era
+        // "2569-08" would parse back as the year 2569 rather than fail, so the report would
+        // quietly page through a century it has no data for.
+        using var culture = new CultureScope("th-TH");
+
+        Assert.Equal("2026-08", ReportRules.MonthKey(August));
+    }
+
+    [Fact]
+    public void TryParseMonth_UnderThaiAmbientCulture_RoundTripsTheKey()
+    {
+        using var culture = new CultureScope("th-TH");
+
+        Assert.True(ReportRules.TryParseMonth(ReportRules.MonthKey(August), out var month));
+        Assert.Equal(August, month);
+    }
+
+    [Fact]
+    public void MonthLabel_InEnglish_NamesTheMonth()
+    {
+        Assert.Equal("August 2026", ReportRules.MonthLabel(August, English));
+    }
+
+    [Fact]
+    public void MonthLabel_InThai_ReadsTheBuddhistEraYear()
+    {
+        var label = ReportRules.MonthLabel(August, Thai);
+
+        Assert.Contains("2569", label);
+        Assert.DoesNotContain("2026", label);
+        Assert.DoesNotContain("August", label);
+    }
+
+    [Fact]
+    public void MonthLabel_TakesTheCultureItIsGiven_NotTheAmbientOne()
+    {
+        // The point of the parameter: a page rendered in English stays English even when the
+        // thread it renders on says otherwise.
+        using var culture = new CultureScope("th-TH");
+
+        Assert.Equal("August 2026", ReportRules.MonthLabel(August, English));
+    }
+
+    // ---- Weekday headings ----
+
+    [Fact]
+    public void WeekdayLabels_InEnglish_RunMondayFirst()
+    {
+        Assert.Equal(
+            new[] { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" },
+            ReportRules.WeekdayLabels(English));
+    }
+
+    [Fact]
+    public void WeekdayLabels_InThai_AreThaiAndStillRunMondayFirst()
+    {
+        var labels = ReportRules.WeekdayLabels(Thai);
+
+        Assert.Equal(ReportRules.DaysPerWeek, labels.Count);
+        Assert.Equal(Thai.DateTimeFormat.AbbreviatedDayNames[(int)DayOfWeek.Monday], labels[0]);
+        Assert.Equal(Thai.DateTimeFormat.AbbreviatedDayNames[(int)DayOfWeek.Sunday], labels[^1]);
+        Assert.DoesNotContain("Mon", labels);
     }
 
     [Fact]

@@ -1,3 +1,4 @@
+using System.Globalization;
 using MedHistory.Services;
 
 namespace MedHistory.Tests;
@@ -7,9 +8,19 @@ namespace MedHistory.Tests;
 // its inputs; the only environment dependency is TimeZoneInfo.Local, which several
 // tests deliberately compare against rather than hard-coding an assumed offset, so
 // they hold on any machine's configured time zone.
+//
+// The formatting tests come in two flavours, matching the split AppTime itself draws.
+// Display helpers are handed a culture, so the assertion says which one it is instead
+// of depending on the machine's. Identity helpers take no culture, so the way to test
+// them is to make the ambient one hostile — th-TH, whose calendar is Buddhist-era —
+// and check the output did not move.
 
 public class AppTimeTests
 {
+    private static readonly CultureInfo English = CultureInfo.GetCultureInfo("en-US");
+
+    private static readonly CultureInfo Thai = CultureInfo.GetCultureInfo("th-TH");
+
     // ---- TryParseDay ----
 
     [Fact]
@@ -137,24 +148,75 @@ public class AppTimeTests
         Assert.Equal(start.AddDays(1), end);
     }
 
-    // ---- DayLabel / TimeLabel / InputValue (pure formatting) ----
+    // ---- DayLabel / TimeLabel (display: the culture is an argument) ----
 
     [Fact]
-    public void DayLabel_FormatsAsDayOfWeekDayMonthYear()
+    public void DayLabel_InEnglish_FormatsAsDayOfWeekDayMonthYear()
     {
-        var label = AppTime.DayLabel(new DateOnly(2026, 8, 15)); // a Saturday
+        var label = AppTime.DayLabel(new DateOnly(2026, 8, 15), English); // a Saturday
 
         Assert.Equal("Sat 15 Aug 2026", label);
     }
 
     [Fact]
-    public void TimeLabel_FormatsAsHHmm()
+    public void DayLabel_InThai_ReadsTheBuddhistEraYear()
+    {
+        var label = AppTime.DayLabel(new DateOnly(2026, 8, 15), Thai);
+
+        // 2026 + 543. The Thai day and month names are ICU's to spell and are not pinned here;
+        // the era is the part that would be silently wrong if the label went invariant.
+        Assert.Contains("2569", label);
+        Assert.DoesNotContain("2026", label);
+        Assert.DoesNotContain("Aug", label);
+    }
+
+    [Fact]
+    public void TimeLabel_InEnglish_FormatsAsHHmm()
     {
         var instant = new DateTimeOffset(2026, 8, 15, 9, 5, 0, TimeSpan.FromHours(3));
 
-        var label = AppTime.TimeLabel(instant);
+        var label = AppTime.TimeLabel(instant, English);
 
         Assert.Equal("09:05", label);
+    }
+
+    [Fact]
+    public void TimeLabel_InThai_KeepsTheSameDigitsAndSeparator()
+    {
+        // Thai is written with Arabic numerals and a colon, so a clock time reads identically in
+        // both languages. Asserted rather than assumed: it is why nothing in the app has to lay
+        // out times differently per culture.
+        var instant = new DateTimeOffset(2026, 8, 15, 9, 5, 0, TimeSpan.FromHours(3));
+
+        var label = AppTime.TimeLabel(instant, Thai);
+
+        Assert.Equal("09:05", label);
+    }
+
+    // ---- Key / InputValue / TimeInputValue / TryParseDay (identity: invariant whatever the
+    //      ambient culture is) ----
+
+    [Fact]
+    public void Key_UnderThaiAmbientCulture_StaysGregorianIso()
+    {
+        using var culture = new CultureScope("th-TH");
+
+        var key = AppTime.Key(new DateOnly(2026, 8, 15));
+
+        Assert.Equal("2026-08-15", key);
+    }
+
+    [Fact]
+    public void Key_TryParseDay_RoundTripUnderThaiAmbientCulture()
+    {
+        // The failure this guards is quiet: a Buddhist-era key parses back cleanly as the year
+        // 2569, so the app would follow its own links 543 years out rather than error.
+        using var culture = new CultureScope("th-TH");
+
+        var day = new DateOnly(2026, 8, 15);
+
+        Assert.True(AppTime.TryParseDay(AppTime.Key(day), out var parsed));
+        Assert.Equal(day, parsed);
     }
 
     [Fact]
@@ -165,5 +227,50 @@ public class AppTimeTests
         var value = AppTime.InputValue(local);
 
         Assert.Equal("2026-08-15T09:05", value);
+    }
+
+    [Fact]
+    public void InputValue_UnderThaiAmbientCulture_StaysGregorianIso()
+    {
+        using var culture = new CultureScope("th-TH");
+
+        var value = AppTime.InputValue(new DateTime(2026, 8, 15, 9, 5, 0));
+
+        Assert.Equal("2026-08-15T09:05", value);
+    }
+
+    [Fact]
+    public void TimeInputValue_FormatsAsTimeInputValue()
+    {
+        var instant = new DateTimeOffset(2026, 8, 15, 9, 5, 0, TimeSpan.FromHours(3));
+
+        var value = AppTime.TimeInputValue(instant);
+
+        Assert.Equal("09:05", value);
+    }
+
+    [Fact]
+    public void TimeInputValue_UnderThaiAmbientCulture_StaysHHmm()
+    {
+        using var culture = new CultureScope("th-TH");
+
+        var instant = new DateTimeOffset(2026, 8, 15, 9, 5, 0, TimeSpan.FromHours(3));
+
+        Assert.Equal("09:05", AppTime.TimeInputValue(instant));
+    }
+
+    [Fact]
+    public void CultureScope_PutsTheAmbientCultureBack()
+    {
+        // Every identity test above leans on this, so it is asserted rather than assumed: a scope
+        // that leaked would hand its culture to whatever xUnit ran next on the same thread.
+        var before = CultureInfo.CurrentCulture;
+
+        using (var culture = new CultureScope("th-TH"))
+        {
+            Assert.Equal("th-TH", CultureInfo.CurrentCulture.Name);
+        }
+
+        Assert.Equal(before, CultureInfo.CurrentCulture);
     }
 }

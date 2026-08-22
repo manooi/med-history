@@ -1,6 +1,6 @@
 @model DayViewModel
 @{
-    var dayLabel = AppTime.DayLabel(Model.Day);
+    var dayLabel = AppTime.DayLabel(Model.Day, CultureInfo.CurrentUICulture);
     var dayKey = AppTime.Key(Model.Day);
     ViewData["Title"] = dayLabel;
 }

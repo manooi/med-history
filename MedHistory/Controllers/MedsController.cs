@@ -1,3 +1,4 @@
+using System.Globalization;
 using MedHistory.Data;
 using MedHistory.Models;
 using MedHistory.Services;
@@ -309,7 +310,9 @@ public class MedsController : Controller
 
         if (collisionDays.Count > 0)
         {
-            var labels = collisionDays.Select(AppTime.DayLabel).ToList();
+            var labels = collisionDays
+                .Select(collision => AppTime.DayLabel(collision, CultureInfo.CurrentUICulture))
+                .ToList();
             ModelState.AddModelError(string.Empty,
                 $"\"{normalizedName}\" is already used on {ChecklistRules.JoinDayLabels(labels)}.");
 

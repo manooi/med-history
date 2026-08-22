@@ -44,7 +44,7 @@
                 {
                     <div>
                         <h2 class="text-sm font-semibold">
-                            <a href="/day/@AppTime.Key(day.Day)" class="underline hover:no-underline">@AppTime.DayLabel(day.Day)</a>
+                            <a href="/day/@AppTime.Key(day.Day)" class="underline hover:no-underline">@AppTime.DayLabel(day.Day, CultureInfo.CurrentUICulture)</a>
                         </h2>
                         <ul class="mt-2 border-y border-neutral-300 divide-y divide-neutral-300 dark:border-neutral-600 dark:divide-neutral-600">
                             @foreach (var entry in day.Entries)
@@ -54,7 +54,7 @@
                                 <li class="hover:bg-neutral-100 dark:hover:bg-neutral-700">
                                     <a href="@editHref" class="flex items-center gap-4 px-1 py-3">
                                         <span class="w-12 shrink-0 text-sm tabular-nums text-neutral-600 dark:text-neutral-400">
-                                            @AppTime.TimeLabel(entry.OccurredAtLocal)
+                                            @AppTime.TimeLabel(entry.OccurredAtLocal, CultureInfo.CurrentUICulture)
                                         </span>
                                         <span class="min-w-0 flex-1">
                                             <span class="block text-sm font-medium">@entry.Type</span>

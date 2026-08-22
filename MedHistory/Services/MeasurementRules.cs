@@ -40,7 +40,7 @@ public sealed record MeasurementMonth(
 {
     public string Key => ReportRules.MonthKey(FirstDay);
 
-    public string Label => ReportRules.MonthLabel(FirstDay);
+    public string Label(CultureInfo culture) => ReportRules.MonthLabel(FirstDay, culture);
 
     public string PreviousKey => ReportRules.MonthKey(FirstDay.AddMonths(-1));
 

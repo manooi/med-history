@@ -39,7 +39,7 @@
 
 @* The printed report itself: everything below prints, everything above does not. *@
 <header class="mt-6 border-b border-black pb-4 dark:border-neutral-100">
-    <h2 class="font-semibold">med-history — @AppTime.DayLabel(Model.From) to @AppTime.DayLabel(Model.To)</h2>
+    <h2 class="font-semibold">med-history — @AppTime.DayLabel(Model.From, CultureInfo.CurrentUICulture) to @AppTime.DayLabel(Model.To, CultureInfo.CurrentUICulture)</h2>
     <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
         @if (Model.TypeCounts.Count == 0)
         {
@@ -67,7 +67,7 @@
             {
                 <div>
                     <h3 class="flex items-baseline gap-2 text-sm font-semibold">
-                        <span>@AppTime.DayLabel(day.Day)</span>
+                        <span>@AppTime.DayLabel(day.Day, CultureInfo.CurrentUICulture)</span>
                         @if (day.AnxietyLabel is not null)
                         {
                             <span class="text-xs font-normal uppercase tracking-wide text-neutral-500 dark:text-neutral-400">anxiety: @day.AnxietyLabel</span>
@@ -78,7 +78,7 @@
                         {
                             <li class="flex items-center gap-4 px-1 py-2">
                                 <span class="w-12 shrink-0 text-sm tabular-nums text-neutral-600 dark:text-neutral-400">
-                                    @AppTime.TimeLabel(entry.OccurredAtLocal)
+                                    @AppTime.TimeLabel(entry.OccurredAtLocal, CultureInfo.CurrentUICulture)
                                 </span>
                                 <span class="min-w-0 flex-1">
                                     <span class="text-sm font-medium">@entry.Type</span>

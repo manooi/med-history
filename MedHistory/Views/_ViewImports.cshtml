@@ -3,4 +3,7 @@
 @using MedHistory.Services
 @* For Request.GetEncodedPathAndQuery() — how a list page names itself as an edit's origin. *@
 @using Microsoft.AspNetCore.Http.Extensions
+@* For CultureInfo.CurrentUICulture — request localization has already set it to the reader's
+   language, and every date label is formatted against it explicitly. *@
+@using System.Globalization
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers

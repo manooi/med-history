@@ -4,8 +4,9 @@
 
     // A reading just taken belongs at the current clock time; there is no "now" that means
     // anything for a day other than today, so the field falls back to a plain morning default —
-    // the user can always type over it.
-    var defaultTime = Model.IsToday ? AppTime.TimeLabel(DateTimeOffset.Now) : "09:00";
+    // the user can always type over it. This one is a form value, not a label, so it goes
+    // through the invariant path however the page is being read.
+    var defaultTime = Model.IsToday ? AppTime.TimeInputValue(DateTimeOffset.Now) : "09:00";
     var error = TempData["WeightError"] as string;
 }
 
@@ -25,7 +26,7 @@
             {
                 <li class="flex items-center gap-2 px-3 py-2 text-sm">
                     <span class="w-12 shrink-0 tabular-nums text-neutral-600 dark:text-neutral-400">
-                        @AppTime.TimeLabel(reading.OccurredAtLocal)
+                        @AppTime.TimeLabel(reading.OccurredAtLocal, CultureInfo.CurrentUICulture)
                     </span>
                     <span class="flex-1">@MeasurementRules.FormatValue(reading.Value) kg</span>
                     <form method="post" action="/day/@dayKey/weight/@reading.Id/delete" asp-antiforgery="true">

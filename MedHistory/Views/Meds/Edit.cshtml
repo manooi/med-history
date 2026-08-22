@@ -1,7 +1,7 @@
 @model MedAllocationEditViewModel
 @{
     var dayKey = AppTime.Key(Model.Day);
-    var dayLabel = AppTime.DayLabel(Model.Day);
+    var dayLabel = AppTime.DayLabel(Model.Day, CultureInfo.CurrentUICulture);
     ViewData["Title"] = $"Edit medication — {dayLabel}";
 }
 

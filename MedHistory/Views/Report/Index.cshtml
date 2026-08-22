@@ -1,6 +1,6 @@
 @model ReportViewModel
 @{
-    ViewData["Title"] = $"Report — {Model.Month.Label}";
+    ViewData["Title"] = $"Report — {Model.Month.Label(CultureInfo.CurrentUICulture)}";
 }
 
 <header class="flex items-center justify-between gap-4 border-b border-black pb-4 dark:border-neutral-100">
@@ -8,7 +8,7 @@
        class="border border-black px-3 py-1 text-sm hover:bg-black hover:text-white dark:border-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">&larr;</a>
 
     <div class="text-center">
-        <h1 class="font-semibold">@Model.Month.Label</h1>
+        <h1 class="font-semibold">@Model.Month.Label(CultureInfo.CurrentUICulture)</h1>
         <p class="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@Model.Month.ProgressLabel</p>
     </div>
 
@@ -27,7 +27,7 @@
 @* Weeks run Monday first, so the two grids share a column order that is set in one place —
    see ReportRules.WeekdayLabels and ReportRules.LeadingBlanks. *@
 <div class="mt-6 grid grid-cols-7 gap-1 text-center text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-    @foreach (var weekday in ReportRules.WeekdayLabels)
+    @foreach (var weekday in ReportRules.WeekdayLabels(CultureInfo.CurrentUICulture))
     {
         <div>@weekday</div>
     }
@@ -63,8 +63,8 @@
                 };
 
                 var label = tally.Planned == 0
-                    ? $"{AppTime.DayLabel(date)} — nothing planned"
-                    : $"{AppTime.DayLabel(date)} — {tally.Ticked} of {tally.Planned} doses";
+                    ? $"{AppTime.DayLabel(date, CultureInfo.CurrentUICulture)} — nothing planned"
+                    : $"{AppTime.DayLabel(date, CultureInfo.CurrentUICulture)} — {tally.Ticked} of {tally.Planned} doses";
 
                 <a href="/day/@AppTime.Key(date)" title="@label" aria-label="@label"
                    class="flex min-h-14 flex-col items-center justify-center gap-1 border p-1 leading-none @state">

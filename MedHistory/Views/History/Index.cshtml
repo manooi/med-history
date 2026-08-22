@@ -21,7 +21,7 @@
             {
                 <li>
                     <a href="/day/@AppTime.Key(day.Day)" class="flex items-center justify-between gap-4 px-1 py-3 hover:bg-neutral-100 dark:hover:bg-neutral-700">
-                        <span class="text-sm font-medium">@AppTime.DayLabel(day.Day)</span>
+                        <span class="text-sm font-medium">@AppTime.DayLabel(day.Day, CultureInfo.CurrentUICulture)</span>
                         <span class="flex flex-wrap justify-end gap-1">
                             @foreach (var count in day.Counts)
                             {
