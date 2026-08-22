@@ -45,6 +45,7 @@ The expensive-to-learn rules. Don't rederive them — full context in the linked
 
 - Every new light class in a view carries its `dark:` counterpart **on the same line**; dark utilities are inert under print → [theming](./docs/features/theming.md)
 - The theme toggle exists **twice** — bind by class `.theme-toggle`, never by id → [navigation](./docs/features/navigation.md)
+- No view may call native `confirm()` (a test enforces it) — destructive buttons carry `data-confirm` and the shared `_ConfirmDialog` re-submits via `requestSubmit` → [theming](./docs/features/theming.md)
 - `Auth:Password` must be **exactly 6 digits** → [auth](./docs/features/auth.md)
 - A locked login POST neither checks the password nor records an attempt (expiry can't be pushed) → [auth](./docs/features/auth.md)
 - `lower(Name)` unique indexes (`EntryTypes`, `MedStocks`) are raw SQL **outside the EF snapshot** — later migrations won't see them → [entries-and-types](./docs/features/entries-and-types.md), [med-stock](./docs/features/med-stock.md)

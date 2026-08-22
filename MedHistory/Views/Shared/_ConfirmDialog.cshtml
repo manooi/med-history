@@ -1,0 +1,59 @@
+<dialog id="confirm-dialog" aria-labelledby="confirm-dialog-message"
+        class="m-auto border border-black bg-white p-4 backdrop:bg-black/80 dark:border-neutral-100 dark:bg-neutral-800">
+    <p id="confirm-dialog-message" class="max-w-xs text-sm text-black dark:text-neutral-100"></p>
+    <div class="mt-4 flex justify-end gap-2">
+        <button type="button" id="confirm-dialog-cancel"
+                class="border border-black bg-white px-3 py-1 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
+            Cancel
+        </button>
+        <button type="button" id="confirm-dialog-confirm"
+                class="border border-red-600 bg-white px-3 py-1 text-sm text-red-600 hover:bg-red-600 hover:text-white dark:border-red-400 dark:bg-neutral-800 dark:text-red-400">
+            Confirm
+        </button>
+    </div>
+</dialog>
+
+<script>
+    (function () {
+        var dialog = document.getElementById('confirm-dialog');
+        var message = document.getElementById('confirm-dialog-message');
+        var cancelBtn = document.getElementById('confirm-dialog-cancel');
+        var confirmBtn = document.getElementById('confirm-dialog-confirm');
+        var pendingButton = null;
+
+        // Delegated at the document level: destructive buttons live on markup (day page
+        // regions, entry lists) that gets swapped in by fetch, so per-element binding would
+        // miss anything re-rendered after first paint.
+        document.addEventListener('click', function (e) {
+            var trigger = e.target.closest('[data-confirm]');
+            if (!trigger || !trigger.form) {
+                return;
+            }
+            e.preventDefault();
+            pendingButton = trigger;
+            message.textContent = trigger.getAttribute('data-confirm') || '';
+            dialog.showModal();
+        });
+
+        confirmBtn.addEventListener('click', function () {
+            var button = pendingButton;
+            dialog.close();
+            if (button && button.form) {
+                // requestSubmit (not form.submit()) fires the real submit event, so the
+                // fetch interception on tick/delete posts and the antiforgery token keep
+                // working, and the triggering button's name/value is carried along.
+                button.form.requestSubmit(button);
+            }
+        });
+
+        cancelBtn.addEventListener('click', function () {
+            dialog.close();
+        });
+
+        // Escape triggers the dialog's own cancel/close sequence, which lands here too -
+        // nothing is submitted, and the stale button reference can't fire later.
+        dialog.addEventListener('close', function () {
+            pendingButton = null;
+        });
+    })();
+</script>

@@ -9,6 +9,14 @@ Black / white / neutral grays only. **One carve-out: destructive actions** (dele
 
 Deactivate is **not** destructive — it stays neutral. No other color classes, ever. Severity is carried by label text and border weight, never by hue.
 
+## Confirming a destructive action
+
+The browser's `confirm()` is unstyled and unthemeable, so no view may call it — `ConfirmDialogUsageTests` walks the view tree and fails the build if `confirm(` reappears in a `.cshtml`.
+
+Instead the button carries `data-confirm="Question?"` and `Views/Shared/_ConfirmDialog.cshtml` (rendered once from `_Layout`, beside `_Lightbox`) does the asking: a `<dialog>` with a neutral **Cancel** and a red **Confirm** — the carve-out above applies to the dialog's confirm button, not to Cancel.
+
+The handler is delegated at the document level, because day-page regions are swapped in by fetch and per-element binding would miss anything re-rendered. Accepting calls `form.requestSubmit(button)` — **not** `form.submit()` — so the real `submit` event still fires and the tick/delete fetch interception and the antiforgery token keep working.
+
 ## Dark mode
 
 Attribute variant `[data-theme=dark]`, declared as `@custom-variant dark` in `Styles/site.css` and nested inside `@media not print` — so **dark utilities are inert on paper** (the doctor report always prints light). `color-scheme: dark` lives in the same media block.
