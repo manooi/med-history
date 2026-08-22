@@ -81,7 +81,7 @@ public class ResourceLayoutTests
     [InlineData("Med", "ยา")]
     [InlineData("Anxiety", "ความกังวล")]
     [InlineData("Weight", "น้ำหนัก")]
-    [InlineData("Doctor", "หมอ")]
+    [InlineData("Doctor", "แพทย์")]
     public void SharedVocabularyIsTranslated(string key, string thai)
     {
         Assert.Equal(thai, Read(SharedBaseName, key));
