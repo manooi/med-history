@@ -78,12 +78,15 @@
                                         <span class="w-12 shrink-0 text-sm tabular-nums text-neutral-600 dark:text-neutral-400">
                                             @AppTime.TimeLabel(entry.OccurredAtLocal, CultureInfo.CurrentUICulture)
                                         </span>
-                                        <span class="min-w-0 flex-1">
+                                        @* Backstop for an unbreakable Thai run — see Day/_Entries. *@
+                                        <span class="min-w-0 flex-1 wrap-break-word">
                                             <span class="flex flex-wrap items-baseline gap-2">
                                                 @if (Model.ShowTypeBadges)
                                                 {
-                                                    @* Only with two types or more; the header already names a lone type. *@
-                                                    <span class="shrink-0 border border-neutral-400 px-1 text-xs text-neutral-600 dark:border-neutral-500 dark:text-neutral-400">
+                                                    @* Only with two types or more; the header already names a lone type.
+                                                       py under Thai for the same reason the history chips carry it: an
+                                                       inline border is drawn on the font's ascent, under the tone mark. *@
+                                                    <span class="shrink-0 border border-neutral-400 px-1 th:py-0.5 text-xs text-neutral-600 dark:border-neutral-500 dark:text-neutral-400">
                                                         @entry.Type
                                                     </span>
                                                 }

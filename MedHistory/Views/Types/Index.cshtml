@@ -31,17 +31,21 @@
         @foreach (var type in Model.Types)
         {
             <li class="flex items-center justify-between gap-3 px-1 py-3">
-                <span class="flex min-w-0 flex-wrap items-center gap-2">
+                @* Backstop for an unbreakable Thai type name — see Day/_Entries. *@
+                <span class="flex min-w-0 flex-wrap items-center gap-2 wrap-break-word">
                     <span class="text-sm font-medium @(type.IsActive ? "" : "text-neutral-500 line-through dark:text-neutral-400")">
                         @type.Name
                     </span>
+                    @* An inline chip's border is drawn on the font's ascent, not on the line box,
+                       so vertical padding is the only thing between it and a Thai tone mark —
+                       line-height cannot reach here. Thai only; English keeps the tight chip. *@
                     @if (type.IsBuiltIn)
                     {
-                        <span class="border border-neutral-400 px-1 text-xs text-neutral-600 dark:border-neutral-500 dark:text-neutral-400">@Localizer["Built-in"]</span>
+                        <span class="border border-neutral-400 px-1 th:py-0.5 text-xs text-neutral-600 dark:border-neutral-500 dark:text-neutral-400">@Localizer["Built-in"]</span>
                     }
                     @if (!type.IsActive)
                     {
-                        <span class="border border-neutral-400 px-1 text-xs text-neutral-600 dark:border-neutral-500 dark:text-neutral-400">@Localizer["Inactive"]</span>
+                        <span class="border border-neutral-400 px-1 th:py-0.5 text-xs text-neutral-600 dark:border-neutral-500 dark:text-neutral-400">@Localizer["Inactive"]</span>
                     }
                 </span>
 

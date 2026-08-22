@@ -39,6 +39,11 @@ Solid selected states invert light-on-dark: chip is `dark:bg-neutral-100 dark:te
 
 > **Invariant:** every new light class in a view carries its `dark:` counterpart **on the same line**.
 
+There is a second variant with the same on-the-same-line habit: `th:`, for controls whose height is
+pinned to the font size and would otherwise crop Thai tone marks — see
+[i18n.md § Thai typography](./i18n.md#thai-typography--the-th-variant). Unlike `dark:` it is **not**
+print-excluded: the doctor report is printed in whichever language it is read in.
+
 ## Print
 
 Controls and the site nav carry Tailwind `print:hidden`. In the *built* CSS the selector is escaped as `print\:hidden` — `grep -F` needs the backslash when you go looking for it.

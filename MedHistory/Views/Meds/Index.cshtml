@@ -242,7 +242,8 @@
             @foreach (var item in Model.Allocations)
             {
                 <li class="flex items-start gap-2 px-1 py-3">
-                    <span class="min-w-0 flex-1">
+                    @* Backstop for an unbreakable Thai run — see Day/_Entries. *@
+                    <span class="min-w-0 flex-1 wrap-break-word">
                         <span class="flex flex-wrap items-center gap-2 text-sm font-medium">
                             @item.Name
                             @if (item.QuantityLabel.Length > 0)

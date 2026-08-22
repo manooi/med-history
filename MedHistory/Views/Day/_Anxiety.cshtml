@@ -26,9 +26,12 @@
                 ? Localizer.GetString("Clear today's vote of {0}", label).Value
                 : Localizer.GetString("Vote {0} for today", label).Value;
 
+            @* leading-none keeps the chip tight around a Latin word; every Thai level name here
+               carries a mark above the base ("ตึงเครียด", "กังวล") that a 1em line box pushes into
+               the border, so Thai alone gets the taller line — see the th: variant in site.css. *@
             <form method="post" action="/day/@dayKey/anxiety/@level" asp-antiforgery="true">
                 <button type="submit" title="@title" aria-label="@title"
-                        class="border px-2 py-1 text-xs leading-none @(isSelected ? "border-black bg-black text-white hover:bg-white hover:text-black dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950 dark:hover:bg-neutral-800 dark:hover:text-neutral-100" : "border-neutral-400 bg-white text-neutral-600 hover:border-black hover:bg-black hover:text-white dark:border-neutral-500 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:border-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950")">
+                        class="border px-2 py-1 text-xs leading-none th:leading-normal @(isSelected ? "border-black bg-black text-white hover:bg-white hover:text-black dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950 dark:hover:bg-neutral-800 dark:hover:text-neutral-100" : "border-neutral-400 bg-white text-neutral-600 hover:border-black hover:bg-black hover:text-white dark:border-neutral-500 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:border-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950")">
                     @AnxietyRules.Emoji(level) @label
                 </button>
             </form>

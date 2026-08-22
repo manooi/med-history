@@ -36,7 +36,8 @@
             @foreach (var row in Model.Checklist)
             {
                 <li class="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3">
-                    <span class="min-w-0 flex-1">
+                    @* Backstop for an unbreakable Thai run — see Day/_Entries. *@
+                    <span class="min-w-0 flex-1 wrap-break-word">
                         <span class="flex flex-wrap items-center gap-2 text-sm font-medium @(row.IsComplete ? "text-neutral-500 line-through dark:text-neutral-400" : "")">
                             @row.Name
                             @if (row.QuantityLabel.Length > 0)
@@ -73,11 +74,15 @@
                                 : Localizer.GetString("Log the {0} dose of {1}", slotLabel, row.Name).Value;
                             var slotKey = $"{row.AllocationId}:{slot.Name}";
 
+                            @* leading-none keeps the chip tight around a Latin word; every Thai slot
+                               name here carries a mark above the base ("เช้า", "ก่อนนอน") that a 1em
+                               line box pushes into the border, so Thai alone gets the taller line —
+                               see the th: variant in site.css. *@
                             <form method="post" action="/checklist/@row.AllocationId/@action/@slot.Name" asp-antiforgery="true">
                                 @* Stable across a tick: the control swaps tick for untick, so this
                                    is what puts keyboard focus back on the same slot afterwards. *@
                                 <button type="submit" title="@label" aria-label="@label" data-slot="@slotKey"
-                                        class="border px-2 py-1 text-xs leading-none tabular-nums @(slot.IsTicked ? "border-black bg-black text-white hover:bg-white hover:text-black dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950 dark:hover:bg-neutral-800 dark:hover:text-neutral-100" : "border-neutral-400 bg-white text-neutral-600 hover:border-black hover:bg-black hover:text-white dark:border-neutral-500 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:border-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950")">
+                                        class="border px-2 py-1 text-xs leading-none th:leading-normal tabular-nums @(slot.IsTicked ? "border-black bg-black text-white hover:bg-white hover:text-black dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950 dark:hover:bg-neutral-800 dark:hover:text-neutral-100" : "border-neutral-400 bg-white text-neutral-600 hover:border-black hover:bg-black hover:text-white dark:border-neutral-500 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:border-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950")">
                                     @slotLabel @(slot.IsTicked ? "✓" : "□")
                                 </button>
                             </form>

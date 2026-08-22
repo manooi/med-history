@@ -22,10 +22,17 @@
                 <li>
                     <a href="/day/@AppTime.Key(day.Day)" class="flex items-center justify-between gap-4 px-1 py-3 hover:bg-neutral-100 dark:hover:bg-neutral-700">
                         <span class="text-sm font-medium">@AppTime.DayLabel(day.Day, CultureInfo.CurrentUICulture)</span>
-                        <span class="flex flex-wrap justify-end gap-1">
+                        @* wrap-anywhere, not wrap-break-word: this column has no min-w-0 to shrink
+                           through, and only "anywhere" is counted when the flex algorithm asks how
+                           narrow the column can get — so a long Thai type name wraps inside the
+                           chip instead of pushing the whole row off the page. *@
+                        <span class="flex flex-wrap justify-end gap-1 wrap-anywhere">
+                            @* Type names are the user's own text. An inline chip's border sits on
+                               the font's ascent, so only vertical padding keeps a Thai tone mark
+                               off it — see the th: variant in site.css. *@
                             @foreach (var count in day.Counts)
                             {
-                                <span class="border border-black px-1 text-xs dark:border-neutral-100">@count.Type &times;@count.Count</span>
+                                <span class="border border-black px-1 th:py-0.5 text-xs dark:border-neutral-100">@count.Type &times;@count.Count</span>
                             }
                         </span>
                     </a>

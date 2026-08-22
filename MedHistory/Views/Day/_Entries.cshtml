@@ -24,7 +24,11 @@
                         <span class="w-12 shrink-0 text-sm tabular-nums text-neutral-600 dark:text-neutral-400">
                             @AppTime.TimeLabel(entry.OccurredAtLocal, CultureInfo.CurrentUICulture)
                         </span>
-                        <span class="min-w-0 flex-1">
+                        @* Type and note are the user's own text. Thai writes without spaces, so a
+                           long run offers the browser no break of the kind English gives it for
+                           free; wrap-break-word is the backstop when the Thai line breaker finds
+                           none. Inert for English, where a word always fits. *@
+                        <span class="min-w-0 flex-1 wrap-break-word">
                             <span class="block text-sm font-medium">@entry.Type</span>
                             @if (entry.Detail is not null)
                             {

@@ -49,6 +49,7 @@ The expensive-to-learn rules. Don't rederive them — full context in the linked
 - The language toggle exists **three times** (desktop nav, mobile panel, logged-out bar) and is a plain form POST, so it works with JS off → [i18n](./docs/features/i18n.md)
 - Day keys, month/datetime-local input values and posted decimals are formatted with an explicit `InvariantCulture`; under `th-TH` an implicit format yields `2569-…` and 404s the route → [i18n](./docs/features/i18n.md)
 - Culture comes from the cookie **only** — `Accept-Language` is deliberately not a provider, so a Thai browser can't silently flip the printed doctor report → [i18n](./docs/features/i18n.md)
+- A control that pins its height to the font size (`leading-none`, an inline border with no `py-*`) crops Thai tone marks — it carries a `th:` counterpart **on the same line**, the way `dark:` does → [i18n](./docs/features/i18n.md)
 - No view may call native `confirm()` (a test enforces it) — destructive buttons carry `data-confirm` and the shared `_ConfirmDialog` re-submits via `requestSubmit` → [theming](./docs/features/theming.md)
 - `Auth:Password` must be **exactly 6 digits** → [auth](./docs/features/auth.md)
 - A locked login POST neither checks the password nor records an attempt (expiry can't be pushed) → [auth](./docs/features/auth.md)

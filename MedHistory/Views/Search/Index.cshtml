@@ -62,7 +62,8 @@
                                         <span class="w-12 shrink-0 text-sm tabular-nums text-neutral-600 dark:text-neutral-400">
                                             @AppTime.TimeLabel(entry.OccurredAtLocal, CultureInfo.CurrentUICulture)
                                         </span>
-                                        <span class="min-w-0 flex-1">
+                                        @* Backstop for an unbreakable Thai run — see _Entries. *@
+                                        <span class="min-w-0 flex-1 wrap-break-word">
                                             <span class="block text-sm font-medium">@entry.Type</span>
                                             @if (entry.Detail is not null)
                                             {

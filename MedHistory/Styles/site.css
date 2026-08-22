@@ -13,6 +13,20 @@
   }
 }
 
+/* Thai stacks a vowel and a tone mark above the base consonant — "เช้า", "น้ำหนัก" — and sara u
+   below it, so a line of Thai carries ink well past where Latin at the same size stops. Anything
+   whose box is pinned to the font size rather than to that ink has the marks meet or cross its
+   border: leading-none puts the line box at 1em, and an inline bordered chip with no vertical
+   padding draws its border straight onto the font's ascent. Neither clips loudly — it reads as a
+   rendering artifact, which is why it needs a rule rather than an eye.
+
+   Scoped to :lang(th), which <html lang> turns on for exactly the culture request localization
+   picked, so English keeps its own metrics untouched. Written as a variant so a control opts in
+   on its own line the way `dark:` already does — `leading-none th:leading-normal`. The trailing
+   :lang(th) also outweighs the bare utility on specificity, so the override does not depend on
+   which order Tailwind happens to emit the two in. */
+@custom-variant th (&:lang(th));
+
 @layer base {
   body {
     @apply bg-white text-black;

@@ -88,7 +88,13 @@
                                 <span class="w-12 shrink-0 text-sm tabular-nums text-neutral-600 dark:text-neutral-400">
                                     @AppTime.TimeLabel(entry.OccurredAtLocal, CultureInfo.CurrentUICulture)
                                 </span>
-                                <span class="min-w-0 flex-1">
+                                @* This one is handed to a doctor on paper, where an overflowing
+                                   line is simply lost rather than scrollable. Type and note are
+                                   the user's own text, and Thai writes without spaces, so a long
+                                   run may offer the browser no break of the kind English gives it
+                                   for free — wrap-break-word is the backstop. The time column
+                                   beside it is HH:mm in both languages, so w-12 still holds. *@
+                                <span class="min-w-0 flex-1 wrap-break-word">
                                     <span class="text-sm font-medium">@entry.Type</span>
                                     @if (entry.Detail is not null)
                                     {
