@@ -85,6 +85,17 @@ public class RedirectRulesTests
     }
 
     [Theory]
+    [InlineData("/login?ReturnUrl=%2Fhistory")]
+    [InlineData("/login?ReturnUrl=%2Ftype-report%3Ftypes%3DMed%26page%3D2")]
+    public void Resolve_LoginAddress_KeepsItsOwnReturnUrlQuery(string returnUrl)
+    {
+        // The language toggle rides on the login page too, and it posts the address it was clicked
+        // from. Switching language mid-login must not drop where the reader was headed, so the
+        // login page's own ReturnUrl has to survive the hop back.
+        Assert.Equal(returnUrl, RedirectRules.Resolve(returnUrl, IsLocal, "/"));
+    }
+
+    [Theory]
     [InlineData("https://evil.example")]
     [InlineData("http://evil.example/day/2026-08-21")]
     [InlineData("//evil.example")]

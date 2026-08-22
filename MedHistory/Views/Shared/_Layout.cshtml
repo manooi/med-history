@@ -1,5 +1,17 @@
+@using System.Globalization
+@{
+    // The language toggle. Unlike the theme toggle — which is inherently client-side — this one is
+    // a plain form post, so it keeps working with scripting off, and the server renders the chosen
+    // language on the first paint instead of correcting it afterwards. Rendered twice (desktop bar,
+    // mobile panel), so nothing about it may key off an id.
+    var uiCulture = CultureInfo.CurrentUICulture;
+    var nextCulture = CultureRules.Toggle(uiCulture.Name);
+    var nextCultureLabel = CultureRules.ShortLabel(nextCulture);
+    var nextCultureAria = $"Switch to {CultureRules.LanguageName(nextCulture)}";
+    var cultureReturnUrl = Context.Request.GetEncodedPathAndQuery();
+}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="@uiCulture.TwoLetterISOLanguageName">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -72,6 +84,15 @@
                     </div>
                     <a href="/search" class="hover:underline">Search</a>
                     <a href="/types" class="hover:underline">Types</a>
+                    @* The button says the language a click moves to, not the one being read — two
+                       letters is all that fits next to the nav links, so aria-label carries the
+                       sentence. returnUrl brings the reader back to the page they switched on. *@
+                    <form method="post" action="/culture" class="inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="culture" value="@nextCulture" />
+                        <input type="hidden" name="returnUrl" value="@cultureReturnUrl" />
+                        <button type="submit" aria-label="@nextCultureAria" class="hover:underline bg-transparent border-0 p-0">@nextCultureLabel</button>
+                    </form>
                     @* The icon shows the mode the page is in, not the one a click would move to.
                        Only the script knows which that is, so the markup ships the auto icon as a
                        placeholder — there is something to see either way — and the script below
@@ -102,6 +123,12 @@
                         <a href="/report" class="px-4 py-3 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">Reports</a>
                         <a href="/search" class="px-4 py-3 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">Search</a>
                         <a href="/types" class="px-4 py-3 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">Types</a>
+                        <form method="post" action="/culture">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="culture" value="@nextCulture" />
+                            <input type="hidden" name="returnUrl" value="@cultureReturnUrl" />
+                            <button type="submit" aria-label="@nextCultureAria" class="w-full px-4 py-3 text-left bg-transparent border-0 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">@nextCultureLabel</button>
+                        </form>
                         <form method="post" action="/logout">
                             @Html.AntiForgeryToken()
                             <button type="submit" class="w-full px-4 py-3 text-left bg-transparent border-0 hover:bg-black hover:text-white dark:hover:bg-neutral-100 dark:hover:text-neutral-950">Logout</button>
@@ -148,6 +175,23 @@
                 </script>
             </div>
         </nav>
+    }
+    else
+    {
+        @* Logged out there is no nav to hang the toggle on, but it cannot go missing: a reader who
+           cannot read the English passcode prompt would have no way to reach the Thai one, and the
+           anonymous /culture endpoint exists precisely for this. Language only — no links, no theme
+           toggle — right-aligned in the same container as the login card so the two line up. It
+           renders ahead of RenderBody, so on the passcode screen it is never in DOM order between
+           the sixth digit and the auto-submit, and a <button> raises no OS keyboard. *@
+        <div class="max-w-2xl mx-auto px-4 pt-4 flex justify-end print:hidden">
+            <form method="post" action="/culture">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="culture" value="@nextCulture" />
+                <input type="hidden" name="returnUrl" value="@cultureReturnUrl" />
+                <button type="submit" aria-label="@nextCultureAria" class="text-sm hover:underline bg-transparent border-0 p-0">@nextCultureLabel</button>
+            </form>
+        </div>
     }
     <main class="max-w-2xl mx-auto px-4 py-6">
         @RenderBody()

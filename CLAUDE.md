@@ -38,6 +38,7 @@ Global playbook applies (`~/CLAUDE.md` gate):
 | [anxiety.md](./docs/features/anxiety.md) | day vote (toggle-to-clear), month emoji grid |
 | [reports.md](./docs/features/reports.md) | hub, type / med / weight / doctor reports, search |
 | [navigation.md](./docs/features/navigation.md) | desktop + mobile nav, theme toggle wiring, PWA |
+| [i18n.md](./docs/features/i18n.md) | en-US / th-TH, culture cookie + toggle, Buddhist-era dates |
 
 ## Invariants
 
@@ -45,6 +46,9 @@ The expensive-to-learn rules. Don't rederive them — full context in the linked
 
 - Every new light class in a view carries its `dark:` counterpart **on the same line**; dark utilities are inert under print → [theming](./docs/features/theming.md)
 - The theme toggle exists **twice** — bind by class `.theme-toggle`, never by id → [navigation](./docs/features/navigation.md)
+- The language toggle exists **three times** (desktop nav, mobile panel, logged-out bar) and is a plain form POST, so it works with JS off → [i18n](./docs/features/i18n.md)
+- Day keys, month/datetime-local input values and posted decimals are formatted with an explicit `InvariantCulture`; under `th-TH` an implicit format yields `2569-…` and 404s the route → [i18n](./docs/features/i18n.md)
+- Culture comes from the cookie **only** — `Accept-Language` is deliberately not a provider, so a Thai browser can't silently flip the printed doctor report → [i18n](./docs/features/i18n.md)
 - No view may call native `confirm()` (a test enforces it) — destructive buttons carry `data-confirm` and the shared `_ConfirmDialog` re-submits via `requestSubmit` → [theming](./docs/features/theming.md)
 - `Auth:Password` must be **exactly 6 digits** → [auth](./docs/features/auth.md)
 - A locked login POST neither checks the password nor records an attempt (expiry can't be pushed) → [auth](./docs/features/auth.md)

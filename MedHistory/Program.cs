@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using MedHistory.Data;
 using MedHistory.Services;
@@ -5,6 +6,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using System.Threading.RateLimiting;
@@ -16,7 +18,31 @@ DotNetEnv.Env.TraversePath().Load();
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews()
+    .AddViewLocalization()
+    .AddDataAnnotationsLocalization();
+
+// UI strings live in .resx files under MedHistory/Resources; which one a request reads is
+// decided per request by UseRequestLocalization further down.
+builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+
+builder.Services.Configure<RequestLocalizationOptions>(options =>
+{
+    var supportedCultures = CultureRules.Supported
+        .Select(name => new CultureInfo(name))
+        .ToList();
+
+    options.DefaultRequestCulture = new RequestCulture(CultureRules.Default);
+    options.SupportedCultures = supportedCultures;
+    options.SupportedUICultures = supportedCultures;
+
+    // The culture cookie and nothing else. The default provider list also consults the
+    // Accept-Language header, which would let a Thai-configured browser silently render the app —
+    // including the doctor report someone prints and hands over — in a language the reader never
+    // asked for. The language changes when the toggle says so, and never otherwise.
+    options.RequestCultureProviders.Clear();
+    options.RequestCultureProviders.Add(new CookieRequestCultureProvider());
+});
 
 var connectionString = builder.Configuration.GetConnectionString("Default");
 
@@ -132,6 +158,10 @@ if (!isRunningInContainer)
 {
     app.UseHttpsRedirection();
 }
+
+// Ahead of routing and everything that renders, so CurrentCulture/CurrentUICulture are already
+// the reader's choice by the time a view, a validation message or an error page is produced.
+app.UseRequestLocalization();
 
 app.UseRouting();
 
