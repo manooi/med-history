@@ -30,6 +30,11 @@ public class ResourceLayoutTests
     // What IViewLocalizer computes from a view's path: root namespace + ResourcesPath + the path
     // with its slashes turned into dots. Resources/Views/<Controller>/<View>.th.resx.
     private const string LayoutBaseName = "MedHistory.Resources.Views.Shared._Layout";
+    // The two partials the layout renders once for the whole app. They fall between every slice —
+    // neither the chrome nor any one page owns them — which is how their copy stayed English
+    // through a translation of everything around them.
+    private const string ConfirmDialogBaseName = "MedHistory.Resources.Views.Shared._ConfirmDialog";
+    private const string LightboxBaseName = "MedHistory.Resources.Views.Shared._Lightbox";
     private const string LoginBaseName = "MedHistory.Resources.Views.Account.Login";
     private const string ErrorBaseName = "MedHistory.Resources.Views.Shared.Error";
     private const string MedsIndexBaseName = "MedHistory.Resources.Views.Meds.Index";
@@ -143,6 +148,8 @@ public class ResourceLayoutTests
     [InlineData(LoginBaseName, "{0} of {1} digits entered")]
     [InlineData(LoginBaseName, "Passcode")]
     [InlineData(LoginBaseName, "Sign in")]
+    [InlineData(ConfirmDialogBaseName, "Confirm")]
+    [InlineData(LightboxBaseName, "Close")]
     [InlineData(ErrorBaseName, "Error")]
     [InlineData(ErrorBaseName, "Something went wrong")]
     [InlineData(ErrorBaseName, "An error occurred while processing your request.")]
@@ -228,6 +235,10 @@ public class ResourceLayoutTests
     [InlineData(DayChecklistBaseName, "Nothing allocated for this day.")]
     [InlineData(DayChecklistBaseName, "Log the {0} dose of {1}")]
     [InlineData(DayChecklistBaseName, "Undo the {0} dose of {1}")]
+    [InlineData(DayChecklistBaseName, "Nothing allocated")]
+    [InlineData(DayChecklistBaseName, "All done")]
+    [InlineData(DayChecklistBaseName, "{0} of {1} meds done")]
+    [InlineData(DayChecklistBaseName, "({0} left)")]
     [InlineData(DayAnxietyBaseName, "Vote {0} for today")]
     [InlineData(DayAnxietyBaseName, "Clear today's vote of {0}")]
     [InlineData(DayWeightBaseName, "Delete this weight reading?")]
@@ -332,6 +343,146 @@ public class ResourceLayoutTests
             Read(AnxietyReportBaseName, AnxietyRules.BuildMonth(August, []).ProgressKey));
     }
 
+    [Fact]
+    public void EveryLineTheChecklistSummaryCanReadIsAKeyInTheChecklistsOwnFile()
+    {
+        // Same contract as the reports above, one page down: ChecklistRules.Progress names a
+        // resource and hands over the counts rather than interpolating a sentence, so nothing but
+        // this connects the rules to the .resx. All three branches are driven — the empty
+        // checklist, the finished one and the one still being worked through — because each names
+        // a different key and only the third has holes.
+        var done = Row(ticked: true);
+        var notDone = Row(ticked: false);
+
+        Assert.Equal("ยังไม่ได้จัดยา", Read(DayChecklistBaseName, ChecklistRules.Progress([]).Key));
+        Assert.Equal("ครบแล้ว", Read(DayChecklistBaseName, ChecklistRules.Progress([done]).Key));
+
+        var partial = ChecklistRules.Progress([done, notDone]);
+        Assert.Equal("ครบแล้ว {0} จาก {1} รายการ", Read(DayChecklistBaseName, partial.Key));
+        Assert.Equal([1, 2], partial.Args);
+    }
+
+    [Fact]
+    public void TheStockCountAChecklistRowPrintsIsAKeyInTheChecklistsOwnFile()
+    {
+        // MedStockRules hands the checklist a key and a number for the same reason; the brackets
+        // are the translation's to place, which is why the key carries them.
+        Assert.Equal("(เหลือ {0})", Read(DayChecklistBaseName, MedStockRules.RemainingKey));
+        Assert.Equal(MedStockRules.RemainingKey, MedStockRules.RemainingLabel(18m)!.Value.Key);
+    }
+
+    private static ChecklistRow Row(bool ticked) =>
+        new(1, "Pill A", string.Empty, 1m, null,
+            [new ChecklistSlotState(MedSlots.Morning, "Morning", "morning", ticked)]);
+
+    /// <summary>
+    /// The two views that take a composed description back apart, each with the file its
+    /// <c>IViewLocalizer</c> answers from. Both halves of the pair matter: the round trip needs the
+    /// base name, the literal check needs the path.
+    ///
+    /// Meds/Edit is deliberately not here. It renders the same words, but from
+    /// <c>MealRelationOption</c> / <c>MethodOption</c> one at a time — it never splits anything, so
+    /// no separator couples it to the rules. <c>EveryWordTheScreensTakeFromMedPlanRulesIsTranslated</c>
+    /// is what covers its copy. DoctorReport is not here for the stronger version of the same
+    /// reason: its <c>" · "</c> joins its own list of type counts and is coupled to nothing, so
+    /// routing it through <see cref="MedPlanRules.PartSeparator"/> would tie two unrelated strings
+    /// together and let a separator change silently edit the printed report.
+    /// </summary>
+    private static readonly (string BaseName, string Path)[] SplittingViews =
+    [
+        (DayChecklistBaseName, "Views/Day/_Checklist.cshtml"),
+        (MedsIndexBaseName, "Views/Meds/Index.cshtml"),
+    ];
+
+    public static TheoryData<string, string> DescriptionSplittingViews
+    {
+        get
+        {
+            var data = new TheoryData<string, string>();
+            foreach (var (baseName, path) in SplittingViews)
+            {
+                data.Add(baseName, path);
+            }
+            return data;
+        }
+    }
+
+    public static TheoryData<string> DescriptionSplittingViewPaths
+    {
+        get
+        {
+            var data = new TheoryData<string>();
+            foreach (var (_, path) in SplittingViews)
+            {
+                data.Add(path);
+            }
+            return data;
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(DescriptionSplittingViews))]
+    public void EveryDescriptionTheRulesComposeSplitsBackIntoKeysTheViewLooksUp(
+        string baseName, string viewPath)
+    {
+        // A description is joined in MedPlanRules and taken apart again in the view. The two have
+        // to agree on the separator, or the view looks up "after meal · eyedrop" as one key, finds
+        // nothing, and renders the English blob it was handed. Nothing about that fails on its
+        // own: the words are all still translated, the file is still in the right place, and the
+        // page still renders.
+        //
+        // So this is the round trip rather than a word list — every pair the two enums can make,
+        // joined by the rules and split the way the view splits it, each resulting part looked up
+        // in the file that view reads. A new MealRelation or MedMethod member is caught for free,
+        // and so is a separator that moved on one side only: a join and a split that disagree
+        // yield a part that is not a key.
+        var unresolved = (
+                from relation in Enum.GetValues<MealRelation>()
+                from method in Enum.GetValues<MedMethod>()
+                let description = MedPlanRules.DescribeAllocation(relation, method)
+                where description.Length > 0
+                from part in description.Split(
+                    MedPlanRules.PartSeparator, StringSplitOptions.RemoveEmptyEntries)
+                where Read(baseName, part) is null or ""
+                select $"{relation}/{method}: '{part}'")
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        Assert.True(unresolved.Count == 0,
+            $"Parts of a composed description that {viewPath} cannot look up in {baseName}:" +
+            Environment.NewLine + string.Join(Environment.NewLine, unresolved) + Environment.NewLine +
+            "Either a word was renamed in MedPlanRules without the .resx following it, or the " +
+            "separator no longer matches MedPlanRules.PartSeparator on both sides.");
+
+        // A split that never split would pass the walk above forever — None and Other describe
+        // nothing at all — so one pair that must yield two parts is pinned.
+        Assert.Equal(2, MedPlanRules
+            .DescribeAllocation(MealRelation.AfterMeal, MedMethod.Eyedrop)
+            .Split(MedPlanRules.PartSeparator, StringSplitOptions.RemoveEmptyEntries)
+            .Length);
+    }
+
+    [Theory]
+    [MemberData(nameof(DescriptionSplittingViewPaths))]
+    public void AViewThatSplitsADescriptionUsesTheRulesOwnSeparatorAndNotACopyOfIt(string viewPath)
+    {
+        // The half the round trip cannot see: it splits on MedPlanRules.PartSeparator itself, so
+        // it stays green whatever the view does. What has to hold is that the view reaches for the
+        // same constant instead of repeating the literal — two copies drift the day one changes,
+        // and the description reaches the page unlooked-up with every other test still passing.
+        //
+        // Scoped to the views above rather than swept across every view holding a middot, because
+        // a view composing a list of its own has every right to that character and no business
+        // being coupled to the rules' constant.
+        // Resources/ and Views/ are siblings, so the one directory walk this file already has
+        // reaches both.
+        var view = File.ReadAllText(Path.Combine(
+            FindResourcesDirectory(), "..", viewPath.Replace('/', Path.DirectorySeparatorChar)));
+
+        Assert.Contains("MedPlanRules.PartSeparator", view, StringComparison.Ordinal);
+        Assert.DoesNotContain($"\"{MedPlanRules.PartSeparator}\"", view, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(TypeReportSort.NewestFirst)]
     [InlineData(TypeReportSort.OldestFirst)]
@@ -360,6 +511,8 @@ public class ResourceLayoutTests
     [Theory]
     [InlineData(DayChecklistBaseName, "Log the {0} dose of {1}", 2)]
     [InlineData(DayChecklistBaseName, "Undo the {0} dose of {1}", 2)]
+    [InlineData(DayChecklistBaseName, "{0} of {1} meds done", 2)]
+    [InlineData(DayChecklistBaseName, "({0} left)", 1)]
     [InlineData(DayAnxietyBaseName, "Vote {0} for today", 1)]
     [InlineData(DayAnxietyBaseName, "Clear today's vote of {0}", 1)]
     [InlineData(EntryFormBaseName, "New {0}", 1)]
@@ -426,30 +579,45 @@ public class ResourceLayoutTests
     }
 
     [Fact]
-    public void EveryWordTheMedScreensTakeFromMedPlanRulesIsTranslated()
+    public void EveryWordTheScreensTakeFromMedPlanRulesIsTranslated()
     {
-        // The med screens look these up by the English label MedPlanRules returns, because that
-        // same label is what a tick writes into an entry's stored note — translating the source
-        // would rewrite what goes into the database. So the key set is not a list anyone
-        // maintains by hand: it is whatever the rules produce, which is what this walks. A word
-        // renamed there goes silently untranslated on screen; here it fails.
+        // The screens look these up by the English label MedPlanRules returns, because that same
+        // label is what a tick writes into an entry's stored note — translating the source would
+        // rewrite what goes into the database. So the key set is not a list anyone maintains by
+        // hand: it is whatever the rules produce, which is what this walks. A word renamed there
+        // goes silently untranslated on screen; here it fails.
         //
-        // Slot words are also read by the day page's checklist, so they live in the shared file
-        // rather than the meds screens' own; meal and method words are meds-only and stay per-view.
+        // Where each word has to be answered is what the three groups below say. Slot words are
+        // read on the meds screens and the day page alike, so they live in the shared file. Meal
+        // and method words are read by both meds screens' dropdowns *and* by the day checklist's
+        // description line — DescribeAllocation joins exactly these two — and a per-view file
+        // inherits nothing, so all three files carry them. "any time" and "other" name the
+        // members that describe nothing, so only the dropdowns ever ask for them.
         var missingSlots = MedPlanRules.AllSlots.Select(MedPlanRules.SlotLabel)
             .Where(word => Read(SharedBaseName, word) is null or "")
             .Select(word => $"{SharedBaseName}: '{word}'");
 
-        var perViewWords = Enum.GetValues<MealRelation>().Select(MedPlanRules.MealRelationOption)
-            .Concat(Enum.GetValues<MedMethod>().Select(MedPlanRules.MethodOption))
-            .Where(word => word.Length > 0);
+        var describingWords = Enum.GetValues<MealRelation>().Select(MedPlanRules.MealRelationLabel)
+            .Concat(Enum.GetValues<MedMethod>().Select(MedPlanRules.MethodLabel))
+            .Where(word => word.Length > 0)
+            .ToList();
 
-        var missingPerView = perViewWords
+        var missingDescribing = describingWords
+            .SelectMany(word => new[] { MedsIndexBaseName, MedsEditBaseName, DayChecklistBaseName }
+                .Where(baseName => Read(baseName, word) is null or "")
+                .Select(baseName => $"{baseName}: '{word}'"));
+
+        var dropdownOnlyWords = Enum.GetValues<MealRelation>().Select(MedPlanRules.MealRelationOption)
+            .Concat(Enum.GetValues<MedMethod>().Select(MedPlanRules.MethodOption))
+            .Where(word => word.Length > 0)
+            .Except(describingWords, StringComparer.Ordinal);
+
+        var missingDropdownOnly = dropdownOnlyWords
             .SelectMany(word => new[] { MedsIndexBaseName, MedsEditBaseName }
                 .Where(baseName => Read(baseName, word) is null or "")
                 .Select(baseName => $"{baseName}: '{word}'"));
 
-        var missing = missingSlots.Concat(missingPerView).ToList();
+        var missing = missingSlots.Concat(missingDescribing).Concat(missingDropdownOnly).ToList();
 
         Assert.True(missing.Count == 0,
             "MedPlanRules words with no Thai translation:" + Environment.NewLine +

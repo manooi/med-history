@@ -41,8 +41,8 @@ public readonly record struct ChecklistRow(
     /// <summary>"×2" when a slot is worth more or less than one unit, empty otherwise.</summary>
     public string QuantityLabel => MedPlanRules.QuantityLabel(DoseQuantity);
 
-    /// <summary>"(18 left)" when this medication is stocked, empty otherwise.</summary>
-    public string StockLabel => MedStockRules.RemainingLabel(StockRemaining);
+    /// <summary>"(18 left)" as a key and its count when this medication is stocked, null otherwise.</summary>
+    public RuleMessage? StockLabel => MedStockRules.RemainingLabel(StockRemaining);
 
     public int DoneCount => Slots.Count(slot => slot.IsTicked);
 
@@ -286,8 +286,15 @@ public static class ChecklistRules
     /// <see cref="ChecklistRow.IsComplete"/>, so a checklist made only of such rows never reads
     /// "All done" either; it stays "0 of N meds done", which is the honest state of a plan with
     /// nothing to tick.
+    ///
+    /// A <see cref="RuleMessage"/> and not a sentence, for the reason
+    /// <see cref="ReportMonth.ProgressKey"/> gives: the copy is a resource key the view looks up,
+    /// so this stays pure and Thai gets to put the numbers where Thai puts them. A bare key the
+    /// way the reports hand one back would not do here — their counts are already properties of
+    /// the month, whereas the done count is derived right here, and a key on its own would push
+    /// that counting into the view.
     /// </summary>
-    public static string ProgressLabel(IReadOnlyList<ChecklistRow> rows)
+    public static RuleMessage Progress(IReadOnlyList<ChecklistRow> rows)
     {
         if (rows.Count == 0)
         {
@@ -296,7 +303,9 @@ public static class ChecklistRules
 
         var done = rows.Count(row => row.IsComplete);
 
-        return done == rows.Count ? "All done" : $"{done} of {rows.Count} meds done";
+        return done == rows.Count
+            ? new RuleMessage("All done")
+            : new RuleMessage("{0} of {1} meds done", done, rows.Count);
     }
 
     /// <summary>

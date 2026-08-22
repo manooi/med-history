@@ -478,26 +478,37 @@ public class ChecklistRulesTests
         Assert.Equal(0, rows.Single().RequiredCount);
     }
 
-    // ---- ProgressLabel ----
+    // ---- Progress ----
+    //
+    // A key and its values, never a finished sentence: the view formats the counts into the
+    // *translated* string, which is the only version whose holes are in Thai order. So what is
+    // asserted here is the key the rules name and the numbers they hand over — assert the English
+    // sentence instead and the rules could go back to interpolating one without a test noticing.
 
     [Fact]
-    public void ProgressLabel_NoRows_ReadsNothingAllocated()
+    public void Progress_NoRows_ReadsNothingAllocated()
     {
-        Assert.Equal("Nothing allocated", ChecklistRules.ProgressLabel([]));
+        var progress = ChecklistRules.Progress([]);
+
+        Assert.Equal("Nothing allocated", progress.Key);
+        Assert.Empty(progress.Args);
     }
 
     [Fact]
-    public void ProgressLabel_EveryRowComplete_ReadsAllDone()
+    public void Progress_EveryRowComplete_ReadsAllDone()
     {
         var rows = ChecklistRules.DeriveRows(
             [Allocation(1, "Pill A", MedSlots.Morning), Allocation(2, "Pill B", MedSlots.Evening)],
             [Tick(10, 1, "Morning"), Tick(11, 2, "Evening")]);
 
-        Assert.Equal("All done", ChecklistRules.ProgressLabel(rows));
+        var progress = ChecklistRules.Progress(rows);
+
+        Assert.Equal("All done", progress.Key);
+        Assert.Empty(progress.Args);
     }
 
     [Fact]
-    public void ProgressLabel_SomeRowsComplete_CountsDoneOutOfTotal()
+    public void Progress_SomeRowsComplete_CountsDoneOutOfTotal()
     {
         var rows = ChecklistRules.DeriveRows(
             [
@@ -507,17 +518,38 @@ public class ChecklistRulesTests
             ],
             [Tick(10, 1, "Morning")]);
 
-        Assert.Equal("1 of 3 meds done", ChecklistRules.ProgressLabel(rows));
+        var progress = ChecklistRules.Progress(rows);
+
+        Assert.Equal("{0} of {1} meds done", progress.Key);
+        Assert.Equal([1, 3], progress.Args);
     }
 
     [Fact]
-    public void ProgressLabel_ASlotlessRow_NeverCountsAsDoneOnItsOwn()
+    public void Progress_TheDoneCountLeadsTheTotal()
+    {
+        // The two holes are filled in the order the key spells them out, and a translation may
+        // move them — so the order they are handed over in is the contract, not where they land.
+        var rows = ChecklistRules.DeriveRows(
+            [
+                Allocation(1, "Pill A", MedSlots.Morning),
+                Allocation(2, "Pill B", MedSlots.Evening)
+            ],
+            [Tick(10, 1, "Morning")]);
+
+        Assert.Equal("1 of 2 meds done", ChecklistRules.Progress(rows).Text);
+    }
+
+    [Fact]
+    public void Progress_ASlotlessRow_NeverCountsAsDoneOnItsOwn()
     {
         // A row with nothing to tick can never be complete, so a checklist made only of such
         // rows must not read "All done" — see ChecklistRow.IsComplete.
         var rows = ChecklistRules.DeriveRows([Allocation(1, "Pill A", MedSlots.None)], []);
 
-        Assert.Equal("0 of 1 meds done", ChecklistRules.ProgressLabel(rows));
+        var progress = ChecklistRules.Progress(rows);
+
+        Assert.Equal("{0} of {1} meds done", progress.Key);
+        Assert.Equal([0, 1], progress.Args);
     }
 
     // ---- FindTick ----
@@ -1101,7 +1133,7 @@ public class ChecklistRulesTests
         var rows = ChecklistRules.DeriveRows([Allocation(1, "Pill A")], []);
 
         Assert.Null(rows[0].StockRemaining);
-        Assert.Empty(rows[0].StockLabel);
+        Assert.Null(rows[0].StockLabel);
     }
 
     [Fact]
@@ -1113,7 +1145,9 @@ public class ChecklistRulesTests
             [new MedStockRow(1, "Pill A", 30m, 12m)]);
 
         Assert.Equal(18m, rows[0].StockRemaining);
-        Assert.Equal("(18 left)", rows[0].StockLabel);
+        // Key plus count, not a sentence — the view looks the key up so the row reads Thai.
+        Assert.Equal(MedStockRules.RemainingKey, rows[0].StockLabel!.Value.Key);
+        Assert.Equal(["18"], rows[0].StockLabel!.Value.Args);
     }
 
     [Fact]
@@ -1148,7 +1182,7 @@ public class ChecklistRulesTests
             [new MedStockRow(1, "Pill A", 5m, 7m)]);
 
         Assert.Equal(-2m, rows[0].StockRemaining);
-        Assert.Equal("(-2 left)", rows[0].StockLabel);
+        Assert.Equal(["-2"], rows[0].StockLabel!.Value.Args);
         Assert.True(rows[0].Slots[0].IsTicked);
     }
 
@@ -1163,7 +1197,7 @@ public class ChecklistRulesTests
             [new MedStockRow(5, "Pill A Extra", 30m, 12m)]);
 
         Assert.Equal(18m, rows[0].StockRemaining);
-        Assert.Equal("(18 left)", rows[0].StockLabel);
+        Assert.Equal(["18"], rows[0].StockLabel!.Value.Args);
     }
 
     [Fact]

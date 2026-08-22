@@ -48,7 +48,16 @@ public static class MedPlanRules
 
     private const char Separator = ',';
 
-    private const string PartSeparator = " · ";
+    /// <summary>
+    /// What <see cref="DescribeAllocation"/> and <see cref="ComposeNote"/> join their parts with.
+    ///
+    /// Public because a description is joined here and taken back apart in the view: each part is
+    /// a resource key of its own, so the day's checklist splits on this to look them up one at a
+    /// time. That is one literal on purpose — a second copy in the view would drift the day this
+    /// one changed, and the description would render as a single unlooked-up blob with every test
+    /// still green.
+    /// </summary>
+    public const string PartSeparator = " · ";
 
     /// <summary>Canonical stored name of one slot, e.g. <c>Morning</c>.</summary>
     public static string SlotName(MedSlots slot) => slot.ToString();

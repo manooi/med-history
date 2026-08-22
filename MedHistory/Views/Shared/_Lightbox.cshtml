@@ -1,6 +1,8 @@
 <dialog id="lightbox" class="m-auto border border-black bg-white p-0 backdrop:bg-black/80 dark:border-neutral-100 dark:bg-neutral-800">
     <div class="relative">
-        <button type="button" id="lightbox-close" aria-label="Close"
+        @* GetString, not the indexer: an attribute needs the encoded string, not IHtmlContent.
+           The × below is the whole visible label, so there is nothing else here to translate. *@
+        <button type="button" id="lightbox-close" aria-label="@Localizer.GetString("Close")"
                 class="absolute right-2 top-2 border border-black bg-white px-2 py-1 text-sm leading-none text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
             &times;
         </button>

@@ -7,13 +7,13 @@
     // Slot, meal and method words come out of MedPlanRules in English — the very words a tick
     // writes into an entry's stored note — so they are translated here, where they are read,
     // and never where they are written. Slot words also label the day page's checklist, so
-    // they live in SharedResource (L); meal and method words are Meds-only and stay per-view
-    // (Localizer). A description arrives already joined, so it is split back on the separator
-    // MedPlanRules composes with and each part looked up on its own.
-    const string partSeparator = " · ";
-
+    // they live in SharedResource (L); meal and method words are per-view (Localizer), and the
+    // day's checklist carries its own copy of them since a per-view file inherits nothing. A
+    // description arrives already joined, so it is split back on MedPlanRules.PartSeparator — the
+    // constant it was joined with, never a copy of it — and each part looked up on its own.
     string Words(IHtmlLocalizer localizer, IEnumerable<string> parts) =>
-        string.Join(partSeparator, parts.Select(part => localizer.GetString(part).Value));
+        string.Join(MedPlanRules.PartSeparator,
+            parts.Select(part => localizer.GetString(part).Value));
 }
 
 <header class="flex items-center justify-between gap-4 border-b border-black pb-4 dark:border-neutral-100">
@@ -260,7 +260,7 @@
                         </span>
                         @if (item.Description.Length > 0)
                         {
-                            <span class="block text-xs text-neutral-500 dark:text-neutral-400">@Words(Localizer, item.Description.Split(partSeparator))</span>
+                            <span class="block text-xs text-neutral-500 dark:text-neutral-400">@Words(Localizer, item.Description.Split(MedPlanRules.PartSeparator))</span>
                         }
                     </span>
                     <a href="/checklist/@item.Id/edit"

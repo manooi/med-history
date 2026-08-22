@@ -297,10 +297,27 @@ public static class MedStockRules
     }
 
     /// <summary>
-    /// What a checklist row prints for its stock — "(18 left)", or empty when the medication is
-    /// not stocked. A negative reads as "(-2 left)", which is the honest way to say the count
-    /// has been overdrawn.
+    /// The resource key a checklist row prints for its stock, the count in <c>{0}</c>. The
+    /// brackets belong to the template rather than to the caller, for the reason
+    /// <see cref="ChecklistRules.MoreDaysKey"/> owns its comma: only a translation that owns the
+    /// whole string can punctuate it its own way.
     /// </summary>
-    public static string RemainingLabel(decimal? remaining) =>
-        remaining is null ? string.Empty : $"({MedPlanRules.FormatQuantity(remaining.Value)} left)";
+    public const string RemainingKey = "({0} left)";
+
+    /// <summary>
+    /// What a checklist row prints for its stock — <see cref="RemainingKey"/> and the count, or
+    /// null when the medication is not stocked, which is not the same as none left and must not
+    /// print as "(0 left)". A negative count is passed through and reads as "(-2 left)", the
+    /// honest way to say the stock has been overdrawn.
+    ///
+    /// Key plus value rather than a sentence, the same shape
+    /// <see cref="ChecklistRules.Progress"/> uses: the rules go on speaking English and the view
+    /// looks the key up, so the number lands wherever the Thai puts it.
+    /// </summary>
+    // The null is cast on purpose: RuleMessage converts implicitly from string, so a bare null
+    // binds to that conversion and yields a message with a null key instead of no message at all.
+    public static RuleMessage? RemainingLabel(decimal? remaining) =>
+        remaining is { } left
+            ? new RuleMessage(RemainingKey, MedPlanRules.FormatQuantity(left))
+            : (RuleMessage?)null;
 }

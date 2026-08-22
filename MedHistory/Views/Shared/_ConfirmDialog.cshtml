@@ -4,11 +4,15 @@
     <div class="mt-4 flex justify-end gap-2">
         <button type="button" id="confirm-dialog-cancel"
                 class="border border-black bg-white px-3 py-1 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
-            Cancel
+            @* The question itself is not here — it comes off the trigger's data-confirm, already
+               translated by whichever view wrote it. Only the two buttons are this partial's own
+               copy, and "Cancel" is the same word half the app's forms use, so it comes from the
+               shared file rather than being said twice. *@
+            @L["Cancel"]
         </button>
         <button type="button" id="confirm-dialog-confirm"
                 class="border border-red-600 bg-white px-3 py-1 text-sm text-red-600 hover:bg-red-600 hover:text-white dark:border-red-400 dark:bg-neutral-800 dark:text-red-400">
-            Confirm
+            @Localizer["Confirm"]
         </button>
     </div>
 </dialog>

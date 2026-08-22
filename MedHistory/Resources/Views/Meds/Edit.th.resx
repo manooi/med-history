@@ -2,8 +2,9 @@
 <root>
   <!--
     Thai for Views/Meds/Edit.cshtml — one allocation's plan. The meal and method words repeat
-    Views/Meds/Index.th.resx on purpose: a per-view file inherits nothing, and both forms key
-    them on what MedPlanRules returns. The four slot words (morning, noon, evening, bedtime) are
+    Views/Meds/Index.th.resx and Views/Day/_Checklist.th.resx on purpose: a per-view file inherits
+    nothing, and all three key them on what MedPlanRules returns. The four slot words
+    (morning, noon, evening, bedtime) are
     not repeated here — they live in SharedResource.th.resx, since the day page's checklist
     labels them too.
   -->

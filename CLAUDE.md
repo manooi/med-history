@@ -63,6 +63,8 @@ The expensive-to-learn rules. Don't rederive them — full context in the linked
 - `DoseQuantity` is posted as a raw string and parsed invariant-culture — never model-bound as `decimal` → [med-checklist](./docs/features/med-checklist.md)
 - The doctor report is the **only** report that reads oldest-first → [reports](./docs/features/reports.md)
 - Med report counts on a **plan-day basis**, so it can disagree with the day page for a hand-edited entry → [reports](./docs/features/reports.md)
+- A rule's user-facing sentence returns a **key plus numbered args** (`RuleMessage`), never interpolated copy — once the holes are filled there is no key left to translate, and only the view can format them into the *Thai* word order → [i18n](./docs/features/i18n.md)
+- A view that splits a composed string splits on `MedPlanRules.PartSeparator`, **never** a copy of `" · "` — a second literal drifts silently and the description renders as one unlooked-up English blob → [i18n](./docs/features/i18n.md)
 
 ## Problems log
 

@@ -1,6 +1,22 @@
 @model DayViewModel
 @{
     var dayKey = AppTime.Key(Model.Day);
+
+    // The summary line is a resource key plus the numbers it carries, never a finished sentence:
+    // the counting stays in ChecklistRules and the formatting happens against the *translated*
+    // string, so Thai can put the two counts where Thai wants them.
+    var progress = ChecklistRules.Progress(Model.Checklist);
+
+    // Meal and method words come out of MedPlanRules in English — the very words a tick writes
+    // into an entry's stored note — so they are translated here, where they are read, and never
+    // where they are written. A description arrives already joined, so it is split back on
+    // MedPlanRules.PartSeparator — the constant it was joined with, never a copy of it — and each
+    // part looked up on its own. Both meds screens render the same words the same way; a per-view
+    // file inherits nothing, so all three carry them, and ResourceLayoutTests drives the rules'
+    // own output through this same split.
+    string Words(IEnumerable<string> parts) =>
+        string.Join(MedPlanRules.PartSeparator,
+            parts.Select(part => Localizer.GetString(part).Value));
 }
 
 @* A slot is ticked exactly when the entry its control created still exists, so deleting that
@@ -12,7 +28,7 @@
 <details class="group mt-6 border border-black dark:border-neutral-100">
     <summary class="flex list-none cursor-pointer items-center gap-2 border-b border-black px-3 py-2 hover:bg-neutral-100 dark:border-neutral-100 dark:hover:bg-neutral-700 [&::-webkit-details-marker]:hidden">
         <h2 class="text-sm font-semibold uppercase tracking-wide">@Localizer["Meds"]</h2>
-        <span class="text-xs text-neutral-500 dark:text-neutral-400">@ChecklistRules.ProgressLabel(Model.Checklist)</span>
+        <span class="text-xs text-neutral-500 dark:text-neutral-400">@Localizer[progress.Key, progress.Args]</span>
         @* Own marker, not the native one — killed above the same way the mobile nav kills it. *@
         <span aria-hidden="true" class="ml-auto transition-transform group-open:rotate-90">&#9656;</span>
     </summary>
@@ -48,14 +64,16 @@
                                 </span>
                             }
                         </span>
-                        @if (row.StockLabel.Length > 0)
+                        @if (row.StockLabel is { } stock)
                         {
-                            @* Stock left over the whole history, not this day's — see MedStock. *@
-                            <span class="block text-xs text-neutral-500 dark:text-neutral-400">@row.StockLabel</span>
+                            @* Stock left over the whole history, not this day's — see MedStock.
+                               Null, not empty, when nothing stocks the medication: "(0 left)"
+                               would claim it had run out. *@
+                            <span class="block text-xs text-neutral-500 dark:text-neutral-400">@Localizer[stock.Key, stock.Args]</span>
                         }
                         @if (row.Description.Length > 0)
                         {
-                            <span class="block text-xs text-neutral-500 dark:text-neutral-400">@row.Description</span>
+                            <span class="block text-xs text-neutral-500 dark:text-neutral-400">@Words(row.Description.Split(MedPlanRules.PartSeparator))</span>
                         }
                     </span>
 

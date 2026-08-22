@@ -543,26 +543,34 @@ public class MedStockRulesTests
     // ---- RemainingLabel ----
 
     [Fact]
-    public void RemainingLabel_NothingStocked_IsEmpty()
+    public void RemainingLabel_NothingStocked_IsNoLabelAtAll()
     {
-        Assert.Empty(MedStockRules.RemainingLabel(null));
+        // Null and not an empty key: there is nothing to look up, and "(0 left)" would claim the
+        // medication had run out rather than that nothing stocks it.
+        Assert.Null(MedStockRules.RemainingLabel(null));
     }
 
     [Theory]
-    [InlineData(18, "(18 left)")]
-    [InlineData(0, "(0 left)")]
-    [InlineData(0.5, "(0.5 left)")]
-    [InlineData(-2, "(-2 left)")]
-    public void RemainingLabel_AStockedMedication_ReadsAsWhatIsLeft(double remaining, string expected)
+    [InlineData(18, "18")]
+    [InlineData(0, "0")]
+    [InlineData(0.5, "0.5")]
+    [InlineData(-2, "-2")]
+    public void RemainingLabel_AStockedMedication_NamesTheKeyAndCarriesTheCount(
+        double remaining, string expected)
     {
-        Assert.Equal(expected, MedStockRules.RemainingLabel((decimal)remaining));
+        // The brackets belong to the key, so the count arrives on its own and the translation
+        // punctuates it — asserting "(18 left)" here would pin copy this no longer owns.
+        var label = MedStockRules.RemainingLabel((decimal)remaining);
+
+        Assert.Equal(MedStockRules.RemainingKey, label!.Value.Key);
+        Assert.Equal([expected], label.Value.Args);
     }
 
     [Fact]
     public void RemainingLabel_ScaleFromTheDatabaseIsNotShown()
     {
         // A numeric(7,2) total minus a summed consumption arrives as 18.00.
-        Assert.Equal("(18 left)", MedStockRules.RemainingLabel(18.00m));
+        Assert.Equal("(18 left)", MedStockRules.RemainingLabel(18.00m)!.Value.Text);
     }
 
     // ---- Names are the same rule everywhere ----

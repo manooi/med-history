@@ -6,6 +6,11 @@
 
     The four slot words (morning, noon, …) are not here: MedPlanRules hands them back in English,
     which is their key, and they are shared with the /meds page — see SharedResource.th.resx.
+
+    The meal and method words below *are* here, and are also in Views/Meds/Index.th.resx and
+    Views/Meds/Edit.th.resx, because a per-view file inherits nothing and all three screens render
+    what MedPlanRules returns. ResourceLayoutTests walks the rules' own output against all three
+    so a word renamed there cannot go quietly untranslated on one of them.
   -->
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
@@ -85,5 +90,49 @@
   </data>
   <data name="Undo the {0} dose of {1}" xml:space="preserve">
     <value>ยกเลิกการบันทึกขนาดยา {1} ช่วง{0}</value>
+  </data>
+
+  <!-- The collapsed summary line — ChecklistRules.Progress names one of these three and hands
+       the view the counts to fill in. -->
+  <data name="Nothing allocated" xml:space="preserve">
+    <value>ยังไม่ได้จัดยา</value>
+    <comment>The short form of "Nothing allocated for this day." above, which has the room to say วันนี้.</comment>
+  </data>
+  <data name="All done" xml:space="preserve">
+    <value>ครบแล้ว</value>
+  </data>
+  <data name="{0} of {1} meds done" xml:space="preserve">
+    <value>ครบแล้ว {0} จาก {1} รายการ</value>
+    <comment>Thai leads with the verb, as "{0} taken" does on the meds page. รายการ is the classifier for a listed row.</comment>
+  </data>
+
+  <!-- MedStockRules.RemainingKey — what is left of a stocked medication, under its row. -->
+  <data name="({0} left)" xml:space="preserve">
+    <value>(เหลือ {0})</value>
+    <comment>เหลือ {0} is how the meds page writes the same count; here it is bracketed as an aside.</comment>
+  </data>
+
+  <!-- Meal and method words, as MedPlanRules.DescribeAllocation joins them into a row's
+       description. Repeated from the meds screens' own files on purpose — see the note above. -->
+  <data name="before meal" xml:space="preserve">
+    <value>ก่อนอาหาร</value>
+  </data>
+  <data name="after meal" xml:space="preserve">
+    <value>หลังอาหาร</value>
+  </data>
+  <data name="with meal" xml:space="preserve">
+    <value>พร้อมอาหาร</value>
+  </data>
+  <data name="eat" xml:space="preserve">
+    <value>รับประทาน</value>
+  </data>
+  <data name="apply" xml:space="preserve">
+    <value>ทา</value>
+  </data>
+  <data name="eyedrop" xml:space="preserve">
+    <value>หยอดตา</value>
+  </data>
+  <data name="inject" xml:space="preserve">
+    <value>ฉีด</value>
   </data>
 </root>
