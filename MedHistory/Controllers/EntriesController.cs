@@ -3,6 +3,7 @@ using MedHistory.Models;
 using MedHistory.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 
 namespace MedHistory.Controllers;
 
@@ -11,10 +12,18 @@ public class EntriesController : Controller
     private readonly AppDbContext _db;
     private readonly ILogger<EntriesController> _logger;
 
-    public EntriesController(AppDbContext db, ILogger<EntriesController> logger)
+    // EntryRules and PhotoRules hand back keys; this is what turns them into the reader's copy
+    // before they reach ModelState, which asp-validation-summary renders as it finds them.
+    private readonly IStringLocalizer<SharedResource> _localizer;
+
+    public EntriesController(
+        AppDbContext db,
+        ILogger<EntriesController> logger,
+        IStringLocalizer<SharedResource> localizer)
     {
         _db = db;
         _logger = logger;
+        _localizer = localizer;
     }
 
     [HttpGet("/entries/new")]
@@ -181,12 +190,13 @@ public class EntriesController : Controller
 
         if (occurredAtError is not null)
         {
-            ModelState.AddModelError(nameof(EntryFormViewModel.OccurredAt), occurredAtError);
+            // Hole-free, so the message is its own key and needs no arguments.
+            ModelState.AddModelError(nameof(EntryFormViewModel.OccurredAt), _localizer[occurredAtError]);
         }
 
         foreach (var error in EntryRules.Validate(form.Type, form.Severity, form.PillName, form.Note))
         {
-            ModelState.AddModelError(string.Empty, error);
+            ModelState.AddModelError(string.Empty, _localizer.Localize(error));
         }
 
         if (photos is null)
@@ -198,7 +208,7 @@ public class EntriesController : Controller
         {
             foreach (var error in PhotoRules.Validate(photo.ContentType, photo.Length))
             {
-                ModelState.AddModelError(string.Empty, error);
+                ModelState.AddModelError(string.Empty, _localizer.Localize(error));
             }
         }
     }

@@ -4,6 +4,13 @@ namespace MedHistory.Tests;
 
 public class PhotoRulesTests
 {
+    // The keys the rules hand back. Asserted by key rather than by a fragment of the sentence:
+    // the key is the contract now — it is what the .resx is indexed by — so a reworded message
+    // has to be reworded here too, where a substring match would have gone on passing.
+    private const string Empty = "Photo file is empty.";
+    private const string TooBig = "Photo exceeds the {0} MB limit.";
+    private const string NotAnImage = "Photo must be an image file.";
+
     // ---- Validate: length ----
 
     [Fact]
@@ -11,7 +18,7 @@ public class PhotoRulesTests
     {
         var errors = PhotoRules.Validate("image/jpeg", length: 0);
 
-        Assert.Contains(errors, e => e.Contains("empty"));
+        Assert.Contains(errors, e => e.Key == Empty);
     }
 
     [Fact]
@@ -19,7 +26,7 @@ public class PhotoRulesTests
     {
         var errors = PhotoRules.Validate("image/jpeg", length: -1);
 
-        Assert.Contains(errors, e => e.Contains("empty"));
+        Assert.Contains(errors, e => e.Key == Empty);
     }
 
     [Fact]
@@ -27,8 +34,8 @@ public class PhotoRulesTests
     {
         var errors = PhotoRules.Validate("image/jpeg", length: PhotoRules.MaxSizeBytes);
 
-        Assert.DoesNotContain(errors, e => e.Contains("empty"));
-        Assert.DoesNotContain(errors, e => e.Contains("exceeds"));
+        Assert.DoesNotContain(errors, e => e.Key == Empty);
+        Assert.DoesNotContain(errors, e => e.Key == TooBig);
     }
 
     [Fact]
@@ -36,7 +43,12 @@ public class PhotoRulesTests
     {
         var errors = PhotoRules.Validate("image/jpeg", length: PhotoRules.MaxSizeBytes + 1);
 
-        Assert.Contains(errors, e => e.Contains("exceeds"));
+        var error = Assert.Single(errors, e => e.Key == TooBig);
+
+        // The limit is a hole rather than part of the sentence, so the number has to still be
+        // in the arguments for a translation to have anywhere to put it.
+        Assert.Equal(new object[] { PhotoRules.MaxSizeBytes / (1024 * 1024) }, error.Args);
+        Assert.Equal("Photo exceeds the 10 MB limit.", error.Text);
     }
 
     // ---- Validate: content type ----
@@ -49,7 +61,7 @@ public class PhotoRulesTests
     {
         var errors = PhotoRules.Validate(contentType, length: 1);
 
-        Assert.Contains(errors, e => e.Contains("image file"));
+        Assert.Contains(errors, e => e.Key == NotAnImage);
     }
 
     [Theory]
@@ -60,7 +72,7 @@ public class PhotoRulesTests
     {
         var errors = PhotoRules.Validate(contentType, length: 1);
 
-        Assert.Contains(errors, e => e.Contains("image file"));
+        Assert.Contains(errors, e => e.Key == NotAnImage);
     }
 
     [Theory]
@@ -70,7 +82,7 @@ public class PhotoRulesTests
     {
         var errors = PhotoRules.Validate(contentType, length: 1);
 
-        Assert.DoesNotContain(errors, e => e.Contains("image file"));
+        Assert.DoesNotContain(errors, e => e.Key == NotAnImage);
     }
 
     // ---- Validate: valid file ----

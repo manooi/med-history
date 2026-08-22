@@ -56,6 +56,13 @@ public class EntryTypeRulesTests
 
     // ---- ValidateNewName ----
 
+    // The keys the rules hand back. Asserted by key rather than by a fragment of the sentence:
+    // the key is the contract now — it is what the .resx is indexed by — so a reworded message
+    // has to be reworded here too, where a substring match would have gone on passing.
+    private const string NameRequired = "Type name is required.";
+    private const string NameTooLong = "Type name must be {0} characters or fewer.";
+    private const string AlreadyExists = "A type named \"{0}\" already exists.";
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -64,7 +71,7 @@ public class EntryTypeRulesTests
     {
         var errors = EntryTypeRules.ValidateNewName(raw, []);
 
-        Assert.Contains(errors, e => e.Contains("required"));
+        Assert.Contains(errors, e => e.Key == NameRequired);
     }
 
     [Fact]
@@ -80,7 +87,11 @@ public class EntryTypeRulesTests
     {
         var errors = EntryTypeRules.ValidateNewName("Cough", ["Symptom", "Cough"]);
 
-        Assert.Contains(errors, e => e.Contains("already exists"));
+        // The name goes into the hole rather than into the sentence, so a translation has
+        // somewhere to put it; the normalised form is what gets quoted back.
+        var error = Assert.Single(errors, e => e.Key == AlreadyExists);
+        Assert.Equal(new object[] { "Cough" }, error.Args);
+        Assert.Equal("A type named \"Cough\" already exists.", error.Text);
     }
 
     [Theory]
@@ -91,7 +102,8 @@ public class EntryTypeRulesTests
     {
         var errors = EntryTypeRules.ValidateNewName(raw, ["Cough"]);
 
-        Assert.Contains(errors, e => e.Contains("already exists"));
+        var error = Assert.Single(errors, e => e.Key == AlreadyExists);
+        Assert.Equal(new object[] { raw }, error.Args);
     }
 
     [Fact]
@@ -100,7 +112,8 @@ public class EntryTypeRulesTests
         // The name is normalised before comparison, so padding cannot smuggle a duplicate in.
         var errors = EntryTypeRules.ValidateNewName("  cough  ", ["Cough"]);
 
-        Assert.Contains(errors, e => e.Contains("already exists"));
+        var error = Assert.Single(errors, e => e.Key == AlreadyExists);
+        Assert.Equal(new object[] { "cough" }, error.Args);
     }
 
     [Fact]
@@ -110,7 +123,8 @@ public class EntryTypeRulesTests
 
         var errors = EntryTypeRules.ValidateNewName(tooLong, []);
 
-        Assert.Contains(errors, e => e.Contains("characters or fewer"));
+        var error = Assert.Single(errors, e => e.Key == NameTooLong);
+        Assert.Equal(new object[] { EntryTypeRules.NameMaxLength }, error.Args);
     }
 
     [Fact]

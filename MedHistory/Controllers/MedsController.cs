@@ -4,6 +4,7 @@ using MedHistory.Models;
 using MedHistory.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 
 namespace MedHistory.Controllers;
 
@@ -32,10 +33,19 @@ public class MedsController : Controller
     private readonly AppDbContext _db;
     private readonly ILogger<MedsController> _logger;
 
-    public MedsController(AppDbContext db, ILogger<MedsController> logger)
+    // ChecklistRules hands back keys; this is what turns them into the reader's copy before they
+    // reach ModelState, which asp-validation-summary renders as it finds them. The log lines
+    // below stay English — they are for whoever runs the app, not whoever uses it.
+    private readonly IStringLocalizer<SharedResource> _localizer;
+
+    public MedsController(
+        AppDbContext db,
+        ILogger<MedsController> logger,
+        IStringLocalizer<SharedResource> localizer)
     {
         _db = db;
         _logger = logger;
+        _localizer = localizer;
     }
 
     [HttpGet("/day/{date}/meds")]
@@ -87,19 +97,19 @@ public class MedsController : Controller
         // slot rules that apply regardless of which days end up allocated.
         foreach (var error in ChecklistRules.ValidateNewAllocation(name, chosen, []))
         {
-            ModelState.AddModelError(string.Empty, error);
+            ModelState.AddModelError(string.Empty, _localizer.Localize(error));
         }
 
         var quantityErrors = ChecklistRules.ValidateDoseQuantity(doseQuantity, out var quantity);
 
         foreach (var error in quantityErrors)
         {
-            ModelState.AddModelError(string.Empty, error);
+            ModelState.AddModelError(string.Empty, _localizer.Localize(error));
         }
 
         foreach (var error in ChecklistRules.ValidateRange(rangeFrom, rangeTo))
         {
-            ModelState.AddModelError(string.Empty, error);
+            ModelState.AddModelError(string.Empty, _localizer.Localize(error));
         }
 
         if (!ModelState.IsValid)
@@ -279,14 +289,14 @@ public class MedsController : Controller
         // themselves so an unchanged name is never flagged.
         foreach (var error in ChecklistRules.ValidateNewAllocation(name, chosen, []))
         {
-            ModelState.AddModelError(string.Empty, error);
+            ModelState.AddModelError(string.Empty, _localizer.Localize(error));
         }
 
         var quantityErrors = ChecklistRules.ValidateDoseQuantity(doseQuantity, out var quantity);
 
         foreach (var error in quantityErrors)
         {
-            ModelState.AddModelError(string.Empty, error);
+            ModelState.AddModelError(string.Empty, _localizer.Localize(error));
         }
 
         if (!ModelState.IsValid)
@@ -313,8 +323,14 @@ public class MedsController : Controller
             var labels = collisionDays
                 .Select(collision => AppTime.DayLabel(collision, CultureInfo.CurrentUICulture))
                 .ToList();
+
+            // Two lookups, because the sentence and the tail that summarises the days past the cap
+            // are separate pieces of copy: JoinDayLabels stays pure by taking the tail already
+            // translated rather than by learning what a localizer is.
+            var days = ChecklistRules.JoinDayLabels(labels, _localizer[ChecklistRules.MoreDaysKey]);
+
             ModelState.AddModelError(string.Empty,
-                $"\"{normalizedName}\" is already used on {ChecklistRules.JoinDayLabels(labels)}.");
+                _localizer["\"{0}\" is already used on {1}.", normalizedName, days]);
 
             return Invalid();
         }

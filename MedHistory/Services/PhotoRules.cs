@@ -11,9 +11,9 @@ public static class PhotoRules
     /// <summary>
     /// Returns one message per broken rule; an empty list means the upload is valid.
     /// </summary>
-    public static IReadOnlyList<string> Validate(string? contentType, long length)
+    public static IReadOnlyList<RuleMessage> Validate(string? contentType, long length)
     {
-        var errors = new List<string>();
+        var errors = new List<RuleMessage>();
 
         if (length <= 0)
         {
@@ -21,7 +21,7 @@ public static class PhotoRules
         }
         else if (length > MaxSizeBytes)
         {
-            errors.Add($"Photo exceeds the {MaxSizeBytes / (1024 * 1024)} MB limit.");
+            errors.Add(new RuleMessage("Photo exceeds the {0} MB limit.", MaxSizeBytes / (1024 * 1024)));
         }
 
         if (string.IsNullOrWhiteSpace(contentType) ||

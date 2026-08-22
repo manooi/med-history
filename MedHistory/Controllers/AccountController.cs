@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Localization;
 
 namespace MedHistory.Controllers;
 
@@ -18,11 +19,20 @@ public class AccountController : Controller
     private readonly IConfiguration _configuration;
     private readonly ILogger<AccountController> _logger;
 
-    public AccountController(AppDbContext db, IConfiguration configuration, ILogger<AccountController> logger)
+    // What the reader is told, in their language. The log lines beside each of these stay
+    // English on purpose: they are read by whoever runs the app, not by whoever uses it.
+    private readonly IStringLocalizer<SharedResource> _localizer;
+
+    public AccountController(
+        AppDbContext db,
+        IConfiguration configuration,
+        ILogger<AccountController> logger,
+        IStringLocalizer<SharedResource> localizer)
     {
         _db = db;
         _configuration = configuration;
         _logger = logger;
+        _localizer = localizer;
     }
 
     [AllowAnonymous]
@@ -44,7 +54,7 @@ public class AccountController : Controller
         if (string.IsNullOrEmpty(configuredPassword))
         {
             _logger.LogWarning("Login rejected: no Auth:Password is configured");
-            ModelState.AddModelError(string.Empty, "Password not configured.");
+            ModelState.AddModelError(string.Empty, _localizer["Password not configured."]);
             return RedisplayLogin(model);
         }
 
@@ -66,7 +76,8 @@ public class AccountController : Controller
             var remainingMinutes = Math.Max(1, (int)Math.Ceiling((lockedUntil.UntilUtc - now).TotalMinutes));
             _logger.LogWarning("Login rejected: locked out from {RemoteAddress}",
                 HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown");
-            ModelState.AddModelError(string.Empty, $"Too many attempts — try again in {remainingMinutes} min.");
+            ModelState.AddModelError(string.Empty,
+                _localizer["Too many attempts — try again in {0} min.", remainingMinutes]);
             return RedisplayLogin(model);
         }
 
@@ -87,7 +98,7 @@ public class AccountController : Controller
             // Fixed cost per wrong guess, locked out or not — see LoginThrottleRules.FailDelay.
             await Task.Delay(LoginThrottleRules.FailDelay);
 
-            ModelState.AddModelError(string.Empty, "Incorrect password.");
+            ModelState.AddModelError(string.Empty, _localizer["Incorrect password."]);
             return RedisplayLogin(model);
         }
 

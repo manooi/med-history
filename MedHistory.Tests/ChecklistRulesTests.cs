@@ -94,6 +94,16 @@ public class ChecklistRulesTests
 
     // ---- ValidateNewAllocation ----
 
+    // The keys the rules hand back. Asserted by key rather than by a fragment of the sentence:
+    // the key is the contract now — it is what the .resx is indexed by — so a reworded message
+    // has to be reworded here too, where a substring match would have gone on passing.
+    private const string NameRequired = "Medication name is required.";
+    private const string NameTooLong = "Medication name must be {0} characters or fewer.";
+    private const string AlreadyOnDay = "\"{0}\" is already on this day's checklist.";
+    private const string NoSlots = "Pick at least one time of day.";
+    private const string RangeBackwards = "End date must be on or after the start date.";
+    private const string RangeTooLong = "Range too long (max {0} days).";
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -102,7 +112,7 @@ public class ChecklistRulesTests
     {
         var errors = ChecklistRules.ValidateNewAllocation(raw, MedSlots.Morning, []);
 
-        Assert.Contains(errors, e => e.Contains("required"));
+        Assert.Contains(errors, e => e.Key == NameRequired);
     }
 
     [Fact]
@@ -120,7 +130,10 @@ public class ChecklistRulesTests
         // Casing and padding must not smuggle a second row for the same medication in.
         var errors = ChecklistRules.ValidateNewAllocation(raw, MedSlots.Morning, ["Pill A"]);
 
-        Assert.Contains(errors, e => e.Contains("already on this day"));
+        // The name is a hole, not part of the sentence, and it is the normalised form that
+        // fills it — the reader is quoted back what would have been stored.
+        var error = Assert.Single(errors, e => e.Key == AlreadyOnDay);
+        Assert.Equal(new object[] { raw.Trim() }, error.Args);
     }
 
     [Fact]
@@ -135,9 +148,11 @@ public class ChecklistRulesTests
     {
         var tooLong = new string('x', ChecklistRules.NameMaxLength + 1);
 
-        Assert.Contains(
+        var error = Assert.Single(
             ChecklistRules.ValidateNewAllocation(tooLong, MedSlots.Morning, []),
-            e => e.Contains("characters or fewer"));
+            e => e.Key == NameTooLong);
+
+        Assert.Equal(new object[] { ChecklistRules.NameMaxLength }, error.Args);
     }
 
     [Fact]
@@ -153,7 +168,7 @@ public class ChecklistRulesTests
         // Slots are the doses: a row with none could never be worked through.
         Assert.Contains(
             ChecklistRules.ValidateNewAllocation("Pill A", MedSlots.None, []),
-            e => e.Contains("at least one time of day"));
+            e => e.Key == NoSlots);
     }
 
     [Theory]
@@ -188,7 +203,7 @@ public class ChecklistRulesTests
     {
         Assert.Contains(
             ChecklistRules.ValidateRange(Day, Day.AddDays(-1)),
-            e => e.Contains("on or after"));
+            e => e.Key == RangeBackwards);
     }
 
     [Fact]
@@ -206,7 +221,9 @@ public class ChecklistRulesTests
         var to = Day.AddDays(ChecklistRules.MaxRangeDays);
 
         Assert.Equal(ChecklistRules.MaxRangeDays + 1, ChecklistRules.RangeLength(Day, to));
-        Assert.Contains(ChecklistRules.ValidateRange(Day, to), e => e.Contains("Range too long"));
+        var error = Assert.Single(ChecklistRules.ValidateRange(Day, to), e => e.Key == RangeTooLong);
+
+        Assert.Equal(new object[] { ChecklistRules.MaxRangeDays }, error.Args);
     }
 
     // ---- ExpandRange ----
@@ -805,6 +822,35 @@ public class ChecklistRulesTests
         Assert.Equal("a, b, c, and 2 more", ChecklistRules.JoinDayLabels(["a", "b", "c", "d", "e"]));
     }
 
+    [Fact]
+    public void JoinDayLabels_TakesTheSummaryTailAlreadyTranslated()
+    {
+        // The tail is the only copy in the join, so it arrives already looked up rather than
+        // being looked up here — that is what lets this stay pure. The comma before "and" lives
+        // in the template, not in the join, which is what lets Thai drop it.
+        var thai = ChecklistRules.JoinDayLabels(["ก", "ข", "ค", "ง", "จ"], "{0} และอีก {1} วัน");
+
+        Assert.Equal("ก, ข, ค และอีก 2 วัน", thai);
+    }
+
+    [Fact]
+    public void JoinDayLabels_UnderTheCap_NeverReachesTheSummaryTail()
+    {
+        // Nothing to summarise, so the template is not consulted at all.
+        Assert.Equal("ก, ข", ChecklistRules.JoinDayLabels(["ก", "ข"], "{0} และอีก {1} วัน"));
+    }
+
+    [Fact]
+    public void MoreDaysKeyIsTheEnglishTheDefaultAlreadyProduces()
+    {
+        // The key is the English source text, so passing it explicitly has to read identically to
+        // passing nothing. Nothing else ties the constant the controller looks up to the default
+        // this falls back to when the lookup finds no translation.
+        Assert.Equal(
+            ChecklistRules.JoinDayLabels(["a", "b", "c", "d"]),
+            ChecklistRules.JoinDayLabels(["a", "b", "c", "d"], ChecklistRules.MoreDaysKey));
+    }
+
     // ---- MedPlanRules.SlotTime ----
 
     [Theory]
@@ -975,6 +1021,35 @@ public class ChecklistRulesTests
     {
         // 0.1 is both below the minimum and off the step; naming both reads as two problems.
         Assert.Single(ChecklistRules.ValidateDoseQuantity("0.1", out _));
+    }
+
+    [Fact]
+    public void ValidateDoseQuantity_OutOfRange_CarriesBothBoundsAsArguments()
+    {
+        // The bounds are holes rather than part of the sentence, and they arrive already
+        // formatted the way the form posts them back — invariant, no trailing zeros — so the
+        // numbers survive whatever the translation does with the words around them.
+        var error = Assert.Single(ChecklistRules.ValidateDoseQuantity("0", out _));
+
+        Assert.Equal("Dose must be between {0} and {1}.", error.Key);
+        Assert.Equal(
+            new object[]
+            {
+                MedPlanRules.FormatQuantity(MedPlanRules.MinDoseQuantity),
+                MedPlanRules.FormatQuantity(MedPlanRules.MaxDoseQuantity)
+            },
+            error.Args);
+    }
+
+    [Fact]
+    public void ValidateDoseQuantity_OffTheStep_CarriesTheStepAsAnArgument()
+    {
+        var error = Assert.Single(ChecklistRules.ValidateDoseQuantity("1.1", out _));
+
+        Assert.Equal("Dose must be a multiple of {0}.", error.Key);
+        Assert.Equal(
+            new object[] { MedPlanRules.FormatQuantity(MedPlanRules.DoseQuantityStep) },
+            error.Args);
     }
 
     [Fact]

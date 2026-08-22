@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Net;
+using MedHistory;
 using MedHistory.Data;
 using MedHistory.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -20,7 +21,13 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews()
     .AddViewLocalization()
-    .AddDataAnnotationsLocalization();
+    // Left to itself, a DataAnnotations message is looked up in a resource named after the model
+    // it annotates — Resources/Models/LoginViewModel.th.resx — which would be one file per model
+    // holding one sentence each. They are pointed at the shared file instead, where the rest of
+    // the server's validation copy already lives, and the ErrorMessage stays the key the way
+    // every other resource key in the app is its own English source text.
+    .AddDataAnnotationsLocalization(options =>
+        options.DataAnnotationLocalizerProvider = (_, factory) => factory.Create(typeof(SharedResource)));
 
 // UI strings live in .resx files under MedHistory/Resources; which one a request reads is
 // decided per request by UseRequestLocalization further down.

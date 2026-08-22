@@ -1,3 +1,4 @@
+using System.Globalization;
 using MedHistory.Models;
 
 namespace MedHistory.Services;
@@ -94,7 +95,7 @@ public static class ChecklistRules
     /// <summary>
     /// Returns one message per broken rule; an empty list means the allocation may be added.
     /// </summary>
-    public static IReadOnlyList<string> ValidateNewAllocation(
+    public static IReadOnlyList<RuleMessage> ValidateNewAllocation(
         string? rawName,
         MedSlots slots,
         IEnumerable<string> namesAlreadyOnDay)
@@ -106,16 +107,16 @@ public static class ChecklistRules
             return ["Medication name is required."];
         }
 
-        var errors = new List<string>();
+        var errors = new List<RuleMessage>();
 
         if (name.Length > NameMaxLength)
         {
-            errors.Add($"Medication name must be {NameMaxLength} characters or fewer.");
+            errors.Add(new RuleMessage("Medication name must be {0} characters or fewer.", NameMaxLength));
         }
 
         if (namesAlreadyOnDay.Any(existing => NamesMatch(existing, name)))
         {
-            errors.Add($"\"{name}\" is already on this day's checklist.");
+            errors.Add(new RuleMessage("\"{0}\" is already on this day's checklist.", name));
         }
 
         // Slots are the doses. None means a row that can never be worked through, so it is
@@ -137,7 +138,7 @@ public static class ChecklistRules
     /// broken here with a readable message, rather than a model-binding failure phrased in
     /// framework language.
     /// </summary>
-    public static IReadOnlyList<string> ValidateDoseQuantity(string? rawQuantity, out decimal quantity)
+    public static IReadOnlyList<RuleMessage> ValidateDoseQuantity(string? rawQuantity, out decimal quantity)
     {
         quantity = MedPlanRules.DefaultDoseQuantity;
 
@@ -153,10 +154,15 @@ public static class ChecklistRules
 
         if (parsed < MedPlanRules.MinDoseQuantity || parsed > MedPlanRules.MaxDoseQuantity)
         {
+            // The bounds go in as strings already formatted the way every other quantity in the
+            // app is — invariant, no trailing zeros — so the number a reader sees here is the one
+            // the form will accept back, whatever language the sentence around it is in.
             return
             [
-                $"Dose must be between {MedPlanRules.FormatQuantity(MedPlanRules.MinDoseQuantity)} " +
-                $"and {MedPlanRules.FormatQuantity(MedPlanRules.MaxDoseQuantity)}."
+                new RuleMessage(
+                    "Dose must be between {0} and {1}.",
+                    MedPlanRules.FormatQuantity(MedPlanRules.MinDoseQuantity),
+                    MedPlanRules.FormatQuantity(MedPlanRules.MaxDoseQuantity))
             ];
         }
 
@@ -164,7 +170,12 @@ public static class ChecklistRules
         // what is wrong with 0.1, and two messages about one field read as two problems.
         if (parsed % MedPlanRules.DoseQuantityStep != 0m)
         {
-            return [$"Dose must be a multiple of {MedPlanRules.FormatQuantity(MedPlanRules.DoseQuantityStep)}."];
+            return
+            [
+                new RuleMessage(
+                    "Dose must be a multiple of {0}.",
+                    MedPlanRules.FormatQuantity(MedPlanRules.DoseQuantityStep))
+            ];
         }
 
         quantity = parsed;
@@ -179,7 +190,7 @@ public static class ChecklistRules
     /// a validation error either: <see cref="DaysToAllocate"/> skips it instead of rejecting the
     /// whole range.
     /// </summary>
-    public static IReadOnlyList<string> ValidateRange(DateOnly from, DateOnly to)
+    public static IReadOnlyList<RuleMessage> ValidateRange(DateOnly from, DateOnly to)
     {
         if (to < from)
         {
@@ -187,7 +198,7 @@ public static class ChecklistRules
         }
 
         return RangeLength(from, to) > MaxRangeDays
-            ? [$"Range too long (max {MaxRangeDays} days)."]
+            ? [new RuleMessage("Range too long (max {0} days).", MaxRangeDays)]
             : [];
     }
 
@@ -382,13 +393,31 @@ public static class ChecklistRules
     public const int MaxCollisionDaysListed = 3;
 
     /// <summary>
+    /// The resource key for the summarised form — the listed labels in <c>{0}</c>, the number of
+    /// days left over in <c>{1}</c>. The comma before "and" belongs to the template rather than to
+    /// the join, because Thai runs "และอีก 2 วัน" straight on with no comma at all; only a
+    /// translation that owns the whole tail can drop it.
+    /// </summary>
+    public const string MoreDaysKey = "{0}, and {1} more";
+
+    /// <summary>
     /// Joins day labels for a validation message, capping at <see cref="MaxCollisionDaysListed"/>
     /// and summarising anything past that as "and N more" rather than naming every day.
+    ///
+    /// <paramref name="moreDaysFormat"/> is <see cref="MoreDaysKey"/> already looked up, which is
+    /// how the copy gets translated without this knowing what a localizer is; left null it stays
+    /// the English the key spells out. The ", " between the labels themselves is not translated:
+    /// a Thai day label reads "ส. 22 ส.ค. 2569", so three of them separated by the space Thai
+    /// would otherwise use between list items would be one unreadable run.
     /// </summary>
-    public static string JoinDayLabels(IReadOnlyList<string> labels) =>
+    public static string JoinDayLabels(IReadOnlyList<string> labels, string? moreDaysFormat = null) =>
         labels.Count <= MaxCollisionDaysListed
             ? string.Join(", ", labels)
-            : $"{string.Join(", ", labels.Take(MaxCollisionDaysListed))}, and {labels.Count - MaxCollisionDaysListed} more";
+            : string.Format(
+                CultureInfo.InvariantCulture,
+                moreDaysFormat ?? MoreDaysKey,
+                string.Join(", ", labels.Take(MaxCollisionDaysListed)),
+                labels.Count - MaxCollisionDaysListed);
 
     /// <summary>
     /// When a tick is logged. Ticking today records the actual moment; ticking a past or future

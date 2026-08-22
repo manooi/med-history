@@ -32,27 +32,35 @@ public static class EntryRules
     /// already cover: an unparseable datetime binds to <c>default(DateTime)</c>, which cannot be
     /// turned into an instant, so it has to be caught here before <see cref="AppTime.FromLocal"/>
     /// is asked to convert it. Null means the value is fine.
+    ///
+    /// A plain string rather than a <see cref="RuleMessage"/> because there is nothing to fill in:
+    /// the sentence is its own resource key, which is all a caller needs to look it up.
     /// </summary>
     public static string? ValidateOccurredAt(DateTime occurredAt) =>
         occurredAt == default ? "Enter a valid date and time." : null;
 
     /// <summary>
     /// Returns one message per broken rule; an empty list means the entry is valid.
+    ///
+    /// The type name goes into a numbered hole rather than into the sentence, because it is the
+    /// one thing here that varies at runtime — a user-added type is named whatever the reader
+    /// called it — and because Thai puts it somewhere English does not. See
+    /// <see cref="RuleMessage"/>.
     /// </summary>
-    public static IReadOnlyList<string> Validate(string type, Severity? severity, string? pillName, string? note)
+    public static IReadOnlyList<RuleMessage> Validate(string type, Severity? severity, string? pillName, string? note)
     {
-        var errors = new List<string>();
+        var errors = new List<RuleMessage>();
 
         if (RequiresSeverity(type))
         {
             if (severity is null)
             {
-                errors.Add($"Severity is required for {type} entries.");
+                errors.Add(new RuleMessage("Severity is required for {0} entries.", type));
             }
         }
         else if (severity is not null)
         {
-            errors.Add($"Severity does not apply to {type} entries.");
+            errors.Add(new RuleMessage("Severity does not apply to {0} entries.", type));
         }
 
         if (RequiresPillName(type))
@@ -64,12 +72,12 @@ public static class EntryRules
         }
         else if (!string.IsNullOrWhiteSpace(pillName))
         {
-            errors.Add($"Med name does not apply to {type} entries.");
+            errors.Add(new RuleMessage("Med name does not apply to {0} entries.", type));
         }
 
         if (RequiresNote(type) && string.IsNullOrWhiteSpace(note))
         {
-            errors.Add($"Note is required for {type} entries.");
+            errors.Add(new RuleMessage("Note is required for {0} entries.", type));
         }
 
         return errors;

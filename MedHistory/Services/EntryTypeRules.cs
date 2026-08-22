@@ -40,7 +40,7 @@ public static class EntryTypeRules
     /// The duplicate check is the friendly half of the unique index on lower(Name) that
     /// the database also enforces.
     /// </summary>
-    public static IReadOnlyList<string> ValidateNewName(string? raw, IEnumerable<string> existingNames)
+    public static IReadOnlyList<RuleMessage> ValidateNewName(string? raw, IEnumerable<string> existingNames)
     {
         var name = NormalizeName(raw);
 
@@ -49,16 +49,16 @@ public static class EntryTypeRules
             return ["Type name is required."];
         }
 
-        var errors = new List<string>();
+        var errors = new List<RuleMessage>();
 
         if (name.Length > NameMaxLength)
         {
-            errors.Add($"Type name must be {NameMaxLength} characters or fewer.");
+            errors.Add(new RuleMessage("Type name must be {0} characters or fewer.", NameMaxLength));
         }
 
         if (existingNames.Any(existing => NamesMatch(existing, name)))
         {
-            errors.Add($"A type named \"{name}\" already exists.");
+            errors.Add(new RuleMessage("A type named \"{0}\" already exists.", name));
         }
 
         return errors;

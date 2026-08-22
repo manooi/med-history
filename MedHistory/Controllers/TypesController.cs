@@ -3,6 +3,7 @@ using MedHistory.Models;
 using MedHistory.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 
 namespace MedHistory.Controllers;
 
@@ -16,10 +17,18 @@ public class TypesController : Controller
     private readonly AppDbContext _db;
     private readonly ILogger<TypesController> _logger;
 
-    public TypesController(AppDbContext db, ILogger<TypesController> logger)
+    // EntryTypeRules hands back keys; this is what turns them into the reader's copy before
+    // they reach ModelState, which asp-validation-summary renders as it finds them.
+    private readonly IStringLocalizer<SharedResource> _localizer;
+
+    public TypesController(
+        AppDbContext db,
+        ILogger<TypesController> logger,
+        IStringLocalizer<SharedResource> localizer)
     {
         _db = db;
         _logger = logger;
+        _localizer = localizer;
     }
 
     [HttpGet("/types")]
@@ -34,7 +43,7 @@ public class TypesController : Controller
 
         foreach (var error in errors)
         {
-            ModelState.AddModelError(string.Empty, error);
+            ModelState.AddModelError(string.Empty, _localizer.Localize(error));
         }
 
         if (!ModelState.IsValid)
@@ -61,7 +70,8 @@ public class TypesController : Controller
             // The unique index on lower(Name) is the real guard; the check above only
             // beats it if two adds race, which is worth a readable message rather than a 500.
             _db.ChangeTracker.Clear();
-            ModelState.AddModelError(string.Empty, $"A type named \"{normalized}\" already exists.");
+            ModelState.AddModelError(string.Empty,
+                _localizer["A type named \"{0}\" already exists.", normalized]);
             return View("Index", await BuildModel(name));
         }
 

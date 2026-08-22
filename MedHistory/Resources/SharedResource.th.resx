@@ -208,4 +208,127 @@
     <value>ก่อนนอน</value>
   </data>
 
+  <!-- ================================================================================
+       Copy the server produces rather than a view: validation and error messages.
+
+       These are shared because they have no view file to belong to. A pure rule hands its
+       verdict back as a RuleMessage — the English source text, which is the key, plus the
+       values its numbered holes take — and the controller looks it up here before adding it
+       to ModelState, because asp-validation-summary renders whatever string it finds there
+       verbatim and gives no view a chance to translate it.
+
+       Entry and medication *names* are never translated: they are data the reader typed (or
+       seeded English built-ins), rendered raw everywhere else in the app, so a hole that
+       carries one carries it as stored.
+       ================================================================================ -->
+
+  <!-- Login. The DataAnnotations message arrives here too — see Program.cs. -->
+  <data name="Password is required." xml:space="preserve">
+    <value>ต้องระบุรหัสผ่าน</value>
+    <comment>[Required] on LoginViewModel.Password; the ErrorMessage is this key.</comment>
+  </data>
+  <data name="Password not configured." xml:space="preserve">
+    <value>ยังไม่ได้ตั้งค่ารหัสผ่าน</value>
+    <comment>No Auth:Password in configuration — a deployment fault the reader can see.</comment>
+  </data>
+  <data name="Incorrect password." xml:space="preserve">
+    <value>รหัสผ่านไม่ถูกต้อง</value>
+  </data>
+  <data name="Too many attempts — try again in {0} min." xml:space="preserve">
+    <value>ลองมากเกินไป — ลองใหม่ในอีก {0} นาที</value>
+    <comment>{0} is whole minutes remaining, never below 1.</comment>
+  </data>
+
+  <!-- Entry types (/types) -->
+  <data name="Type name is required." xml:space="preserve">
+    <value>ต้องระบุชื่อประเภท</value>
+  </data>
+  <data name="Type name must be {0} characters or fewer." xml:space="preserve">
+    <value>ชื่อประเภทต้องยาวไม่เกิน {0} ตัวอักษร</value>
+    <comment>{0} is EntryTypeRules.NameMaxLength.</comment>
+  </data>
+  <data name="A type named &quot;{0}&quot; already exists." xml:space="preserve">
+    <value>มีประเภทชื่อ "{0}" อยู่แล้ว</value>
+    <comment>{0} is the name as typed. Raised by the rules and again by the unique index.</comment>
+  </data>
+
+  <!-- The entry form -->
+  <data name="Enter a valid date and time." xml:space="preserve">
+    <value>กรุณาระบุวันที่และเวลาให้ถูกต้อง</value>
+  </data>
+  <data name="Severity is required for {0} entries." xml:space="preserve">
+    <value>ต้องระบุความรุนแรงสำหรับบันทึกประเภท {0}</value>
+    <comment>{0} is the entry type's name, which is data and stays as stored.</comment>
+  </data>
+  <data name="Severity does not apply to {0} entries." xml:space="preserve">
+    <value>บันทึกประเภท {0} ไม่มีความรุนแรง</value>
+  </data>
+  <data name="Med name is required for Med entries." xml:space="preserve">
+    <value>ต้องระบุชื่อยาสำหรับบันทึกประเภทยา</value>
+    <comment>"Med" is hardcoded English in the source, so it reads as the ยา the rest of the app calls that report.</comment>
+  </data>
+  <data name="Med name does not apply to {0} entries." xml:space="preserve">
+    <value>บันทึกประเภท {0} ไม่มีชื่อยา</value>
+  </data>
+  <data name="Note is required for {0} entries." xml:space="preserve">
+    <value>ต้องระบุหมายเหตุสำหรับบันทึกประเภท {0}</value>
+    <comment>หมายเหตุ is the entry form's word for the Note field.</comment>
+  </data>
+
+  <!-- Photo uploads, on both the new and the edit entry form -->
+  <data name="Photo file is empty." xml:space="preserve">
+    <value>ไฟล์รูปภาพว่างเปล่า</value>
+  </data>
+  <data name="Photo exceeds the {0} MB limit." xml:space="preserve">
+    <value>รูปภาพมีขนาดเกินขีดจำกัด {0} MB</value>
+    <comment>{0} is the per-file limit in megabytes, as the entry form's own hint also states it.</comment>
+  </data>
+  <data name="Photo must be an image file." xml:space="preserve">
+    <value>ไฟล์ที่แนบต้องเป็นรูปภาพ</value>
+  </data>
+
+  <!-- The day's medication plan (/day/<key>/meds), add form and edit form alike -->
+  <data name="Medication name is required." xml:space="preserve">
+    <value>ต้องระบุชื่อยา</value>
+  </data>
+  <data name="Medication name must be {0} characters or fewer." xml:space="preserve">
+    <value>ชื่อยาต้องยาวไม่เกิน {0} ตัวอักษร</value>
+    <comment>{0} is ChecklistRules.NameMaxLength.</comment>
+  </data>
+  <data name="&quot;{0}&quot; is already on this day's checklist." xml:space="preserve">
+    <value>มี "{0}" อยู่ในรายการยาของวันที่เลือกแล้ว</value>
+    <comment>วันที่เลือก, not วันนี้: the meds page is often not today. Same choice as "This day's plan".</comment>
+  </data>
+  <data name="Pick at least one time of day." xml:space="preserve">
+    <value>เลือกช่วงเวลาของวันอย่างน้อยหนึ่งช่วง</value>
+    <comment>ช่วงเวลาของวัน is the add form's own label for that row of checkboxes.</comment>
+  </data>
+  <data name="Dose is required." xml:space="preserve">
+    <value>ต้องระบุขนาดยา</value>
+  </data>
+  <data name="Dose must be a number." xml:space="preserve">
+    <value>ขนาดยาต้องเป็นตัวเลข</value>
+  </data>
+  <data name="Dose must be between {0} and {1}." xml:space="preserve">
+    <value>ขนาดยาต้องอยู่ระหว่าง {0} ถึง {1}</value>
+    <comment>{0} and {1} arrive already formatted invariantly, so they read as the form will accept them back.</comment>
+  </data>
+  <data name="Dose must be a multiple of {0}." xml:space="preserve">
+    <value>ขนาดยาต้องเป็นจำนวนเท่าของ {0}</value>
+  </data>
+  <data name="End date must be on or after the start date." xml:space="preserve">
+    <value>วันสิ้นสุดต้องเป็นวันเริ่มต้นหรือหลังจากนั้น</value>
+  </data>
+  <data name="Range too long (max {0} days)." xml:space="preserve">
+    <value>ช่วงวันยาวเกินไป (สูงสุด {0} วัน)</value>
+  </data>
+  <data name="&quot;{0}&quot; is already used on {1}." xml:space="preserve">
+    <value>มี "{0}" อยู่แล้วใน {1}</value>
+    <comment>Renaming an allocation onto a day that already has that name. {1} is JoinDayLabels' output.</comment>
+  </data>
+  <data name="{0}, and {1} more" xml:space="preserve">
+    <value>{0} และอีก {1} วัน</value>
+    <comment>ChecklistRules.MoreDaysKey. The English comma before "and" is not carried over — Thai runs และ straight on — which is why the template owns the separator instead of the join.</comment>
+  </data>
+
 </root>

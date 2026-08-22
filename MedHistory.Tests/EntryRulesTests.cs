@@ -8,6 +8,17 @@ public class EntryRulesTests
     // A type added from the /types page: name only, no type-specific fields.
     private const string CustomType = "Blood pressure";
 
+    // The keys the rules hand back. Asserted by key rather than by a fragment of the sentence:
+    // the key is the contract now — it is what the .resx is indexed by — so a reworded message
+    // has to be reworded here too, where a substring match would have gone on passing. The type
+    // name is a numbered hole, never part of the key, because Thai does not put it where English
+    // does; where that matters the argument is asserted alongside.
+    private const string SeverityRequired = "Severity is required for {0} entries.";
+    private const string SeverityNotApplicable = "Severity does not apply to {0} entries.";
+    private const string MedNameRequired = "Med name is required for Med entries.";
+    private const string MedNameNotApplicable = "Med name does not apply to {0} entries.";
+    private const string NoteRequired = "Note is required for {0} entries.";
+
     // ---- Validate: Severity requirement ----
 
     [Theory]
@@ -19,7 +30,8 @@ public class EntryRulesTests
 
         var errors = EntryRules.Validate(type, severity: null, pillName: null, note: note);
 
-        Assert.Contains(errors, e => e.Contains("Severity is required"));
+        var error = Assert.Single(errors, e => e.Key == SeverityRequired);
+        Assert.Equal(new object[] { type }, error.Args);
     }
 
     [Theory]
@@ -31,7 +43,7 @@ public class EntryRulesTests
 
         var errors = EntryRules.Validate(type, severity: Severity.Light, pillName: null, note: note);
 
-        Assert.DoesNotContain(errors, e => e.Contains("Severity"));
+        Assert.DoesNotContain(errors, e => e.Key is SeverityRequired or SeverityNotApplicable);
     }
 
     [Theory]
@@ -47,7 +59,8 @@ public class EntryRulesTests
 
         var errors = EntryRules.Validate(type, severity: Severity.Light, pillName: pillName, note: note);
 
-        Assert.Contains(errors, e => e.Contains("Severity does not apply"));
+        var error = Assert.Single(errors, e => e.Key == SeverityNotApplicable);
+        Assert.Equal(new object[] { type }, error.Args);
     }
 
     // ---- Validate: Med name requirement ----
@@ -60,7 +73,7 @@ public class EntryRulesTests
     {
         var errors = EntryRules.Validate(BuiltInEntryTypes.Med, severity: null, pillName: pillName, note: null);
 
-        Assert.Contains(errors, e => e.Contains("Med name is required"));
+        Assert.Contains(errors, e => e.Key == MedNameRequired);
     }
 
     [Fact]
@@ -68,7 +81,7 @@ public class EntryRulesTests
     {
         var errors = EntryRules.Validate(BuiltInEntryTypes.Med, severity: null, pillName: "Aspirin", note: null);
 
-        Assert.DoesNotContain(errors, e => e.Contains("Med name"));
+        Assert.DoesNotContain(errors, e => e.Key is MedNameRequired or MedNameNotApplicable);
     }
 
     [Theory]
@@ -85,7 +98,8 @@ public class EntryRulesTests
 
         var errors = EntryRules.Validate(type, severity: severity, pillName: "Aspirin", note: note);
 
-        Assert.Contains(errors, e => e.Contains("Med name does not apply"));
+        var error = Assert.Single(errors, e => e.Key == MedNameNotApplicable);
+        Assert.Equal(new object[] { type }, error.Args);
     }
 
     // ---- Validate: Note requirement ----
@@ -97,7 +111,8 @@ public class EntryRulesTests
     {
         var errors = EntryRules.Validate(type, severity: null, pillName: null, note: null);
 
-        Assert.Contains(errors, e => e.Contains("Note is required"));
+        var error = Assert.Single(errors, e => e.Key == NoteRequired);
+        Assert.Equal(new object[] { type }, error.Args);
     }
 
     [Theory]
@@ -107,7 +122,8 @@ public class EntryRulesTests
     {
         var errors = EntryRules.Validate(type, severity: null, pillName: null, note: "   ");
 
-        Assert.Contains(errors, e => e.Contains("Note is required"));
+        var error = Assert.Single(errors, e => e.Key == NoteRequired);
+        Assert.Equal(new object[] { type }, error.Args);
     }
 
     [Theory]
