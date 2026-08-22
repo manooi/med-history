@@ -75,8 +75,14 @@ public sealed record ReportMonth(
 
     public string NextKey => ReportRules.MonthKey(FirstDay.AddMonths(1));
 
-    /// <summary>How the month reads under its name — the same fraction the cells carry.</summary>
-    public string ProgressLabel => Planned == 0 ? "nothing planned" : $"{Ticked}/{Planned} doses";
+    /// <summary>
+    /// How the month reads under its name — the same fraction the cells carry. A resource key
+    /// rather than the copy itself, for the reason <see cref="CultureRules.LanguageName"/> gives:
+    /// the rules stay pure and the view does the lookup. The view formats
+    /// <see cref="Ticked"/> and <see cref="Planned"/> into it in that order; the no-plan key takes
+    /// no placeholder and simply ignores them.
+    /// </summary>
+    public string ProgressKey => Planned == 0 ? "nothing planned" : "{0}/{1} doses";
 }
 
 /// <summary>

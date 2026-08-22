@@ -1,6 +1,6 @@
 @model DoctorReportViewModel
 @{
-    ViewData["Title"] = "Doctor report";
+    ViewData["Title"] = Localizer.GetString("Doctor report").Value;
     var today = AppTime.Today();
     var last30From = AppTime.Key(today.AddDays(-29));
     var last90From = AppTime.Key(today.AddDays(-89));
@@ -10,54 +10,57 @@
 @* Controls are hidden on paper — a printed page is for reading, not for changing the range. *@
 <div class="print:hidden">
     <header class="border-b border-black pb-4 dark:border-neutral-100">
-        <h1 class="font-semibold">Doctor report</h1>
-        <p class="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Printable date-range summary for visits</p>
+        <h1 class="font-semibold">@Localizer["Doctor report"]</h1>
+        <p class="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@Localizer["Printable date-range summary for visits"]</p>
     </header>
 
     <form method="get" action="/doctor-report" class="mt-6 flex flex-wrap items-end gap-2">
         <div class="min-w-0 flex-1">
-            <label for="doctor-from" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">From</label>
+            <label for="doctor-from" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@Localizer["From"]</label>
             <input type="date" id="doctor-from" name="from" value="@AppTime.Key(Model.From)"
                    class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100" />
         </div>
         <div class="min-w-0 flex-1">
-            <label for="doctor-to" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">To</label>
+            <label for="doctor-to" class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@Localizer["To"]</label>
             <input type="date" id="doctor-to" name="to" value="@AppTime.Key(Model.To)"
                    class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100" />
         </div>
         <button type="submit"
                 class="border border-black bg-white px-4 py-1 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
-            Apply
+            @Localizer["Apply"]
         </button>
     </form>
 
     <div class="mt-2 flex flex-wrap gap-4 text-sm">
-        <a href="/doctor-report?from=@last30From&amp;to=@todayKey" class="underline hover:no-underline">Last 30 days</a>
-        <a href="/doctor-report?from=@last90From&amp;to=@todayKey" class="underline hover:no-underline">Last 90 days</a>
+        <a href="/doctor-report?from=@last30From&amp;to=@todayKey" class="underline hover:no-underline">@Localizer["Last 30 days"]</a>
+        <a href="/doctor-report?from=@last90From&amp;to=@todayKey" class="underline hover:no-underline">@Localizer["Last 90 days"]</a>
     </div>
 </div>
 
 @* The printed report itself: everything below prints, everything above does not. *@
 <header class="mt-6 border-b border-black pb-4 dark:border-neutral-100">
-    <h2 class="font-semibold">med-history — @AppTime.DayLabel(Model.From, CultureInfo.CurrentUICulture) to @AppTime.DayLabel(Model.To, CultureInfo.CurrentUICulture)</h2>
+    @* Both dates are already in the reader's calendar — Buddhist-era under Thai, which is what the
+       doctor should be handed. The app's own name is not translated. *@
+    <h2 class="font-semibold">@Localizer["med-history — {0} to {1}", AppTime.DayLabel(Model.From, CultureInfo.CurrentUICulture), AppTime.DayLabel(Model.To, CultureInfo.CurrentUICulture)]</h2>
     <p class="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
         @if (Model.TypeCounts.Count == 0)
         {
-            @:Nothing logged in this range.
+            @Localizer["Nothing logged in this range."]
         }
         else
         {
+            @* Type names are user data; only the counts beside them are ours. *@
             @string.Join(" · ", Model.TypeCounts.Select(t => $"{t.Type} {t.Count}"))
         }
     </p>
-    <p class="text-sm text-neutral-600 dark:text-neutral-400">anxiety voted @Model.VotedDayCount/@Model.TotalDayCount days</p>
+    <p class="text-sm text-neutral-600 dark:text-neutral-400">@Localizer["anxiety voted {0}/{1} days", Model.VotedDayCount, Model.TotalDayCount]</p>
 </header>
 
 <section class="mt-6">
     @if (Model.Days.Count == 0)
     {
         <p class="border border-dashed border-neutral-400 px-4 py-10 text-center text-sm text-neutral-500 dark:border-neutral-500 dark:text-neutral-400">
-            Nothing logged in this range.
+            @Localizer["Nothing logged in this range."]
         </p>
     }
     else
@@ -66,11 +69,16 @@
             @foreach (var day in Model.Days)
             {
                 <div>
-                    <h3 class="flex items-baseline gap-2 text-sm font-semibold">
+                    @* Wraps rather than squeezing: the day and its anxiety note run about a fifth
+                       longer in Thai, and this is the only row on the printed page that lays two
+                       strings side by side. *@
+                    <h3 class="flex flex-wrap items-baseline gap-2 text-sm font-semibold">
                         <span>@AppTime.DayLabel(day.Day, CultureInfo.CurrentUICulture)</span>
                         @if (day.AnxietyLabel is not null)
                         {
-                            <span class="text-xs font-normal uppercase tracking-wide text-neutral-500 dark:text-neutral-400">anxiety: @day.AnxietyLabel</span>
+                            @* AnxietyLabel is the level's resource key, the same one the day widget
+                               and the anxiety report look up in the shared file. *@
+                            <span class="text-xs font-normal uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@Localizer["anxiety: {0}", L.GetString(day.AnxietyLabel).Value]</span>
                         }
                     </h3>
                     <ul class="mt-2 border-y border-neutral-300 divide-y divide-neutral-300 dark:border-neutral-600 dark:divide-neutral-600">
@@ -88,7 +96,11 @@
                                     }
                                     @if (entry.PhotoCount > 0)
                                     {
-                                        <span class="block text-xs text-neutral-500 dark:text-neutral-400">(@entry.PhotoCount @(entry.PhotoCount == 1 ? "photo" : "photos"))</span>
+                                        @* Two keys rather than one, so English keeps its plural;
+                                           Thai has none and answers both the same way. *@
+                                        <span class="block text-xs text-neutral-500 dark:text-neutral-400">@(entry.PhotoCount == 1
+                                            ? Localizer["({0} photo)", entry.PhotoCount]
+                                            : Localizer["({0} photos)", entry.PhotoCount])</span>
                                     }
                                 </span>
                             </li>

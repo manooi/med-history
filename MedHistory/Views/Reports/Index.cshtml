@@ -1,28 +1,30 @@
 @{
-    ViewData["Title"] = "Reports";
+    ViewData["Title"] = L.GetString("Reports").Value;
 }
 
-<h1 class="border-b border-black pb-4 font-semibold dark:border-neutral-100">Reports</h1>
+<h1 class="border-b border-black pb-4 font-semibold dark:border-neutral-100">@L["Reports"]</h1>
 
+@* The link names come from the shared file, where the nav flyout reads them too — the hub and the
+   flyout are two ways to the same five pages and must not drift apart. *@
 <div class="mt-6 space-y-3">
     <a href="/type-report" class="block border border-black bg-white px-4 py-3 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
-        <span class="block font-medium">By type</span>
-        <span class="block text-xs opacity-70">Entries for whichever types you pick, day by day</span>
+        <span class="block font-medium">@L["By type"]</span>
+        <span class="block text-xs opacity-70">@Localizer["Entries for whichever types you pick, day by day"]</span>
     </a>
     <a href="/med-report" class="block border border-black bg-white px-4 py-3 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
-        <span class="block font-medium">Med report</span>
-        <span class="block text-xs opacity-70">Month calendar of med slots ticked vs planned</span>
+        <span class="block font-medium">@Localizer["Med report"]</span>
+        <span class="block text-xs opacity-70">@Localizer["Month calendar of med slots ticked vs planned"]</span>
     </a>
     <a href="/anxiety-report" class="block border border-black bg-white px-4 py-3 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
-        <span class="block font-medium">Anxiety report</span>
-        <span class="block text-xs opacity-70">Month calendar of the daily anxiety vote</span>
+        <span class="block font-medium">@Localizer["Anxiety report"]</span>
+        <span class="block text-xs opacity-70">@Localizer["Month calendar of the daily anxiety vote"]</span>
     </a>
     <a href="/weight-report" class="block border border-black bg-white px-4 py-3 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
-        <span class="block font-medium">Weight report</span>
-        <span class="block text-xs opacity-70">Month calendar of logged weight readings</span>
+        <span class="block font-medium">@Localizer["Weight report"]</span>
+        <span class="block text-xs opacity-70">@Localizer["Month calendar of logged weight readings"]</span>
     </a>
     <a href="/doctor-report" class="block border border-black bg-white px-4 py-3 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
-        <span class="block font-medium">Doctor</span>
-        <span class="block text-xs opacity-70">Printable date-range summary for visits</span>
+        <span class="block font-medium">@L["Doctor"]</span>
+        <span class="block text-xs opacity-70">@Localizer["Printable date-range summary for visits"]</span>
     </a>
 </div>

@@ -1,45 +1,47 @@
 @model WeightReportViewModel
 @{
-    ViewData["Title"] = $"Weight — {Model.Month.Label(CultureInfo.CurrentUICulture)}";
+    ViewData["Title"] = Localizer.GetString("Weight — {0}", Model.Month.Label(CultureInfo.CurrentUICulture)).Value;
 }
 
 <header class="flex items-center justify-between gap-4 border-b border-black pb-4 dark:border-neutral-100">
-    <a href="/weight-report/@Model.Month.PreviousKey" title="Previous month"
+    <a href="/weight-report/@Model.Month.PreviousKey" title="@L.GetString("Previous month")"
        class="border border-black px-3 py-1 text-sm hover:bg-black hover:text-white dark:border-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">&larr;</a>
 
     <div class="text-center">
         <h1 class="font-semibold">@Model.Month.Label(CultureInfo.CurrentUICulture)</h1>
         <p class="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-            @(Model.Month.MeasuredCount == 0 ? "no readings" : $"{Model.Month.MeasuredCount} day(s) measured")
+            @(Model.Month.MeasuredCount == 0
+                ? Localizer["no readings"]
+                : Localizer["{0} day(s) measured", Model.Month.MeasuredCount])
         </p>
     </div>
 
-    <a href="/weight-report/@Model.Month.NextKey" title="Next month"
+    <a href="/weight-report/@Model.Month.NextKey" title="@L.GetString("Next month")"
        class="border border-black px-3 py-1 text-sm hover:bg-black hover:text-white dark:border-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">&rarr;</a>
 </header>
 
 <div class="mt-4 flex items-center gap-4 text-sm">
     @if (!Model.IsCurrentMonth)
     {
-        <a href="/weight-report" class="underline hover:no-underline">This month</a>
+        <a href="/weight-report" class="underline hover:no-underline">@L["This month"]</a>
     }
-    <a href="/" class="ml-auto underline hover:no-underline">Back to today</a>
+    <a href="/" class="ml-auto underline hover:no-underline">@L["Back to today"]</a>
 </div>
 
 @if (Model.Month.MeasuredCount > 0)
 {
     <div class="mt-4 grid grid-cols-3 gap-2 border border-neutral-300 px-4 py-3 text-center text-sm dark:border-neutral-600">
         <div>
-            <span class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Min</span>
-            <span class="tabular-nums">@MeasurementRules.FormatValue(Model.Month.Min!.Value) kg</span>
+            <span class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@Localizer["Min"]</span>
+            <span class="tabular-nums">@MeasurementRules.FormatValue(Model.Month.Min!.Value) @L["kg"]</span>
         </div>
         <div>
-            <span class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Avg</span>
-            <span class="tabular-nums">@MeasurementRules.FormatValue(Model.Month.Average!.Value) kg</span>
+            <span class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@Localizer["Avg"]</span>
+            <span class="tabular-nums">@MeasurementRules.FormatValue(Model.Month.Average!.Value) @L["kg"]</span>
         </div>
         <div>
-            <span class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Max</span>
-            <span class="tabular-nums">@MeasurementRules.FormatValue(Model.Month.Max!.Value) kg</span>
+            <span class="block text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@Localizer["Max"]</span>
+            <span class="tabular-nums">@MeasurementRules.FormatValue(Model.Month.Max!.Value) @L["kg"]</span>
         </div>
     </div>
 }
@@ -70,9 +72,11 @@
                 var tally = cell.Value;
                 var date = tally.Day;
 
+                var day = AppTime.DayLabel(date, CultureInfo.CurrentUICulture);
+
                 var label = tally.Value is null
-                    ? $"{AppTime.DayLabel(date, CultureInfo.CurrentUICulture)} — no reading"
-                    : $"{AppTime.DayLabel(date, CultureInfo.CurrentUICulture)} — {MeasurementRules.FormatValue(tally.Value.Value)} kg";
+                    ? Localizer.GetString("{0} — no reading", day).Value
+                    : Localizer.GetString("{0} — {1} kg", day, MeasurementRules.FormatValue(tally.Value.Value)).Value;
 
                 <a href="/day/@AppTime.Key(date)" title="@label" aria-label="@label"
                    class="flex min-h-14 flex-col items-center justify-center gap-1 border border-neutral-300 bg-white p-1 leading-none hover:bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800 dark:hover:bg-neutral-700">

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    Thai for Views/Reports/Index.cshtml — the report hub. The five report names themselves are
+    shared vocabulary (Resources/SharedResource.th.resx); what is here is the hub's own headings
+    and the one-line description under each link.
+  -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <data name="Med report" xml:space="preserve">
+    <value>รายงานยา</value>
+  </data>
+  <data name="Anxiety report" xml:space="preserve">
+    <value>รายงานความกังวล</value>
+  </data>
+  <data name="Weight report" xml:space="preserve">
+    <value>รายงานน้ำหนัก</value>
+  </data>
+  <data name="Entries for whichever types you pick, day by day" xml:space="preserve">
+    <value>รายการของประเภทที่เลือก แยกตามวัน</value>
+  </data>
+  <data name="Month calendar of med slots ticked vs planned" xml:space="preserve">
+    <value>ปฏิทินรายเดือน เทียบยาที่ติ๊กแล้วกับที่วางแผนไว้</value>
+  </data>
+  <data name="Month calendar of the daily anxiety vote" xml:space="preserve">
+    <value>ปฏิทินรายเดือนของระดับความกังวลที่เลือกไว้แต่ละวัน</value>
+  </data>
+  <data name="Month calendar of logged weight readings" xml:space="preserve">
+    <value>ปฏิทินรายเดือนของน้ำหนักที่บันทึกไว้</value>
+  </data>
+  <data name="Printable date-range summary for visits" xml:space="preserve">
+    <value>สรุปตามช่วงวันที่ สำหรับพิมพ์ไปพบแพทย์</value>
+    <comment>The doctor report says the same line about itself; each view keeps its own copy.</comment>
+  </data>
+</root>

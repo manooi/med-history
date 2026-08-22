@@ -1,27 +1,28 @@
 @model AnxietyReportViewModel
 @{
-    ViewData["Title"] = $"Anxiety — {Model.Month.Label(CultureInfo.CurrentUICulture)}";
+    ViewData["Title"] = Localizer.GetString("Anxiety — {0}", Model.Month.Label(CultureInfo.CurrentUICulture)).Value;
 }
 
 <header class="flex items-center justify-between gap-4 border-b border-black pb-4 dark:border-neutral-100">
-    <a href="/anxiety-report/@Model.Month.PreviousKey" title="Previous month"
+    <a href="/anxiety-report/@Model.Month.PreviousKey" title="@L.GetString("Previous month")"
        class="border border-black px-3 py-1 text-sm hover:bg-black hover:text-white dark:border-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">&larr;</a>
 
     <div class="text-center">
         <h1 class="font-semibold">@Model.Month.Label(CultureInfo.CurrentUICulture)</h1>
-        <p class="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@Model.Month.ProgressLabel</p>
+        @* ProgressKey names a resource, not copy — the count is formatted in here. *@
+        <p class="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@Localizer[Model.Month.ProgressKey, Model.Month.VotedCount]</p>
     </div>
 
-    <a href="/anxiety-report/@Model.Month.NextKey" title="Next month"
+    <a href="/anxiety-report/@Model.Month.NextKey" title="@L.GetString("Next month")"
        class="border border-black px-3 py-1 text-sm hover:bg-black hover:text-white dark:border-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">&rarr;</a>
 </header>
 
 <div class="mt-4 flex items-center gap-4 text-sm">
     @if (!Model.IsCurrentMonth)
     {
-        <a href="/anxiety-report" class="underline hover:no-underline">This month</a>
+        <a href="/anxiety-report" class="underline hover:no-underline">@L["This month"]</a>
     }
-    <a href="/" class="ml-auto underline hover:no-underline">Back to today</a>
+    <a href="/" class="ml-auto underline hover:no-underline">@L["Back to today"]</a>
 </div>
 
 @* Weeks run Monday first, sharing the med report's column order — see
@@ -54,9 +55,13 @@
 
                 var state = "border-neutral-300 bg-white hover:bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-800 dark:hover:bg-neutral-700";
 
+                var day = AppTime.DayLabel(date, CultureInfo.CurrentUICulture);
+
+                @* AnxietyRules.Label returns the level's resource key, so the shared file answers
+                   here exactly as it does for the day widget's buttons. *@
                 var label = tally.Level is null
-                    ? $"{AppTime.DayLabel(date, CultureInfo.CurrentUICulture)} — no vote"
-                    : $"{AppTime.DayLabel(date, CultureInfo.CurrentUICulture)} — {AnxietyRules.Label(tally.Level.Value)}";
+                    ? Localizer.GetString("{0} — no vote", day).Value
+                    : $"{day} — {L.GetString(AnxietyRules.Label(tally.Level.Value)).Value}";
 
                 <a href="/day/@AppTime.Key(date)" title="@label" aria-label="@label"
                    class="flex min-h-14 flex-col items-center justify-center gap-1 border p-1 leading-none @state">
@@ -71,6 +76,19 @@
     }
 </div>
 
+@* Read off AnxietyRules.Levels rather than spelled out, so the legend cannot fall out of step
+   with the levels themselves — and each name is looked up in the shared file, where the day
+   widget's buttons read it too. *@
 <div class="mt-4 text-xs text-neutral-500 dark:text-neutral-400">
-    😌 calm &middot; 🙂 ok &middot; 😟 tense &middot; 😰 anxious &middot; 😱 panic
+    @for (var i = 0; i < AnxietyRules.Levels.Count; i++)
+    {
+        var level = AnxietyRules.Levels[i];
+
+        if (i > 0)
+        {
+            <text> &middot; </text>
+        }
+
+        <span>@AnxietyRules.Emoji(level) @L[AnxietyRules.Label(level)]</span>
+    }
 </div>

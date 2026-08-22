@@ -128,4 +128,56 @@
   <data name="Doctor" xml:space="preserve">
     <value>แพทย์</value>
   </data>
+
+  <!-- The five anxiety levels. AnxietyRules.Label returns the key, not the copy — the day widget
+       and both the anxiety and doctor reports render the same five names. -->
+  <data name="calm" xml:space="preserve">
+    <value>สงบ</value>
+  </data>
+  <data name="ok" xml:space="preserve">
+    <value>โอเค</value>
+  </data>
+  <data name="tense" xml:space="preserve">
+    <value>ตึงเครียด</value>
+  </data>
+  <data name="anxious" xml:space="preserve">
+    <value>กังวล</value>
+    <comment>The adjective behind "Anxiety" above — the two read as one word in Thai.</comment>
+  </data>
+  <data name="panic" xml:space="preserve">
+    <value>ตื่นตระหนก</value>
+  </data>
+
+  <!-- Weight, as the day widget and the weight report both write it -->
+  <data name="kg" xml:space="preserve">
+    <value>กก.</value>
+  </data>
+
+  <!-- Copy every calendar report's header carries -->
+  <data name="Back to today" xml:space="preserve">
+    <value>กลับไปหน้าวันนี้</value>
+    <comment>Same wording the error page uses; that one keeps its own per-view copy.</comment>
+  </data>
+  <data name="This month" xml:space="preserve">
+    <value>เดือนนี้</value>
+  </data>
+  <data name="Previous month" xml:space="preserve">
+    <value>เดือนก่อนหน้า</value>
+    <comment>title on the ← arrow, which has no visible text.</comment>
+  </data>
+  <data name="Next month" xml:space="preserve">
+    <value>เดือนถัดไป</value>
+    <comment>title on the → arrow, which has no visible text.</comment>
+  </data>
+
+  <!-- Paging, shared by the type report and search -->
+  <data name="Newer" xml:space="preserve">
+    <value>ใหม่กว่า</value>
+  </data>
+  <data name="Older" xml:space="preserve">
+    <value>เก่ากว่า</value>
+  </data>
+  <data name="Page {0} of {1}" xml:space="preserve">
+    <value>หน้า {0} จาก {1}</value>
+  </data>
 </root>

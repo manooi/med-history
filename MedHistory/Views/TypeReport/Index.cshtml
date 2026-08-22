@@ -1,7 +1,9 @@
 @model TypeReportViewModel
 @{
     var hasSelection = Model.SelectedTypes.Count > 0;
-    ViewData["Title"] = hasSelection ? $"Type report — {Model.SelectedLabel}" : "Type report";
+    ViewData["Title"] = hasSelection
+        ? Localizer.GetString("Type report — {0}", Model.SelectedLabel).Value
+        : Localizer.GetString("Type report").Value;
 
     // Selection, page and sort ride along on every edit link, so saving an entry from here comes
     // back to this exact report rather than to the day the entry happens to sit on.
@@ -9,14 +11,15 @@
 }
 
 <header class="border-b border-black pb-4 dark:border-neutral-100">
-    <h1 class="font-semibold">Type report</h1>
+    <h1 class="font-semibold">@Localizer["Type report"]</h1>
     @if (hasSelection)
     {
+        @* The selection itself is type names — user data, never translated. *@
         <p class="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@Model.SelectedLabel</p>
     }
     else
     {
-        <p class="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Pick one or more types.</p>
+        <p class="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@Localizer["Pick one or more types."]</p>
     }
 </header>
 
@@ -37,10 +40,11 @@
     }
     @if (hasSelection)
     {
-        <a href="/type-report" class="px-1 text-sm underline hover:no-underline">Clear</a>
+        <a href="/type-report" class="px-1 text-sm underline hover:no-underline">@Localizer["Clear"]</a>
 
-        @* Names the order it switches TO, and keeps the page: the same days, read the other way. *@
-        <a href="@Model.SortToggleHref" class="px-1 text-sm underline hover:no-underline">@Model.SortToggleLabel</a>
+        @* Names the order it switches TO, and keeps the page: the same days, read the other way.
+           SortToggleLabel is the resource key — TypeReportRules stays free of a localizer. *@
+        <a href="@Model.SortToggleHref" class="px-1 text-sm underline hover:no-underline">@Localizer[Model.SortToggleLabel]</a>
     }
 </div>
 
@@ -50,7 +54,9 @@
         @if (Model.Days.Count == 0)
         {
             <p class="border border-dashed border-neutral-400 px-4 py-10 text-center text-sm text-neutral-500 dark:border-neutral-500 dark:text-neutral-400">
-                @(Model.SelectedTypes.Count == 1 ? "Nothing logged for this type." : "Nothing logged for these types.")
+                @(Model.SelectedTypes.Count == 1
+                    ? Localizer["Nothing logged for this type."]
+                    : Localizer["Nothing logged for these types."])
             </p>
         }
         else
@@ -111,13 +117,13 @@
                     @if (Model.HasNewerPage)
                     {
                         <a href="@TypeReportRules.Href(Model.SelectedTypes, Model.Page - 1, Model.Sort)"
-                           class="underline hover:no-underline">&larr; Newer</a>
+                           class="underline hover:no-underline">&larr; @L["Newer"]</a>
                     }
-                    <span class="text-neutral-500 dark:text-neutral-400">Page @Model.Page of @Model.PageCount</span>
+                    <span class="text-neutral-500 dark:text-neutral-400">@L["Page {0} of {1}", Model.Page, Model.PageCount]</span>
                     @if (Model.HasOlderPage)
                     {
                         <a href="@TypeReportRules.Href(Model.SelectedTypes, Model.Page + 1, Model.Sort)"
-                           class="underline hover:no-underline">Older &rarr;</a>
+                           class="underline hover:no-underline">@L["Older"] &rarr;</a>
                     }
                 </div>
             }

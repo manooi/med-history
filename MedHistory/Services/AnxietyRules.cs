@@ -38,7 +38,10 @@ public sealed record AnxietyMonth(
 
     public string NextKey => ReportRules.MonthKey(FirstDay.AddMonths(1));
 
-    public string ProgressLabel => $"{VotedCount} voted";
+    /// <summary>How the month reads under its name. A resource key rather than the copy itself,
+    /// the way <see cref="ReportMonth.ProgressKey"/> is: the view looks it up and formats
+    /// <see cref="VotedCount"/> into it.</summary>
+    public string ProgressKey => "{0} voted";
 }
 
 /// <summary>

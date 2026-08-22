@@ -19,6 +19,9 @@ public class ResourceLayoutTests
 {
     private static readonly CultureInfo Thai = new("th-TH");
 
+    /// <summary>Any month; the reports below are only asked what key they name, not what is in them.</summary>
+    private static readonly DateOnly August = new(2026, 8, 1);
+
     // What ResourceManagerStringLocalizerFactory computes: root namespace + the configured
     // ResourcesPath + the type's name with the root namespace trimmed off.
     private const string SharedBaseName = "MedHistory.Resources.SharedResource";
@@ -31,6 +34,14 @@ public class ResourceLayoutTests
     private const string MedsIndexBaseName = "MedHistory.Resources.Views.Meds.Index";
     private const string MedsEditBaseName = "MedHistory.Resources.Views.Meds.Edit";
     private const string TypesIndexBaseName = "MedHistory.Resources.Views.Types.Index";
+    private const string HubBaseName = "MedHistory.Resources.Views.Reports.Index";
+    private const string MedReportBaseName = "MedHistory.Resources.Views.Report.Index";
+    private const string TypeReportBaseName = "MedHistory.Resources.Views.TypeReport.Index";
+    private const string AnxietyReportBaseName = "MedHistory.Resources.Views.AnxietyReport.Index";
+    private const string WeightReportBaseName = "MedHistory.Resources.Views.WeightReport.Index";
+    private const string DoctorReportBaseName = "MedHistory.Resources.Views.DoctorReport.Index";
+    private const string HistoryBaseName = "MedHistory.Resources.Views.History.Index";
+    private const string SearchBaseName = "MedHistory.Resources.Views.Search.Index";
 
     [Fact]
     public void TheRealFactoryResolvesTheSharedFileFromTheMarkerType()
@@ -86,6 +97,19 @@ public class ResourceLayoutTests
     [InlineData("Anxiety", "ความกังวล")]
     [InlineData("Weight", "น้ำหนัก")]
     [InlineData("Doctor", "แพทย์")]
+    [InlineData("calm", "สงบ")]
+    [InlineData("ok", "โอเค")]
+    [InlineData("tense", "ตึงเครียด")]
+    [InlineData("anxious", "กังวล")]
+    [InlineData("panic", "ตื่นตระหนก")]
+    [InlineData("kg", "กก.")]
+    [InlineData("Back to today", "กลับไปหน้าวันนี้")]
+    [InlineData("This month", "เดือนนี้")]
+    [InlineData("Previous month", "เดือนก่อนหน้า")]
+    [InlineData("Next month", "เดือนถัดไป")]
+    [InlineData("Newer", "ใหม่กว่า")]
+    [InlineData("Older", "เก่ากว่า")]
+    [InlineData("Page {0} of {1}", "หน้า {0} จาก {1}")]
     public void SharedVocabularyIsTranslated(string key, string thai)
     {
         Assert.Equal(thai, Read(SharedBaseName, key));
@@ -124,6 +148,62 @@ public class ResourceLayoutTests
     [InlineData(TypesIndexBaseName, "New type")]
     [InlineData(TypesIndexBaseName, "Built-in")]
     [InlineData(TypesIndexBaseName, "Deactivate")]
+    [InlineData(HubBaseName, "Med report")]
+    [InlineData(HubBaseName, "Anxiety report")]
+    [InlineData(HubBaseName, "Weight report")]
+    [InlineData(HubBaseName, "Entries for whichever types you pick, day by day")]
+    [InlineData(HubBaseName, "Month calendar of med slots ticked vs planned")]
+    [InlineData(HubBaseName, "Month calendar of the daily anxiety vote")]
+    [InlineData(HubBaseName, "Month calendar of logged weight readings")]
+    [InlineData(HubBaseName, "Printable date-range summary for visits")]
+    [InlineData(MedReportBaseName, "Report — {0}")]
+    [InlineData(MedReportBaseName, "nothing planned")]
+    [InlineData(MedReportBaseName, "{0}/{1} doses")]
+    [InlineData(MedReportBaseName, "{0} — nothing planned")]
+    [InlineData(MedReportBaseName, "{0} — {1} of {2} doses")]
+    [InlineData(MedReportBaseName, "every dose")]
+    [InlineData(MedReportBaseName, "some doses")]
+    [InlineData(MedReportBaseName, "none of them")]
+    [InlineData(MedReportBaseName, "unboxed — nothing planned")]
+    [InlineData(TypeReportBaseName, "Type report")]
+    [InlineData(TypeReportBaseName, "Type report — {0}")]
+    [InlineData(TypeReportBaseName, "Pick one or more types.")]
+    [InlineData(TypeReportBaseName, "Clear")]
+    [InlineData(TypeReportBaseName, "Newest first ↓")]
+    [InlineData(TypeReportBaseName, "Oldest first ↑")]
+    [InlineData(TypeReportBaseName, "Nothing logged for this type.")]
+    [InlineData(TypeReportBaseName, "Nothing logged for these types.")]
+    [InlineData(AnxietyReportBaseName, "Anxiety — {0}")]
+    [InlineData(AnxietyReportBaseName, "{0} voted")]
+    [InlineData(AnxietyReportBaseName, "{0} — no vote")]
+    [InlineData(WeightReportBaseName, "Weight — {0}")]
+    [InlineData(WeightReportBaseName, "no readings")]
+    [InlineData(WeightReportBaseName, "{0} day(s) measured")]
+    [InlineData(WeightReportBaseName, "Min")]
+    [InlineData(WeightReportBaseName, "Avg")]
+    [InlineData(WeightReportBaseName, "Max")]
+    [InlineData(WeightReportBaseName, "{0} — no reading")]
+    [InlineData(WeightReportBaseName, "{0} — {1} kg")]
+    [InlineData(DoctorReportBaseName, "Doctor report")]
+    [InlineData(DoctorReportBaseName, "Printable date-range summary for visits")]
+    [InlineData(DoctorReportBaseName, "From")]
+    [InlineData(DoctorReportBaseName, "To")]
+    [InlineData(DoctorReportBaseName, "Apply")]
+    [InlineData(DoctorReportBaseName, "Last 30 days")]
+    [InlineData(DoctorReportBaseName, "Last 90 days")]
+    [InlineData(DoctorReportBaseName, "med-history — {0} to {1}")]
+    [InlineData(DoctorReportBaseName, "Nothing logged in this range.")]
+    [InlineData(DoctorReportBaseName, "anxiety voted {0}/{1} days")]
+    [InlineData(DoctorReportBaseName, "anxiety: {0}")]
+    [InlineData(DoctorReportBaseName, "({0} photo)")]
+    [InlineData(DoctorReportBaseName, "({0} photos)")]
+    [InlineData(HistoryBaseName, "No entries yet.")]
+    [InlineData(SearchBaseName, "Search — {0}")]
+    [InlineData(SearchBaseName, "Notes and med names")]
+    [InlineData(SearchBaseName, "Query")]
+    [InlineData(SearchBaseName, "No entries matched “{0}”.")]
+    [InlineData(SearchBaseName, "1 day matched")]
+    [InlineData(SearchBaseName, "{0} days matched")]
     public void PerViewKeyResolvesToThai(string baseName, string key)
     {
         var value = Read(baseName, key);
@@ -155,6 +235,80 @@ public class ResourceLayoutTests
         Assert.Contains("{0}", Read(MedsEditBaseName,
             "Only allocations dated on or after {0} that still carry this medication's current name are changed. " +
             "Days before this one, and doses already logged, are never touched."));
+    }
+
+    [Theory]
+    // The report copy that carries numbers. Same failure as above and quieter: a fraction whose
+    // translation dropped a hole reads as a report with no counts in it, not as an error.
+    [InlineData(MedReportBaseName, "{0}/{1} doses", 2)]
+    [InlineData(MedReportBaseName, "{0} — nothing planned", 1)]
+    [InlineData(MedReportBaseName, "{0} — {1} of {2} doses", 3)]
+    [InlineData(AnxietyReportBaseName, "{0} voted", 1)]
+    [InlineData(AnxietyReportBaseName, "{0} — no vote", 1)]
+    [InlineData(WeightReportBaseName, "{0} day(s) measured", 1)]
+    [InlineData(WeightReportBaseName, "{0} — no reading", 1)]
+    [InlineData(WeightReportBaseName, "{0} — {1} kg", 2)]
+    [InlineData(DoctorReportBaseName, "med-history — {0} to {1}", 2)]
+    [InlineData(DoctorReportBaseName, "anxiety voted {0}/{1} days", 2)]
+    [InlineData(DoctorReportBaseName, "anxiety: {0}", 1)]
+    [InlineData(DoctorReportBaseName, "({0} photo)", 1)]
+    [InlineData(DoctorReportBaseName, "({0} photos)", 1)]
+    [InlineData(SearchBaseName, "Search — {0}", 1)]
+    [InlineData(SearchBaseName, "No entries matched “{0}”.", 1)]
+    [InlineData(SearchBaseName, "{0} days matched", 1)]
+    [InlineData(SharedBaseName, "Page {0} of {1}", 2)]
+    public void EveryReportPlaceholderSurvivesTranslation(string baseName, string key, int holes)
+    {
+        var thai = Read(baseName, key);
+
+        for (var hole = 0; hole < holes; hole++)
+        {
+            Assert.Contains($"{{{hole}}}", thai);
+        }
+    }
+
+    [Fact]
+    public void TheProgressKeysTheReportsReturnAreRealKeysInTheirOwnViewFiles()
+    {
+        // ReportMonth and AnxietyMonth stay pure by naming a resource instead of holding copy, the
+        // way CultureRules.LanguageName does. Nothing but this connects the rules to the .resx, so
+        // a rename on either side would otherwise surface as raw English under the month name.
+        Assert.Equal("ไม่มีแผน", Read(MedReportBaseName, ReportRules.BuildMonth(August, [], []).ProgressKey));
+
+        var planned = ReportRules.BuildMonth(
+            August,
+            [new ReportAllocation(1, new DateOnly(2026, 8, 12), MedSlots.Morning)],
+            []);
+        Assert.Equal("{0}/{1} ขนาดยา", Read(MedReportBaseName, planned.ProgressKey));
+
+        Assert.Equal(
+            "เลือกระดับแล้ว {0} วัน",
+            Read(AnxietyReportBaseName, AnxietyRules.BuildMonth(August, []).ProgressKey));
+    }
+
+    [Theory]
+    [InlineData(TypeReportSort.NewestFirst)]
+    [InlineData(TypeReportSort.OldestFirst)]
+    public void TheSortLabelsTypeReportRulesReturnsAreRealKeysInTheTypeReportFile(TypeReportSort sort)
+    {
+        // Same contract: the toggle's copy is a key the view looks up, arrows and all.
+        var thai = Read(TypeReportBaseName, TypeReportRules.SortLabel(sort));
+
+        Assert.False(string.IsNullOrWhiteSpace(thai));
+        Assert.NotEqual(TypeReportRules.SortLabel(sort), thai);
+    }
+
+    [Theory]
+    [InlineData(AnxietyLevel.Calm, "สงบ")]
+    [InlineData(AnxietyLevel.Ok, "โอเค")]
+    [InlineData(AnxietyLevel.Tense, "ตึงเครียด")]
+    [InlineData(AnxietyLevel.Anxious, "กังวล")]
+    [InlineData(AnxietyLevel.Panic, "ตื่นตระหนก")]
+    public void TheLevelNamesAnxietyRulesReturnsAreSharedKeys(AnxietyLevel level, string thai)
+    {
+        // The day widget, the anxiety report's grid and legend, and the doctor report all render
+        // AnxietyRules.Label — one file answers all four, which is why it is the shared one.
+        Assert.Equal(thai, Read(SharedBaseName, AnxietyRules.Label(level)));
     }
 
     [Fact]

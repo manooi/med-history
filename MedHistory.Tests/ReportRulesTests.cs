@@ -471,20 +471,24 @@ public class ReportRulesTests
     }
 
     [Fact]
-    public void BuildMonth_ProgressLabel_ReadsAsAFraction()
+    public void BuildMonth_ProgressKey_IsTheFractionTemplate()
     {
+        // The key, not the copy — the view looks it up and formats Ticked then Planned into it.
+        // ResourceLayoutTests is what checks the key is really in the med report's .resx.
         var report = ReportRules.BuildMonth(
             August,
             [Allocation(1, MedSlots.Morning | MedSlots.Evening, new DateOnly(2026, 8, 12))],
             [Tick(10, 1, "Evening")]);
 
-        Assert.Equal("1/2 doses", report.ProgressLabel);
+        Assert.Equal("{0}/{1} doses", report.ProgressKey);
+        Assert.Equal(1, report.Ticked);
+        Assert.Equal(2, report.Planned);
     }
 
     [Fact]
-    public void BuildMonth_NothingPlanned_ProgressLabelSaysSo()
+    public void BuildMonth_NothingPlanned_ProgressKeySaysSo()
     {
-        Assert.Equal("nothing planned", ReportRules.BuildMonth(August, [], []).ProgressLabel);
+        Assert.Equal("nothing planned", ReportRules.BuildMonth(August, [], []).ProgressKey);
     }
 
     // ---- Month keys and labels ----

@@ -239,11 +239,14 @@ public class AnxietyRulesTests
     }
 
     [Fact]
-    public void ProgressLabel_ReadsAsCountVoted()
+    public void ProgressKey_IsTheCountTemplate()
     {
+        // The key, not the copy — the view looks it up and formats VotedCount into it, which is
+        // what keeps these rules free of a localizer. ResourceLayoutTests checks the key exists.
         var month = AnxietyRules.BuildMonth(August, [Vote(new DateOnly(2026, 8, 1), AnxietyLevel.Calm)]);
 
-        Assert.Equal("1 voted", month.ProgressLabel);
+        Assert.Equal("{0} voted", month.ProgressKey);
+        Assert.Equal(1, month.VotedCount);
     }
 
     // ---- Month keys, shared with ReportRules ----

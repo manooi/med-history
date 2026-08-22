@@ -1,6 +1,8 @@
 @model SearchViewModel
 @{
-    ViewData["Title"] = Model.Query is null ? "Search" : $"Search — {Model.Query}";
+    ViewData["Title"] = Model.Query is null
+        ? L.GetString("Search").Value
+        : Localizer.GetString("Search — {0}", Model.Query).Value;
 
     // Query and page ride along on every edit link, so saving an entry from here comes back to
     // this exact result page rather than to the day the entry happens to sit on.
@@ -8,19 +10,19 @@
 }
 
 <header class="border-b border-black pb-4 dark:border-neutral-100">
-    <h1 class="font-semibold">Search</h1>
-    <p class="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Notes and med names</p>
+    <h1 class="font-semibold">@L["Search"]</h1>
+    <p class="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@Localizer["Notes and med names"]</p>
 </header>
 
 <form method="get" action="/search" class="mt-6 flex items-end gap-2">
     <div class="flex-1">
-        <label for="q" class="block text-sm font-medium">Query</label>
+        <label for="q" class="block text-sm font-medium">@Localizer["Query"]</label>
         <input type="text" id="q" name="q" autocomplete="off" value="@Model.Query"
                class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100" />
     </div>
     <button type="submit"
             class="border border-black bg-white px-4 py-1 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
-        Search
+        @L["Search"]
     </button>
 </form>
 
@@ -30,13 +32,17 @@
         @if (Model.MatchedDayCount == 0)
         {
             <p class="border border-dashed border-neutral-400 px-4 py-10 text-center text-sm text-neutral-500 dark:border-neutral-500 dark:text-neutral-400">
-                No entries matched &ldquo;@Model.Query&rdquo;.
+                @* The query is what the reader typed, so it is the localizer's own encoding —
+                   the indexer's — that keeps it out of the markup. *@
+                @Localizer["No entries matched “{0}”.", Model.Query]
             </p>
         }
         else
         {
             <p class="text-sm text-neutral-500 dark:text-neutral-400">
-                @(Model.MatchedDayCount == 1 ? "1 day matched" : $"{Model.MatchedDayCount} days matched")
+                @(Model.MatchedDayCount == 1
+                    ? Localizer["1 day matched"]
+                    : Localizer["{0} days matched", Model.MatchedDayCount])
             </p>
 
             <div class="mt-4 space-y-6">
@@ -87,13 +93,13 @@
                     @if (Model.HasNewerPage)
                     {
                         <a href="/search?q=@Uri.EscapeDataString(Model.Query)&page=@(Model.Page - 1)"
-                           class="underline hover:no-underline">&larr; Newer</a>
+                           class="underline hover:no-underline">&larr; @L["Newer"]</a>
                     }
-                    <span class="text-neutral-500 dark:text-neutral-400">Page @Model.Page of @Model.PageCount</span>
+                    <span class="text-neutral-500 dark:text-neutral-400">@L["Page {0} of {1}", Model.Page, Model.PageCount]</span>
                     @if (Model.HasOlderPage)
                     {
                         <a href="/search?q=@Uri.EscapeDataString(Model.Query)&page=@(Model.Page + 1)"
-                           class="underline hover:no-underline">Older &rarr;</a>
+                           class="underline hover:no-underline">@L["Older"] &rarr;</a>
                     }
                 </div>
             }
