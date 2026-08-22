@@ -180,4 +180,32 @@
   <data name="Page {0} of {1}" xml:space="preserve">
     <value>หน้า {0} จาก {1}</value>
   </data>
+  <!-- The day widgets each link out to their own report; the reports are named above. -->
+  <data name="Report" xml:space="preserve">
+    <value>รายงาน</value>
+  </data>
+
+  <!-- Deleting an entry, from the day timeline and from the entry form. -->
+  <data name="Delete entry" xml:space="preserve">
+    <value>ลบบันทึก</value>
+  </data>
+  <data name="Delete this entry?" xml:space="preserve">
+    <value>ลบบันทึกนี้ใช่ไหม</value>
+    <comment>Read off data-confirm by the shared confirm dialog.</comment>
+  </data>
+
+  <!-- The four dose slots. MedPlanRules.SlotLabel hands back the English, which is the key. -->
+  <data name="morning" xml:space="preserve">
+    <value>เช้า</value>
+  </data>
+  <data name="noon" xml:space="preserve">
+    <value>กลางวัน</value>
+  </data>
+  <data name="evening" xml:space="preserve">
+    <value>เย็น</value>
+  </data>
+  <data name="bedtime" xml:space="preserve">
+    <value>ก่อนนอน</value>
+  </data>
+
 </root>

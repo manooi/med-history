@@ -42,6 +42,12 @@ public class ResourceLayoutTests
     private const string DoctorReportBaseName = "MedHistory.Resources.Views.DoctorReport.Index";
     private const string HistoryBaseName = "MedHistory.Resources.Views.History.Index";
     private const string SearchBaseName = "MedHistory.Resources.Views.Search.Index";
+    private const string DayIndexBaseName = "MedHistory.Resources.Views.Day.Index";
+    private const string DayChecklistBaseName = "MedHistory.Resources.Views.Day._Checklist";
+    private const string DayAnxietyBaseName = "MedHistory.Resources.Views.Day._Anxiety";
+    private const string DayWeightBaseName = "MedHistory.Resources.Views.Day._Weight";
+    private const string DayEntriesBaseName = "MedHistory.Resources.Views.Day._Entries";
+    private const string EntryFormBaseName = "MedHistory.Resources.Views.Entries.Form";
 
     [Fact]
     public void TheRealFactoryResolvesTheSharedFileFromTheMarkerType()
@@ -110,6 +116,13 @@ public class ResourceLayoutTests
     [InlineData("Newer", "ใหม่กว่า")]
     [InlineData("Older", "เก่ากว่า")]
     [InlineData("Page {0} of {1}", "หน้า {0} จาก {1}")]
+    [InlineData("Report", "รายงาน")]
+    [InlineData("Delete entry", "ลบบันทึก")]
+    [InlineData("Delete this entry?", "ลบบันทึกนี้ใช่ไหม")]
+    [InlineData("morning", "เช้า")]
+    [InlineData("noon", "กลางวัน")]
+    [InlineData("evening", "เย็น")]
+    [InlineData("bedtime", "ก่อนนอน")]
     public void SharedVocabularyIsTranslated(string key, string thai)
     {
         Assert.Equal(thai, Read(SharedBaseName, key));
@@ -204,6 +217,37 @@ public class ResourceLayoutTests
     [InlineData(SearchBaseName, "No entries matched “{0}”.")]
     [InlineData(SearchBaseName, "1 day matched")]
     [InlineData(SearchBaseName, "{0} days matched")]
+    [InlineData(DayIndexBaseName, "Previous day")]
+    [InlineData(DayIndexBaseName, "Next day")]
+    [InlineData(DayIndexBaseName, "Jump to date")]
+    [InlineData(DayIndexBaseName, "No active types — manage types")]
+    [InlineData(DayChecklistBaseName, "Meds")]
+    [InlineData(DayChecklistBaseName, "Manage")]
+    [InlineData(DayChecklistBaseName, "Nothing allocated for this day.")]
+    [InlineData(DayChecklistBaseName, "Log the {0} dose of {1}")]
+    [InlineData(DayChecklistBaseName, "Undo the {0} dose of {1}")]
+    [InlineData(DayAnxietyBaseName, "Vote {0} for today")]
+    [InlineData(DayAnxietyBaseName, "Clear today's vote of {0}")]
+    [InlineData(DayWeightBaseName, "Delete this weight reading?")]
+    [InlineData(DayWeightBaseName, "Delete reading")]
+    [InlineData(DayWeightBaseName, "Enter a valid time and weight.")]
+    [InlineData(DayEntriesBaseName, "Nothing logged for this day.")]
+    [InlineData(EntryFormBaseName, "New {0}")]
+    [InlineData(EntryFormBaseName, "Edit {0}")]
+    [InlineData(EntryFormBaseName, "Time")]
+    [InlineData(EntryFormBaseName, "Severity")]
+    [InlineData(EntryFormBaseName, "Light")]
+    [InlineData(EntryFormBaseName, "Moderate")]
+    [InlineData(EntryFormBaseName, "Severe")]
+    [InlineData(EntryFormBaseName, "Med name")]
+    [InlineData(EntryFormBaseName, "Note")]
+    [InlineData(EntryFormBaseName, "(optional)")]
+    [InlineData(EntryFormBaseName, "Photos")]
+    [InlineData(EntryFormBaseName, "(optional, up to {0} MB each)")]
+    [InlineData(EntryFormBaseName, "Use photo date")]
+    [InlineData(EntryFormBaseName, "Photo taken {0}")]
+    [InlineData(EntryFormBaseName, "Existing photos")]
+    [InlineData(EntryFormBaseName, "Remove this photo?")]
     public void PerViewKeyResolvesToThai(string baseName, string key)
     {
         var value = Read(baseName, key);
@@ -309,6 +353,54 @@ public class ResourceLayoutTests
         // The day widget, the anxiety report's grid and legend, and the doctor report all render
         // AnxietyRules.Label — one file answers all four, which is why it is the shared one.
         Assert.Equal(thai, Read(SharedBaseName, AnxietyRules.Label(level)));
+    }
+
+    [Theory]
+    [InlineData(DayChecklistBaseName, "Log the {0} dose of {1}", 2)]
+    [InlineData(DayChecklistBaseName, "Undo the {0} dose of {1}", 2)]
+    [InlineData(DayAnxietyBaseName, "Vote {0} for today", 1)]
+    [InlineData(DayAnxietyBaseName, "Clear today's vote of {0}", 1)]
+    [InlineData(EntryFormBaseName, "New {0}", 1)]
+    [InlineData(EntryFormBaseName, "Edit {0}", 1)]
+    [InlineData(EntryFormBaseName, "(optional, up to {0} MB each)", 1)]
+    [InlineData(EntryFormBaseName, "Photo taken {0}", 1)]
+    public void TheDayPagePlaceholdersSurviveTranslation(string baseName, string key, int holes)
+    {
+        // Thai reorders the sentence around them — the medication's name comes first in
+        // "บันทึกขนาดยา {1} ช่วง{0}" — so what has to hold is that every hole is still there to be
+        // filled, not where it sits. A dropped hole loses the name or the number it carried,
+        // silently: string.Format is perfectly happy to ignore an argument.
+        var value = Read(baseName, key);
+        Assert.NotNull(value);
+
+        for (var hole = 0; hole < holes; hole++)
+        {
+            Assert.Contains($"{{{hole}}}", value);
+        }
+    }
+
+    [Fact]
+    public void TheWordsThePureRulesHandBackAreRealKeys()
+    {
+        // MedPlanRules and AnxietyRules stay pure and go on returning English; the day page looks
+        // that English up as a key, the way the layout does with CultureRules.LanguageName.
+        // Nothing but this test connects the two sides, so a reworded label would otherwise
+        // surface as one English word sitting in the middle of the Thai.
+        foreach (var key in MedPlanRules.AllSlots.Select(MedPlanRules.SlotLabel))
+        {
+            Assert.False(string.IsNullOrWhiteSpace(Read(SharedBaseName, key)),
+                $"Slot '{key}' is not a key in the shared file.");
+        }
+
+        // AnxietyRules.Label is read the same way, by the day's vote widget and by the anxiety and
+        // doctor reports; its five words are asserted where they are written, with the reports.
+
+        // Same shape, one file down: the entry form relabels the severity picker by enum name.
+        foreach (var key in Enum.GetNames<Severity>())
+        {
+            Assert.False(string.IsNullOrWhiteSpace(Read(EntryFormBaseName, key)),
+                $"Severity '{key}' is not a key in the entry form's file.");
+        }
     }
 
     [Fact]

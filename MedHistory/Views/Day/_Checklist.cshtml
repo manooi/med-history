@@ -11,7 +11,7 @@
    progress label in the summary is what the day should be judged by without opening it. *@
 <details class="group mt-6 border border-black dark:border-neutral-100">
     <summary class="flex list-none cursor-pointer items-center gap-2 border-b border-black px-3 py-2 hover:bg-neutral-100 dark:border-neutral-100 dark:hover:bg-neutral-700 [&::-webkit-details-marker]:hidden">
-        <h2 class="text-sm font-semibold uppercase tracking-wide">Meds</h2>
+        <h2 class="text-sm font-semibold uppercase tracking-wide">@Localizer["Meds"]</h2>
         <span class="text-xs text-neutral-500 dark:text-neutral-400">@ChecklistRules.ProgressLabel(Model.Checklist)</span>
         @* Own marker, not the native one — killed above the same way the mobile nav kills it. *@
         <span aria-hidden="true" class="ml-auto transition-transform group-open:rotate-90">&#9656;</span>
@@ -20,14 +20,14 @@
     <div class="flex justify-end border-b border-black px-3 py-2 dark:border-neutral-100">
         <a href="/day/@dayKey/meds"
            class="border border-black bg-white px-2 py-1 text-xs text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
-            Manage
+            @Localizer["Manage"]
         </a>
     </div>
 
     @if (Model.Checklist.Count == 0)
     {
         <p class="px-3 py-6 text-center text-sm text-neutral-500 dark:text-neutral-400">
-            Nothing allocated for this day.
+            @Localizer["Nothing allocated for this day."]
         </p>
     }
     else
@@ -63,9 +63,14 @@
                         @foreach (var slot in row.Slots)
                         {
                             var action = slot.IsTicked ? "untick" : "tick";
+                            @* The slot reads as a word — "morning" — which is the resource key for
+                               its own translation; the rules stay pure and keep handing back the
+                               English. Medication names are the user's own text and are never
+                               looked up, only formatted in. *@
+                            var slotLabel = L.GetString(slot.Label).Value;
                             var label = slot.IsTicked
-                                ? $"Undo the {slot.Label} dose of {row.Name}"
-                                : $"Log the {slot.Label} dose of {row.Name}";
+                                ? Localizer.GetString("Undo the {0} dose of {1}", slotLabel, row.Name).Value
+                                : Localizer.GetString("Log the {0} dose of {1}", slotLabel, row.Name).Value;
                             var slotKey = $"{row.AllocationId}:{slot.Name}";
 
                             <form method="post" action="/checklist/@row.AllocationId/@action/@slot.Name" asp-antiforgery="true">
@@ -73,7 +78,7 @@
                                    is what puts keyboard focus back on the same slot afterwards. *@
                                 <button type="submit" title="@label" aria-label="@label" data-slot="@slotKey"
                                         class="border px-2 py-1 text-xs leading-none tabular-nums @(slot.IsTicked ? "border-black bg-black text-white hover:bg-white hover:text-black dark:border-neutral-100 dark:bg-neutral-100 dark:text-neutral-950 dark:hover:bg-neutral-800 dark:hover:text-neutral-100" : "border-neutral-400 bg-white text-neutral-600 hover:border-black hover:bg-black hover:text-white dark:border-neutral-500 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:border-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950")">
-                                    @slot.Label @(slot.IsTicked ? "✓" : "□")
+                                    @slotLabel @(slot.IsTicked ? "✓" : "□")
                                 </button>
                             </form>
                         }

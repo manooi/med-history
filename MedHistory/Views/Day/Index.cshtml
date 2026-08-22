@@ -6,27 +6,27 @@
 }
 
 <header class="flex items-center justify-between gap-4 border-b border-black pb-4 dark:border-neutral-100">
-    <a href="/day/@AppTime.Key(Model.PreviousDay)" title="Previous day"
+    <a href="/day/@AppTime.Key(Model.PreviousDay)" title="@Localizer.GetString("Previous day")"
        class="border border-black px-3 py-1 text-sm hover:bg-black hover:text-white dark:border-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">&larr;</a>
 
     <div class="text-center">
         <h1 class="font-semibold">@dayLabel</h1>
         @if (Model.IsToday)
         {
-            <p class="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Today</p>
+            <p class="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">@L["Today"]</p>
         }
     </div>
 
-    <a href="/day/@AppTime.Key(Model.NextDay)" title="Next day"
+    <a href="/day/@AppTime.Key(Model.NextDay)" title="@Localizer.GetString("Next day")"
        class="border border-black px-3 py-1 text-sm hover:bg-black hover:text-white dark:border-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">&rarr;</a>
 </header>
 
 <div class="mt-4 flex items-center justify-between gap-3">
-    <input type="date" id="day-picker" value="@dayKey" aria-label="Jump to date"
+    <input type="date" id="day-picker" value="@dayKey" aria-label="@Localizer.GetString("Jump to date")"
            class="border border-black bg-white px-2 py-1 text-sm dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100" />
     @if (!Model.IsToday)
     {
-        <a href="/" class="text-sm underline hover:no-underline">Back to today</a>
+        <a href="/" class="text-sm underline hover:no-underline">@L["Back to today"]</a>
     }
 </div>
 
@@ -49,7 +49,7 @@
     }
     @if (Model.NewEntryTypes.Count == 0)
     {
-        <a href="/types" class="text-sm underline hover:no-underline">No active types — manage types</a>
+        <a href="/types" class="text-sm underline hover:no-underline">@Localizer["No active types — manage types"]</a>
     }
 </div>
 

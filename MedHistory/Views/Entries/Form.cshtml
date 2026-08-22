@@ -1,7 +1,13 @@
+@using System.Text.Json
 @model EntryFormViewModel
 @{
     var isEdit = Model.IsEdit;
-    ViewData["Title"] = $"{(isEdit ? "Edit" : "New")} {Model.Type}";
+    // One template per mode rather than a translated word glued in front of the type: Thai does
+    // not put the two together the way English does, and the type is the user's own name for it.
+    var heading = isEdit
+        ? Localizer.GetString("Edit {0}", Model.Type).Value
+        : Localizer.GetString("New {0}", Model.Type).Value;
+    ViewData["Title"] = heading;
 
     var postUrl = isEdit ? $"/entries/{Model.Id}" : "/entries";
     var cancelDay = Model.OccurredAt == default ? AppTime.Today() : DateOnly.FromDateTime(Model.OccurredAt);
@@ -11,9 +17,24 @@
     var returnUrl = RedirectRules.Sanitize(Model.ReturnUrl, Url.IsLocalUrl);
     var cancelHref = returnUrl ?? $"/day/{AppTime.Key(cancelDay)}";
     var fieldClass = "mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100";
+
+    // Only hung off the Note label when the note really is optional for this type.
+    var noteOptional = EntryRules.RequiresNote(Model.Type)
+        ? string.Empty
+        : " " + Localizer.GetString("(optional)").Value;
+
+    // The picker's own copy, keyed by the enum names; the values MVC generates are untouched, so
+    // what the select posts back is exactly what it posted before.
+    var severityItems = Html.GetEnumSelectList<Severity>()
+        .Select(item => new SelectListItem(Localizer.GetString(item.Text).Value, item.Value))
+        .ToList();
+
+    // The photo-date button's title is assembled in the browser, from a date only the browser has
+    // read, so its copy is handed down as JSON — which also escapes the Thai into the script.
+    var photoDateTitleJson = JsonSerializer.Serialize(Localizer.GetString("Photo taken {0}").Value);
 }
 
-<h1 class="border-b border-black pb-4 font-semibold dark:border-neutral-100">@(isEdit ? "Edit" : "New") @Model.Type</h1>
+<h1 class="border-b border-black pb-4 font-semibold dark:border-neutral-100">@heading</h1>
 
 <form method="post" action="@postUrl" enctype="multipart/form-data" asp-antiforgery="true" class="mt-6 space-y-4">
     <input type="hidden" name="Type" value="@Model.Type" />
@@ -30,7 +51,7 @@
     <div asp-validation-summary="All" class="text-sm text-neutral-700 dark:text-neutral-300"></div>
 
     <div>
-        <label for="OccurredAt" class="block text-sm font-medium">Time</label>
+        <label for="OccurredAt" class="block text-sm font-medium">@Localizer["Time"]</label>
         <input type="datetime-local" id="OccurredAt" name="OccurredAt" required
                value="@AppTime.InputValue(Model.OccurredAt)" class="@fieldClass" />
         <div class="mt-1 flex flex-wrap gap-2">
@@ -43,7 +64,7 @@
             }
             <button type="button" id="use-photo-date"
                     class="hidden border border-black bg-white px-2 py-1 text-sm hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
-                Use photo date
+                @Localizer["Use photo date"]
             </button>
         </div>
     </div>
@@ -51,29 +72,29 @@
     @if (EntryRules.RequiresSeverity(Model.Type))
     {
         <div>
-            <label asp-for="Severity" class="block text-sm font-medium">Severity</label>
-            <select asp-for="Severity" asp-items="Html.GetEnumSelectList<Severity>()" class="@fieldClass"></select>
+            <label asp-for="Severity" class="block text-sm font-medium">@Localizer["Severity"]</label>
+            <select asp-for="Severity" asp-items="severityItems" class="@fieldClass"></select>
         </div>
     }
 
     @if (EntryRules.RequiresPillName(Model.Type))
     {
         <div>
-            <label asp-for="PillName" class="block text-sm font-medium">Med name</label>
+            <label asp-for="PillName" class="block text-sm font-medium">@Localizer["Med name"]</label>
             <input asp-for="PillName" type="text" autocomplete="off" class="@fieldClass" />
         </div>
     }
 
     <div>
         <label asp-for="Note" class="block text-sm font-medium">
-            Note@(EntryRules.RequiresNote(Model.Type) ? "" : " (optional)")
+            @Localizer["Note"]@noteOptional
         </label>
         <textarea asp-for="Note" rows="3" class="@fieldClass"></textarea>
     </div>
 
     <div>
         <label for="photos" class="block text-sm font-medium">
-            Photos <span class="font-normal text-neutral-500 dark:text-neutral-400">(optional, up to @(PhotoRules.MaxSizeBytes / (1024 * 1024)) MB each)</span>
+            @Localizer["Photos"] <span class="font-normal text-neutral-500 dark:text-neutral-400">@Localizer.GetString("(optional, up to {0} MB each)", PhotoRules.MaxSizeBytes / (1024 * 1024))</span>
         </label>
         <input type="file" id="photos" name="photos" multiple accept="image/*"
                class="mt-1 w-full border border-black bg-white px-2 py-1 text-sm text-black file:mr-3 file:border file:border-black file:bg-white file:px-2 file:py-0.5 file:text-sm file:text-black hover:file:bg-black hover:file:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:file:border-neutral-100 dark:file:bg-neutral-800 dark:file:text-neutral-100 dark:hover:file:bg-neutral-100 dark:hover:file:text-neutral-950" />
@@ -82,16 +103,16 @@
     <div class="flex items-center gap-3 pt-2">
         <button type="submit"
                 class="border border-black bg-white px-4 py-1 text-sm text-black hover:bg-black hover:text-white dark:border-neutral-100 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-100 dark:hover:text-neutral-950">
-            Save
+            @L["Save"]
         </button>
-        <a href="@cancelHref" class="text-sm underline hover:no-underline">Cancel</a>
+        <a href="@cancelHref" class="text-sm underline hover:no-underline">@L["Cancel"]</a>
     </div>
 </form>
 
 @if (isEdit && Model.ExistingPhotos.Count > 0)
 {
     <div class="mt-8 border-t border-neutral-300 pt-4 dark:border-neutral-600">
-        <span class="block text-sm font-medium">Existing photos</span>
+        <span class="block text-sm font-medium">@Localizer["Existing photos"]</span>
         <ul class="mt-2 flex flex-wrap gap-3">
             @foreach (var photo in Model.ExistingPhotos)
             {
@@ -104,9 +125,10 @@
                             @* Removing a photo bounces back through this page — the origin has to come with it. *@
                             <input type="hidden" name="returnUrl" value="@returnUrl" />
                         }
-                        <button type="submit" data-confirm="Remove this photo?"
+                        @* The dialog reads its question straight off the attribute. *@
+                        <button type="submit" data-confirm="@Localizer.GetString("Remove this photo?")"
                                 class="text-xs text-red-600 underline hover:no-underline dark:text-red-400">
-                            Remove
+                            @L["Remove"]
                         </button>
                     </form>
                 </li>
@@ -123,9 +145,9 @@
         {
             <input type="hidden" name="returnUrl" value="@returnUrl" />
         }
-        <button type="submit" data-confirm="Delete this entry?"
+        <button type="submit" data-confirm="@L.GetString("Delete this entry?")"
                 class="border border-red-600 bg-white px-4 py-1 text-sm text-red-600 hover:bg-red-600 hover:text-white dark:border-red-400 dark:bg-neutral-800 dark:text-red-400">
-            Delete entry
+            @L["Delete entry"]
         </button>
     </form>
 }
@@ -287,11 +309,16 @@
         var photoDateButton = document.getElementById('use-photo-date');
         var photoDateValue = null;
 
+        // Copy handed down from Razor — the script must not decide what the title says in either
+        // language. The date itself is an identifier the browser read out of the photo, so it
+        // stays as it is and only fills the hole.
+        var photoDateTitle = @Html.Raw(photoDateTitleJson);
+
         function setPhotoDate(value) {
             photoDateValue = value;
             if (!photoDateButton) return;
             if (value) {
-                photoDateButton.title = 'Photo taken ' + value.replace('T', ' ');
+                photoDateButton.title = photoDateTitle.replace('{0}', value.replace('T', ' '));
                 photoDateButton.classList.remove('hidden');
             } else {
                 photoDateButton.removeAttribute('title');
