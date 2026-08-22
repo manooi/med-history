@@ -77,8 +77,8 @@
                         <form method="post" action="/day/@dayKey/meds/stock/@stock.Id/delete" asp-antiforgery="true" class="shrink-0">
                             <button type="submit" data-confirm="Stop tracking stock for this medication? Logged doses are kept."
                                     aria-label="Stop tracking stock"
-                                    class="px-2 py-1 text-sm leading-none text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
-                                &times;
+                                    class="px-2 py-1 text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
+                                Stop tracking
                             </button>
                         </form>
                     </div>
@@ -257,8 +257,8 @@
                     <form method="post" action="/checklist/@item.Id/delete" asp-antiforgery="true" class="shrink-0">
                         <button type="submit" data-confirm="Remove this medication from the checklist? Logged doses are kept."
                                 aria-label="Remove from checklist"
-                                class="px-2 py-1 text-sm leading-none text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
-                            &times;
+                                class="px-2 py-1 text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
+                            Remove
                         </button>
                     </form>
                 </li>
